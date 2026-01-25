@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block title %}Danh Sách Thành Viên{% endblock %}
+
+{% block extra_css %}
+<style>
+    .member-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .member-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    #memberModal {
+        backdrop-filter: blur(4px);
+    }
+    #memberModal .modal-content {
+        animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .children-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 0.5rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+    
+    .child-link {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .child-link:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .child-link.male {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .child-link.female {
+        background: #fce7f3;
+        color: #be185d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow text-center">
+            <div class="text-3xl font-bold text-[#78350f]">{{ total_count }}</div>
+            <div class="text-sm text-gray-500">Tổng thành viên</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow text-center">
+            <div class="text-3xl font-bold text-[#b45309]">{{ dinh_count }}</div>
+            <div class="text-sm text-gray-500">Suất Đinh</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow text-center">
+            <div class="text-3xl font-bold text-[#059669]">8</div>
+            <div class="text-sm text-gray-500">Chi</div>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow text-center">
+            <div class="text-3xl font-bold text-[#2563eb]">{{ page_obj.paginator.count }}</div>
+            <div class="text-sm text-gray-500">Kết quả hiện tại</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white p-4 rounded-lg shadow mb-6">
+        <form method="GET" class="grid md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
+                <input type="text" name="q" value="{{ search_query }}" 
+                    class="w-full border border-gray-300 rounded-lg p-2.5"
+                    placeholder="Nhập tên...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Chi</label>
+                <select name="chi" class="w-full border border-gray-300 rounded-lg p-2.5">
+                    <option value="">Tất cả Chi</option>
+                    {% for chi in chi_list %}
+                    <option value="{{ chi.number }}" {% if selected_chi == chi.number|stringformat:"d" %}selected{% endif %}>
+                        Chi {{ chi.number }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
+                <select name="gender" class="w-full border border-gray-300 rounded-lg p-2.5">
+                    <option value="">Tất cả</option>
+                    <option value="male" {% if selected_gender == 'male' %}selected{% endif %}>Nam</option>
+                    <option value="female" {% if selected_gender == 'female' %}selected{% endif %}>Nữ</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Phân loại</label>
+                <select name="type" class="w-full border border-gray-300 rounded-lg p-2.5">
+                    <option value="">Tất cả</option>
+                    <option value="blood" {% if selected_type == 'blood' %}selected{% endif %}>Dòng trực hệ</option>
+                    <option value="spouse_in" {% if selected_type == 'spouse_in' %}selected{% endif %}>Dâu/Rể</option>
+                    <option value="dinh" {% if selected_type == 'dinh' %}selected{% endif %}>Chỉ Đinh</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-[#78350f] text-white py-2.5 rounded-lg hover:bg-[#92400e] transition font-bold">
+                    🔍 Lọc
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Member Grid -->
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+        {% for member in members %}
+        <div class="member-card bg-white rounded-lg shadow hover:shadow-lg p-4 border-l-4 {% if member.is_dinh %}border-[#78350f]{% else %}border-gray-200{% endif %}"
+             onclick="showMemberModal({{ member.pk }})">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="font-bold text-[#78350f]">{{ member.name }}</h3>
+                    <p class="text-sm text-gray-500">
+                        {% if member.chi %}Chi {{ member.chi.number }}{% else %}Chưa xác định{% endif %}
+                        {% if member.generation %} • Đời {{ member.generation }}{% endif %}
+                    </p>
+                </div>
+                <span class="text-2xl">{% if member.gender == 'male' %}👨{% else %}👩{% endif %}</span>
+            </div>
+            <div class="mt-2 flex gap-1 flex-wrap">
+                {% if member.is_dinh %}
+                <span class="text-xs bg-[#78350f] text-white px-2 py-0.5 rounded">Đinh</span>
+                {% endif %}
+                {% if member.member_type == 'spouse_in' %}
+                <span class="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded">Dâu/Rể</span>
+                {% endif %}
+                {% if member.member_type == 'adopted_in' %}
+                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Nhập tịch</span>
+                {% endif %}
+                {% if member.death_date %}
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">Đã mất</span>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12 text-gray-500">
+            <p class="text-4xl mb-2">🔍</p>
+            <p>Không tìm thấy thành viên nào phù hợp.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center gap-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&chi={{ selected_chi }}&gender={{ selected_gender }}&type={{ selected_type }}"
+           class="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50">← Trước</a>
+        {% endif %}
+        
+        <span class="px-4 py-2 bg-[#78350f] text-white rounded-lg">
+            Trang {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&chi={{ selected_chi }}&gender={{ selected_gender }}&type={{ selected_type }}"
+           class="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50">Sau →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Member Detail Modal -->
+<div id="memberModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="sticky top-0 bg-[#78350f] text-white p-4 flex justify-between items-center rounded-t-xl">
+            <h2 id="modalName" class="text-xl font-bold">Tên Thành Viên</h2>
+            <button onclick="closeModal()" class="text-2xl hover:opacity-70">&times;</button>
+        </div>
+        <div id="modalContent" class="p-6">
+            <div class="text-center py-8">
+                <div class="animate-spin w-8 h-8 border-4 border-[#78350f] border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p class="text-gray-500">Đang tải...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showMemberModal(memberId) {
+        const modal = document.getElementById('memberModal');
+        const modalName = document.getElementById('modalName');
+        const modalContent = document.getElementById('modalContent');
+        
+        // Show modal with loading
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modalName.textContent = 'Đang tải...';
+        modalContent.innerHTML = `
+            <div class="text-center py-8">
+                <div class="animate-spin w-8 h-8 border-4 border-[#78350f] border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p class="text-gray-500">Đang tải...</p>
+            </div>
+        `;
+        
+        // Fetch member data via API
+        fetch(`/api/members/${memberId}/`)
+            .then(response => response.json())
+            .then(data => {
+                modalName.textContent = data.name;
+                
+                // Build family info HTML
+                let familyHTML = '';
+                if (data.father || data.mother) {
+                    familyHTML += '<div class="mb-4"><h4 class="font-semibold text-sm text-gray-500 mb-2">Cha Mẹ</h4><div class="space-y-1">';
+                    if (data.father) {
+                         familyHTML += `<p class="text-sm">👨 <a href="#" onclick="showMemberModal(${data.father.id}); return false;" class="text-[#78350f] hover:underline font-semibold">${data.father.name}</a></p>`;
+                    } else if (data.father_name) {
+                         familyHTML += `<p class="text-sm">👨 ${data.father_name}</p>`;
+                    }
+                    
+                    if (data.mother) {
+                         familyHTML += `<p class="text-sm">👩 <a href="#" onclick="showMemberModal(${data.mother.id}); return false;" class="text-[#78350f] hover:underline font-semibold">${data.mother.name}</a></p>`;
+                    } else if (data.mother_name) {
+                         familyHTML += `<p class="text-sm">👩 ${data.mother_name}</p>`;
+                    }
+                    familyHTML += '</div></div>';
+                }
+                
+                if (data.spouses && data.spouses.length > 0) {
+                    familyHTML += '<div class="mb-4"><h4 class="font-semibold text-sm text-gray-500 mb-2">Vợ/Chồng</h4><div class="space-y-1">';
+                    data.spouses.forEach(spouse => {
+                        familyHTML += `<p class="text-sm">💑 <a href="#" onclick="showMemberModal(${spouse.id}); return false;" class="text-[#78350f] hover:underline font-semibold">${spouse.name}</a></p>`;
+                    });
+                    familyHTML += '</div></div>';
+                }
+                
+                if (data.children_names && data.children_names.length > 0) {
+                    familyHTML += '<div class="mb-4"><h4 class="font-semibold text-sm text-gray-500 mb-2">Con cái (' + data.children_names.length + ')</h4>';
+                    familyHTML += '<div class="children-grid">';
+                    data.children_names.forEach(child => {
+                        const genderIcon = child.gender === 'male' ? '👦' : '👧';
+                        const genderClass = child.gender === 'male' ? 'male' : 'female';
+                        const orderText = child.birth_order ? ` (${child.birth_order})` : '';
+                        
+                        familyHTML += `
+                            <a href="#" onclick="showMemberModal(${child.id}); return false;" 
+                               class="child-link ${genderClass}">
+                                ${genderIcon} ${child.name}${orderText}
+                            </a>
+                        `;
+                    });
+                    familyHTML += '</div></div>';
+                }
+                
+                modalContent.innerHTML = `
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold text-sm text-gray-500 mb-2">Thông tin cơ bản</h4>
+                            <table class="text-sm w-full">
+                                <tr><td class="py-1 text-gray-500 w-28">Mã ID:</td><td class="py-1 font-mono">${data.id}</td></tr>
+                                <tr><td class="py-1 text-gray-500">Giới tính:</td><td class="py-1">${data.gender === 'male' ? 'Nam' : 'Nữ'}</td></tr>
+                                <tr><td class="py-1 text-gray-500">Chi số:</td><td class="py-1">${data.chi_name || 'Chưa xác định'}</td></tr>
+                                <tr><td class="py-1 text-gray-500">Đời thứ:</td><td class="py-1">${data.generation || 'Chưa rõ'}</td></tr>
+                                <tr><td class="py-1 text-gray-500">Tính Đinh:</td><td class="py-1">${data.is_dinh ? '✅ Có' : '❌ Không'}</td></tr>
+                                <tr><td class="py-1 text-gray-500">Loại:</td><td class="py-1">${data.member_type_display || data.member_type}</td></tr>
+                                ${data.birth_date ? `<tr><td class="py-1 text-gray-500">Ngày sinh:</td><td class="py-1">${data.birth_date}</td></tr>` : ''}
+                                ${data.death_date ? `<tr><td class="py-1 text-gray-500">Ngày mất:</td><td class="py-1">${data.death_date}</td></tr>` : ''}
+                            </table>
+                            ${data.notes ? `<div class="mt-4 p-3 bg-[#fefce8] rounded-lg text-sm"><strong>Ghi chú:</strong> ${data.notes}</div>` : ''}
+                            
+                            <!-- Action Buttons -->
+                            <div class="mt-4 pt-4 border-t flex gap-2">
+                                <a href="/member/${data.id}/edit/" class="flex-1 text-center py-2 px-4 bg-[#78350f] text-white rounded-lg hover:bg-[#92400e] transition text-sm font-semibold">
+                                    ✏️ Sửa
+                                </a>
+                                <a href="/member/${data.id}/" class="py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-semibold">
+                                    📄 Chi tiết
+                                </a>
+                            </div>
+                        </div>
+                        <div>
+                            ${familyHTML || '<p class="text-gray-400 text-sm">Chưa có thông tin gia đình</p>'}
+                        </div>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modalContent.innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <p>Lỗi tải dữ liệu. Vui lòng thử lại.</p>
+                        <a href="/member/${memberId}/" class="mt-4 inline-block text-[#78350f] hover:underline">
+                            Xem trang chi tiết →
+                        </a>
+                    </div>
+                `;
+            });
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('memberModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // Close on background click
+    document.getElementById('memberModal').addEventListener('click', (e) => {
+        if (e.target.id === 'memberModal') closeModal();
+    });
+
+    // Close on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+    });
+</script>
+{% endblock %}

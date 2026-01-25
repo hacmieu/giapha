@@ -1,0 +1,4 @@
+django>=6.0
+djangorestframework>=3.16
+pillow>=10.0
+gunicorn>=21.0

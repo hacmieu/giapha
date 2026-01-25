@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tôn Ti - Phả Hệ{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hierarchy-step {
+        position: relative;
+        padding-left: 20px;
+        border-left: 2px solid #b45309;
+    }
+    .hierarchy-step::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #b45309;
+    }
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.5s;
+    }
+    .tab-content.active {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Section Navigation -->
+    <div class="bg-[#fff7ed] border-b border-[#ffedd5] rounded-t-lg mb-6">
+        <ul class="flex flex-wrap justify-center gap-2 md:gap-3 py-2 text-sm text-[#78350f]">
+            <li><button onclick="switchTab('tong-quan')" class="nav-btn px-3 py-1.5 rounded hover:bg-white transition-colors active-nav" data-tab="tong-quan">Tổng Quan</button></li>
+            <li><button onclick="switchTab('phan-cap')" class="nav-btn px-3 py-1.5 rounded hover:bg-white transition-colors" data-tab="phan-cap">🔍 Chi Phái Cành Nhánh</button></li>
+            <li><button onclick="switchTab('dat-ten')" class="nav-btn px-3 py-1.5 rounded hover:bg-white transition-colors" data-tab="dat-ten">📝 16 Đời & Đặt Tên</button></li>
+        </ul>
+    </div>
+
+    <!-- 1. TỔNG QUAN -->
+    <section id="tong-quan" class="tab-content active">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-[#78350f] mb-4 serif-font">Nguyên Tắc Huyết Thống Miền Bắc</h2>
+            <p class="text-gray-700 leading-relaxed text-lg max-w-3xl mx-auto">
+                Trong văn hóa dòng họ miền Bắc Việt Nam, việc phân chia nhánh họ không chỉ là vẽ sơ đồ cây, mà là xác định <strong>trách nhiệm thờ cúng</strong>. Một dòng họ phát triển qua nhiều đời sẽ mở rộng như một cái cây: Gốc (Tổ) → Cành Lớn (Chi) → Cành Nhỏ (Phái)...
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-[#e7e5e4]">
+                <h3 class="text-xl font-bold text-[#92400e] mb-3">Tại sao phải phân chia?</h3>
+                <ul class="space-y-2 text-gray-700">
+                    <li>• Để biết ai là Trưởng (chịu trách nhiệm chính), ai là Thứ.</li>
+                    <li>• Để quản lý nhân khẩu khi dòng họ quá đông (hàng nghìn người).</li>
+                    <li>• Để tránh hôn nhân cận huyết (quan trọng nhất).</li>
+                    <li>• Để phân chia trách nhiệm đóng góp khi có việc họ (xây từ đường, giỗ tổ).</li>
+                </ul>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-[#e7e5e4]">
+                <h3 class="text-xl font-bold text-[#92400e] mb-3">Hệ thống 5 cấp</h3>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3 p-2 bg-[#451a03] text-white rounded">
+                        <span class="font-bold">1.</span> CHI - Con ông Tổ
+                    </div>
+                    <div class="flex items-center gap-3 p-2 bg-[#78350f] text-white rounded">
+                        <span class="font-bold">2.</span> PHÁI - Cháu ông Tổ
+                    </div>
+                    <div class="flex items-center gap-3 p-2 bg-[#92400e] text-white rounded">
+                        <span class="font-bold">3.</span> CÀNH - Chắt ông Tổ
+                    </div>
+                    <div class="flex items-center gap-3 p-2 bg-[#b45309] text-white rounded">
+                        <span class="font-bold">4.</span> NHÁNH - Chút ông Tổ
+                    </div>
+                    <div class="flex items-center gap-3 p-2 bg-[#d97706] text-white rounded">
+                        <span class="font-bold">5.</span> LÁ - Chít ông Tổ
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. PHÂN CẤP -->
+    <section id="phan-cap" class="tab-content">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-[#78350f] mb-2 serif-font">Hệ Thống 5 Cấp Chi Tiết</h2>
+            <p class="text-gray-600">Trả lời câu hỏi: "Dưới Cành là gì?"</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 space-y-6">
+            <div class="border-l-4 border-[#451a03] pl-4">
+                <h3 class="font-bold text-[#451a03] text-xl mb-2">1. CHI (Cành lớn)</h3>
+                <p class="text-gray-700">Là các con trai của ông Thủy Tổ. Ông con cả lập ra Chi Cả (Chi Trưởng), các ông con thứ lập ra Chi 2, Chi 3 (hoặc gọi là Chi Giáp, Chi Ất).</p>
+                <p class="text-sm text-red-700 mt-2 font-semibold">→ Tương ứng: Đời thứ 2</p>
+            </div>
+            
+            <div class="border-l-4 border-[#78350f] pl-4">
+                <h3 class="font-bold text-[#78350f] text-xl mb-2">2. PHÁI (Nhánh nhỏ trong Chi)</h3>
+                <p class="text-gray-700">Là sự phân chia tiếp theo từ Chi. Con cháu của các ông đứng đầu Chi sẽ chia thành các Phái.</p>
+                <p class="text-sm text-red-700 mt-2 font-semibold">→ Tương ứng: Đời thứ 3</p>
+            </div>
+            
+            <div class="border-l-4 border-[#92400e] pl-4">
+                <h3 class="font-bold text-[#92400e] text-xl mb-2">3. CÀNH (Nhánh nhỏ trong Phái)</h3>
+                <p class="text-gray-700">Dưới Phái là Cành. Đây là đơn vị huyết thống gần gũi hơn. Thường là anh em họ rất gần.</p>
+                <p class="text-sm text-red-700 mt-2 font-semibold">→ Tương ứng: Đời thứ 4</p>
+            </div>
+            
+            <div class="border-l-4 border-[#b45309] pl-4">
+                <h3 class="font-bold text-[#b45309] text-xl mb-2">4. NHÁNH (Nhánh nhỏ trong Cành)</h3>
+                <p class="text-gray-700">Đơn vị nhỏ tiếp theo. Thường chỉ bao gồm con cháu của một cụ cố. Đây là phạm vi "Ngũ Đại Đồng Đường" (5 đời).</p>
+                <p class="text-sm text-red-700 mt-2 font-semibold">→ Tương ứng: Đời thứ 5</p>
+            </div>
+            
+            <div class="border-l-4 border-[#d97706] pl-4">
+                <h3 class="font-bold text-[#d97706] text-xl mb-2">5. LÁ / CHI DIỆP</h3>
+                <p class="text-gray-700">Các đời sau Nhánh. Từ ngữ "Lá" hay "Dây" ít được dùng chính thức, mà thường dùng "Đời thứ 6, 7...".</p>
+                <p class="text-sm text-red-700 mt-2 font-semibold">→ Tương ứng: Đời thứ 6 trở đi</p>
+            </div>
+        </div>
+
+        <div class="mt-6 bg-[#fefce8] p-4 rounded border border-[#fde047] text-sm text-gray-700">
+            <strong>💡 Lưu ý:</strong> Thực tế, ít dòng họ gọi đầy đủ "Ông trưởng Nhánh" hay "Ông trưởng Lá". Thường sau cấp <strong>Phái</strong>, người ta chỉ gọi theo số Đời.
+        </div>
+    </section>
+
+    <!-- 3. ĐẶT TÊN 16 ĐỜI -->
+    <section id="dat-ten" class="tab-content">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-[#78350f] serif-font">Bài Toán "16 Đời"</h2>
+            <p class="text-gray-600">Khi dòng họ kéo dài tới 16 đời hoặc hơn, làm sao để biết ai là cha, ai là con chỉ qua tên gọi?</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h3 class="font-bold text-lg text-[#92400e] mb-2 border-b pb-2">Giải pháp: Tên Đệm (Chữ Lót)</h3>
+                <p class="text-gray-700 text-sm leading-relaxed mb-4">
+                    Các cụ xưa dùng một bài thơ hoặc câu đối. Mỗi từ trong bài thơ tương ứng với tên đệm của một đời.
+                </p>
+                <p class="italic text-sm text-[#b45309]">Ví dụ dòng họ Nguyễn có bài thơ 4 chữ:</p>
+                <p class="font-bold text-lg mt-2">"Văn - Hữu - Đình - Quốc"</p>
+                <ul class="text-sm bg-gray-50 p-2 mt-2 rounded">
+                    <li>Đời 1: Nguyễn <strong>Văn</strong> A</li>
+                    <li>Đời 2: Nguyễn <strong>Hữu</strong> B (Con ông A)</li>
+                    <li>Đời 3: Nguyễn <strong>Đình</strong> C (Con ông B)</li>
+                    <li>Đời 4: Nguyễn <strong>Quốc</strong> D (Con ông C)</li>
+                    <li>Đời 5: Quay lại <strong>Văn</strong> hoặc bài thơ mới.</li>
+                </ul>
+            </div>
+
+            <div class="bg-[#fffbeb] p-6 rounded-xl shadow border border-[#fbbf24]">
+                <h3 class="font-bold text-lg text-[#78350f] mb-4 text-center">Công Cụ Tạo Mã Đặt Tên</h3>
+                <p class="text-xs text-gray-500 text-center mb-4">Nhập bài thơ quy ước của dòng họ để xem thử hệ thống tên cho 16 đời.</p>
+                
+                <div class="space-y-3">
+                    <label class="block text-sm font-bold text-gray-700">Nhập chuỗi tên đệm (cách nhau bởi dấu phẩy):</label>
+                    <input type="text" id="namingPoem" value="Xuân, Hạ, Thu, Đông, Tùng, Cúc, Trúc, Mai" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#78350f] outline-none" placeholder="VD: Văn, Bá, Trọng, Tích...">
+                    <button onclick="simulateNaming()" class="w-full bg-[#78350f] text-white py-2 rounded hover:bg-[#92400e] transition font-bold text-sm">Xem Danh Sách Đời</button>
+                </div>
+
+                <div class="mt-4 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded p-2" id="namingResult">
+                    <div class="text-center text-gray-400 py-4 text-sm">Kết quả sẽ hiện ở đây...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'font-bold');
+        if(btn.dataset.tab === tabId) btn.classList.add('bg-white', 'font-bold');
+    });
+}
+
+function simulateNaming() {
+    const input = document.getElementById('namingPoem').value;
+    const middleNames = input.split(/[,;]/).map(s => s.trim()).filter(s => s);
+    const container = document.getElementById('namingResult');
+    
+    if(middleNames.length === 0) {
+        container.innerHTML = '<div class="text-red-500 text-center">Vui lòng nhập danh sách tên đệm.</div>';
+        return;
+    }
+
+    let html = '<ul class="space-y-2">';
+    for(let i = 1; i <= 16; i++) {
+        const cycleIndex = (i - 1) % middleNames.length;
+        const middleName = middleNames[cycleIndex];
+        
+        let generationClass = "bg-gray-50";
+        if(i === 1) generationClass = "bg-[#78350f] text-white";
+        if(i > 1 && i <= 5) generationClass = "bg-[#fff7ed] text-[#78350f]";
+        
+        html += `
+            <li class="flex items-center p-2 rounded border border-gray-100 ${generationClass}">
+                <span class="font-bold w-16 flex-shrink-0 text-xs uppercase tracking-wider">Đời ${i}</span>
+                <div class="flex-grow">
+                    <span class="font-serif">Nguyễn <strong class="underline decoration-[#f97316] decoration-2">${middleName}</strong> ...</span>
+                </div>
+                <span class="text-xs opacity-60 ml-2">
+                     ${i <= 5 ? '(Trong Ngũ Đại)' : '(Ngoài Ngũ Đại)'}
+                </span>
+            </li>
+        `;
+    }
+    html += '</ul>';
+    container.innerHTML = html;
+}
+
+// Init
+setTimeout(simulateNaming, 500);
+</script>
+{% endblock %}

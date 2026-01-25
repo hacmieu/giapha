@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Hồ Sơ - {{ profile_user.username }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-[#78350f] text-white p-6">
+            <div class="flex items-center gap-4">
+                <div class="w-20 h-20 bg-[#fef3c7] rounded-full flex items-center justify-center text-4xl">
+                    👤
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">{{ profile_user.get_full_name|default:profile_user.username }}</h1>
+                    <p class="opacity-80">{{ profile_user.get_role_display }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <h3 class="font-bold text-[#78350f] mb-4">Thông tin tài khoản</h3>
+            
+            <table class="w-full text-sm">
+                <tr class="border-b">
+                    <td class="py-3 text-gray-500 w-40">Tên đăng nhập:</td>
+                    <td class="py-3">{{ profile_user.username }}</td>
+                </tr>
+                <tr class="border-b">
+                    <td class="py-3 text-gray-500">Họ tên:</td>
+                    <td class="py-3">{{ profile_user.get_full_name|default:'Chưa cập nhật' }}</td>
+                </tr>
+                <tr class="border-b">
+                    <td class="py-3 text-gray-500">Email:</td>
+                    <td class="py-3">{{ profile_user.email|default:'Chưa cập nhật' }}</td>
+                </tr>
+                <tr class="border-b">
+                    <td class="py-3 text-gray-500">Số điện thoại:</td>
+                    <td class="py-3">{{ profile_user.phone|default:'Chưa cập nhật' }}</td>
+                </tr>
+                <tr class="border-b">
+                    <td class="py-3 text-gray-500">Quyền hạn:</td>
+                    <td class="py-3">
+                        <span class="px-2 py-1 rounded text-xs font-bold
+                            {% if profile_user.role == 'admin' %}bg-red-100 text-red-700
+                            {% elif profile_user.role == 'editor' %}bg-blue-100 text-blue-700
+                            {% elif profile_user.role == 'member' %}bg-green-100 text-green-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ profile_user.get_role_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% if profile_user.linked_member %}
+                <tr class="border-b">
+                    <td class="py-3 text-gray-500">Liên kết thành viên:</td>
+                    <td class="py-3">
+                        <a href="{% url 'core:member_detail' profile_user.linked_member.pk %}" class="text-[#78350f] hover:underline">
+                            {{ profile_user.linked_member.name }}
+                        </a>
+                    </td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td class="py-3 text-gray-500">Ngày tham gia:</td>
+                    <td class="py-3">{{ profile_user.date_joined|date:"d/m/Y" }}</td>
+                </tr>
+            </table>
+            
+            <div class="mt-6 flex gap-3">
+                <a href="{% url 'accounts:profile_edit' %}" class="px-4 py-2 bg-[#78350f] text-white rounded-lg hover:bg-[#92400e] transition">
+                    ✏️ Sửa thông tin
+                </a>
+                <a href="{% url 'accounts:password_change' %}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">
+                    🔑 Đổi mật khẩu
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

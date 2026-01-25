@@ -1,0 +1,712 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mạng Lưới Quan Hệ - Vũ Tộc Làng Chuông{% endblock %}
+
+{% block extra_css %}
+<script src="https://unpkg.com/gojs/release/go.js"></script>
+<style>
+    .network-container {
+        height: 85vh;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        position: relative;
+    }
+    #myNetworkDiv {
+        width: 100%;
+        height: 100%;
+    }
+    .legend {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        z-index: 10;
+        border: 1px solid #cbd5e1;
+    }
+    .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(255,255,255,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+    }
+    
+    /* Modal Custom Styles */
+    .children-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 0.5rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+    
+    .child-link {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .child-link:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .child-link.male {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .child-link.female {
+        background: #fce7f3;
+        color: #be185d;
+    }
+    
+    /* Chi Selector styles */
+    .chi-btn {
+        padding: 0.25rem 0.75rem;
+        border: 1px solid #78350f;
+        border-radius: 9999px;
+        background: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #78350f;
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+    
+    .chi-btn:hover, .chi-btn.active {
+        background: #78350f;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Toolbar -->
+<div class="bg-white border-b shadow-sm py-3 sticky top-0 z-30">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+            <!-- Title & Links -->
+            <div class="flex items-center gap-4">
+                <h1 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    🕸️ <span class="hidden md:inline">Mạng Lưới</span>
+                </h1>
+                <a href="{% url 'core:genogram' %}" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition text-sm font-medium" style="text-decoration:none;">
+                    🔙 Phả đồ
+                </a>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-md relative">
+                <div class="relative">
+                    <input type="text" 
+                           id="search-input" 
+                           list="person-list"
+                           placeholder="🔍 Tìm thành viên (Gõ tên)..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-full text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                           onchange="searchNode(this.value)">
+                    <datalist id="person-list"></datalist>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center gap-3">
+                 <!-- Filter Dropdown (Mobile friendly) -->
+                <div class="relative group">
+                    <button class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                        👁️ Hiển thị
+                    </button>
+                    <!-- Dropdown Content -->
+                    <div class="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-2 border border-gray-100 hidden group-hover:block z-50">
+                        <label class="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" id="filter-lineage-father" checked onchange="updateFilters()" class="mr-2 rounded text-blue-600">
+                            <span class="text-sm">Liên kết từ Cha</span>
+                        </label>
+                        <label class="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" id="filter-lineage-mother" checked onchange="updateFilters()" class="mr-2 rounded text-pink-500">
+                            <span class="text-sm">Liên kết từ Mẹ</span>
+                        </label>
+                        <!-- OLD Lineage hidden or removed -->
+                        <div class="border-t my-1"></div>
+                        <label class="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" id="filter-spouse" checked onchange="updateFilters()" class="mr-2 rounded text-pink-600">
+                            <span class="text-sm">Vợ Chồng</span>
+                        </label>
+                        <label class="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" id="filter-social" checked onchange="updateFilters()" class="mr-2 rounded text-green-600">
+                            <span class="text-sm">Xã hội</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Focus Mode Toggle -->
+                <label class="flex items-center px-3 py-2 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 cursor-pointer select-none transition-colors" title="Bật để chỉ xem Bố mẹ và Con cháu khi click">
+                    <input type="checkbox" id="focus-mode-toggle" class="mr-2 rounded text-purple-600 focus:ring-purple-500 w-4 h-4">
+                    <span class="text-sm font-medium text-purple-700">🎯 Tập trung</span>
+                </label>
+
+                <div class="flex gap-2">
+                    <button onclick="zoomToFit()" class="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition" title="Phóng to toàn bộ">
+                        ⛶
+                    </button>
+                    <button id="reset-focus-btn" onclick="resetFocus()" class="p-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 hidden" title="Hiện lại tất cả">
+                        👁️
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chi Selector -->
+        <div class="mt-3 pt-2 border-t border-gray-100 flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+             <span class="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Chọn Chi:</span>
+             <button class="chi-btn active" data-chi="0" onclick="loadChi(0)">Tất cả</button>
+             {% for i in "12345678" %}
+             <button class="chi-btn" data-chi="{{ i }}" onclick="loadChi({{ i }})">Chi {{ i }}</button>
+             {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="container mx-auto px-4 py-4">
+    <div class="network-container rounded-xl shadow-lg overflow-hidden">
+        <div id="myNetworkDiv"></div>
+        <div id="loading" class="loading-overlay">
+            <div class="text-center">
+                <div class="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p class="text-gray-600 font-medium">Đang tải dữ liệu mạng lưới...</p>
+            </div>
+        </div>
+        
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div style="width: 20px; height: 2px; background: #2563eb; margin-right: 8px;"></div>
+                <span class="text-sm">Huyết thống</span>
+            </div>
+            <div class="legend-item">
+                <div style="width: 20px; height: 2px; background: #db2777; margin-right: 8px; border-bottom: 3px solid #db2777;"></div>
+                <span class="text-sm" title="Nét đậm">Vợ chồng</span>
+            </div>
+            <div class="legend-item">
+                <div style="width: 20px; height: 2px; background: #16a34a; margin-right: 8px; border-style: dotted;"></div>
+                <span class="text-sm">Quan hệ xã hội</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Member Detail Modal -->
+<div id="memberModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all scale-100">
+        <!-- Modal Header -->
+        <div class="bg-[#78350f] text-[#fef3c7] px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+            <h3 class="text-xl font-bold flex items-center gap-2">
+                👤 <span id="modalName">Chi tiết thành viên</span>
+            </h3>
+            <button onclick="document.getElementById('memberModal').classList.add('hidden'); document.getElementById('memberModal').classList.remove('flex');" class="text-[#fef3c7] hover:text-white text-2xl font-bold leading-none">&times;</button>
+        </div>
+        
+        <!-- Modal Content -->
+        <div class="p-6" id="modalContent">
+            <!-- Content loaded via AJAX -->
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 px-6 py-4 border-t flex justify-end gap-3 sticky bottom-0">
+             <button onclick="document.getElementById('memberModal').classList.add('hidden'); document.getElementById('memberModal').classList.remove('flex');" 
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let myDiagram;
+let currentChi = 0;
+
+function init() {
+    const $ = go.GraphObject.make;
+
+    myDiagram = $(go.Diagram, "myNetworkDiv", {
+        // Switch to LayeredDigraphLayout for Tree-like hierarchy
+        layout: $(go.LayeredDigraphLayout, {
+            direction: 90, // Top-down
+            layerSpacing: 50,
+            columnSpacing: 25,
+            setsPortSpots: false
+        }),
+        "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
+        initialAutoScale: go.Diagram.Uniform,
+        "undoManager.isEnabled": true
+    });
+
+    // Node Template
+    myDiagram.nodeTemplate =
+        $(go.Node, "Auto",
+            {
+                locationSpot: go.Spot.Center,
+                selectionAdorned: true,
+                cursor: "pointer",
+                // Add click handler for highlighting AND modal / Focus
+                click: (e, node) => {
+                    const focusMode = document.getElementById('focus-mode-toggle').checked;
+                    
+                    if (focusMode) {
+                        // Focus Mode: Show lineage
+                        focusLineage(node);
+                    } else {
+                        // Normal Mode: Modal
+                        // Reset all highlights
+                        myDiagram.clearHighlighteds();
+                        // Highlight clicked node
+                        node.isHighlighted = true;
+                        // Show Modal
+                        showMemberModal(node.data.key);
+                    }
+                }
+            },
+            new go.Binding("isHighlighted", "isHighlighted", h => h).ofObject(),
+            
+            $(go.Shape, "RoundedRectangle",
+                { fill: "white", strokeWidth: 1.5, stroke: "#cbd5e1" },
+                new go.Binding("fill", "s", s => s === 'male' ? "#eff6ff" : "#fdf2f8"),
+                new go.Binding("stroke", "s", s => s === 'male' ? "#60a5fa" : "#f472b6"),
+                // Highlight border when selected or highlighted
+                new go.Binding("stroke", "isHighlighted", h => h ? "#d97706" : "#cbd5e1").ofObject(),
+                new go.Binding("strokeWidth", "isHighlighted", h => h ? 3 : 1.5).ofObject()
+            ),
+            $(go.Panel, "Vertical",
+                { margin: 6 },
+                // Photo
+                $(go.Picture, 
+                    { width: 40, height: 50, background: '#f1f5f9', margin: new go.Margin(0, 0, 4, 0) },
+                    new go.Binding("source", "", data => {
+                        if (data.photo) return data.photo;
+                        if (data.s === 'male') return "/media/members/male_placeholder.jpg";
+                        return "/media/members/female_placeholder.jpg";
+                    })
+                ),
+                $(go.TextBlock,
+                    { font: "bold 11px sans-serif", margin: 2, textAlign: "center", wrap: go.TextBlock.WrapFit, width: 80 },
+                    new go.Binding("text", "n")
+                )
+            )
+        );
+
+    // Group Template for Couples
+    myDiagram.groupTemplate =
+        $(go.Group, "Auto",
+            {
+                layout: $(go.GridLayout, { 
+                    wrappingColumn: Infinity, 
+                    alignment: go.GridLayout.Position, 
+                    cellSize: new go.Size(1, 1), 
+                    spacing: new go.Size(5, 5) 
+                })
+            },
+            $(go.Shape, "RoundedRectangle", 
+                { parameter1: 10, fill: "rgba(255,255,255,0.4)", stroke: "rgba(200,200,200,0.5)", strokeWidth: 1 }
+            ),
+            $(go.Placeholder, { padding: 5 })
+        );
+
+    // Link Template
+    myDiagram.linkTemplate =
+        $(go.Link,
+            { routing: go.Link.Orthogonal, corner: 5, curve: go.Link.JumpOver },
+            $(go.Shape, { strokeWidth: 1.5 },
+                new go.Binding("stroke", "category", c => {
+                    if (c === "Spouse") return "#db2777"; 
+                    if (c === "Social") return "#16a34a"; 
+                    return "#2563eb"; 
+                }),
+                new go.Binding("strokeDashArray", "category", c => {
+                    if (c === "Social") return [4, 4];
+                    return null;
+                }),
+                new go.Binding("strokeWidth", "category", c => c === "Spouse" ? 2.5 : 1.5)
+            ),
+            $(go.Shape, { toArrow: "Standard", scale: 0.8 },
+                new go.Binding("visible", "category", c => c === "Lineage") // Only arrow for Lineage
+            ),
+            $(go.TextBlock, 
+                { segmentIndex: 0, segmentOffset: new go.Point(NaN, NaN), font: "9px sans-serif", background: "white" },
+                new go.Binding("text", "label")
+            )
+        );
+
+    loadData();
+}
+
+function loadChi(chi) {
+    currentChi = chi;
+    // Update active button state
+    document.querySelectorAll('.chi-btn').forEach(btn => {
+         const btnChi = parseInt(btn.dataset.chi);
+         if (btnChi === chi) btn.classList.add('active');
+         else btn.classList.remove('active');
+    });
+    loadData();
+}
+
+function loadData() {
+    // Show Loading
+    document.getElementById('loading').style.display = 'flex';
+    
+    let url = '/api/graph/?full=1';
+    if (currentChi > 0) {
+        url += `&chi=${currentChi}`;
+    }
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const nodes = data.nodeDataArray;
+            let links = [];
+            
+            // Build Links
+            if (data.linkDataArray) {
+                 data.linkDataArray.forEach(l => {
+                     if (!l.category) l.category = "Social"; 
+                     links.push(l);
+                 });
+            }
+
+            nodes.forEach(node => {
+                if (node.f) {
+                    links.push({ from: node.f, to: node.key, category: "Lineage", role: "father" });
+                }
+                if (node.m) {
+                    links.push({ from: node.m, to: node.key, category: "Lineage", role: "mother" });
+                }
+                
+                // Group Logic: If Male has Spouses, create a group
+                if (node.s === 'male' && node.ux && node.ux.length > 0) {
+                    const groupKey = "g_" + node.key;
+                    // Create Group Node
+                    // We push it to nodes array? No, nodes array is being iterated.
+                    // We need to add it to a separate list or push safely.
+                    // BUT: We need to modify the node objects in place for 'group' prop.
+                    
+                    // Assign Husband to Group
+                    node.group = groupKey;
+                    
+                    // Assign Spouses to Group
+                    node.ux.forEach(uxId => {
+                         links.push({ from: node.key, to: uxId, category: "Spouse" }); // Keep link for now
+                         const spouseNode = nodes.find(n => n.key === uxId);
+                         if (spouseNode) {
+                             spouseNode.group = groupKey;
+                         }
+                    });
+                    
+                     // We need to add the Group Node Data to the model later. 
+                     // Let's collect them first.
+                }
+            });
+
+            // Second pass: Add Group Data Nodes
+            const groupNodes = [];
+            const handledGroups = new Set();
+            
+            nodes.forEach(n => {
+                if (n.group && !handledGroups.has(n.group)) {
+                    groupNodes.push({ key: n.group, isGroup: true });
+                    handledGroups.add(n.group);
+                }
+            });
+            
+            // Merge regular nodes and group nodes
+            const allNodes = nodes.concat(groupNodes);
+
+            myDiagram.model = new go.GraphLinksModel(allNodes, links);
+            setupSearch(nodes); // Pass only person nodes for search
+            document.getElementById('loading').style.display = 'none';
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('loading').innerHTML = '<p class="text-red-500">Lỗi tải dữ liệu</p>';
+        });
+}
+
+function setupSearch(nodes) {
+    const dataList = document.getElementById('person-list');
+    dataList.innerHTML = '';
+    nodes.sort((a,b) => a.n.localeCompare(b.n));
+    nodes.forEach(n => {
+        const opt = document.createElement('option');
+        opt.value = n.n;
+        dataList.appendChild(opt);
+    });
+}
+
+function searchNode(name) {
+    if (!name) return;
+    const nodeData = myDiagram.model.nodeDataArray.find(n => n.n.toLowerCase() === name.toLowerCase());
+    if (nodeData) {
+        const node = myDiagram.findNodeForKey(nodeData.key);
+        if (node) {
+            // Focus Logic
+            focusLineage(node);
+            
+            // Select and Scroll
+            myDiagram.select(node);
+            myDiagram.scrollToRect(node.actualBounds);
+            
+            // Highlight
+            myDiagram.startTransaction("highlight");
+            myDiagram.clearHighlighteds();
+            node.isHighlighted = true;
+            myDiagram.commitTransaction("highlight");
+            
+            // Open Modal
+            showMemberModal(node.data.key);
+        }
+    }
+}
+
+function focusLineage(centerNode) {
+    const ancestors = new go.Set();
+    const descendants = new go.Set();
+    
+    // 1. Walk UP (Parents) - 1 Level
+    centerNode.findNodesInto().each(parent => {
+        if (parent.data.key !== centerNode.data.key) { // distinct check just in case
+             ancestors.add(parent);
+        }
+    });
+
+    // 2. Walk DOWN (Children) - Deep recursion
+    collectDescendants(centerNode, 10, descendants);
+
+    // 3. Spouses (of center node)
+    // In our GraphLinksModel, spouses might be linked via "Spouse" category links or separate nodes.
+    // We need to find nodes connected by "Spouse" links.
+    const spouses = new go.Set();
+    centerNode.findNodesConnected().each(n => {
+        const link = centerNode.findLinksBetween(n).first();
+        if (link && link.data.category === 'Spouse') {
+            spouses.add(n);
+        }
+    });
+
+    // 4. Update Visibility
+    myDiagram.startTransaction("focus");
+    
+    // Hide everything first
+    myDiagram.nodes.each(n => n.visible = false);
+    myDiagram.links.each(l => l.visible = false);
+
+    const nodesToShow = new go.Set();
+    nodesToShow.add(centerNode);
+    ancestors.each(n => nodesToShow.add(n));
+    descendants.each(n => nodesToShow.add(n));
+    spouses.each(n => nodesToShow.add(n));
+    
+    // Also show spouses of ancestors/descendants to make it look complete?
+    // User asked "Spouses of everything in this tree".
+    // Let's iterate nodesToShow and add their spouses.
+    const extraSpouses = new go.Set();
+    nodesToShow.each(n => {
+        n.findNodesConnected().each(connected => {
+            const link = n.findLinksBetween(connected).first();
+            if (link && link.data.category === 'Spouse') {
+                extraSpouses.add(connected);
+            }
+        });
+    });
+    extraSpouses.each(n => nodesToShow.add(n));
+
+    nodesToShow.each(n => n.visible = true);
+    
+    // Show links between visible nodes
+    myDiagram.links.each(link => {
+        if (nodesToShow.contains(link.fromNode) && nodesToShow.contains(link.toNode)) {
+            link.visible = true;
+        }
+    });
+    
+    myDiagram.commitTransaction("focus");
+
+    // Show Reset Button
+    document.getElementById('reset-focus-btn').classList.remove('hidden');
+}
+
+function collectDescendants(node, depth, set) {
+    if (depth <= 0) return;
+    node.findNodesOutOf().each(child => {
+        // Only follow Lineage links (Father -> Child)
+        // Check link category if possible, or just assume out-links are children in this layout?
+        // In this graph, we have Lineage (arrow) and Spouse (line).
+        // Lineage is FROM father TO child.
+        const link = node.findLinksTo(child).first();
+        if (link && link.data.category === 'Lineage') {
+            set.add(child);
+            collectDescendants(child, depth - 1, set);
+        }
+    });
+}
+
+function resetFocus() {
+    myDiagram.startTransaction("reset");
+    myDiagram.nodes.each(n => n.visible = true);
+    myDiagram.links.each(l => l.visible = true);
+    myDiagram.commitTransaction("reset");
+    document.getElementById('reset-focus-btn').classList.add('hidden');
+    
+    // Re-apply filters if unchecked
+    updateFilters();
+}
+
+
+function updateFilters() {
+    // const lineage = document.getElementById('filter-lineage').checked; // Old
+    const father = document.getElementById('filter-lineage-father').checked;
+    const mother = document.getElementById('filter-lineage-mother').checked;
+    const spouse = document.getElementById('filter-spouse').checked;
+    const social = document.getElementById('filter-social').checked;
+    
+    myDiagram.startTransaction("filter");
+    myDiagram.links.each(link => {
+        const cat = link.data.category;
+        const role = link.data.role;
+        
+        if (cat === "Lineage") {
+             if (role === 'father') link.visible = father;
+             else if (role === 'mother') link.visible = mother;
+             else link.visible = (father || mother); // Default if no role
+        }
+        else if (cat === "Spouse") link.visible = spouse;
+        else if (cat === "Social") link.visible = social;
+        else link.visible = true; 
+    });
+    myDiagram.commitTransaction("filter");
+}
+
+function showMemberModal(memberId) {
+    const modal = document.getElementById('memberModal');
+    const modalName = document.getElementById('modalName');
+    const modalContent = document.getElementById('modalContent');
+    
+    // Show modal with loading
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modalName.textContent = 'Đang tải...';
+    modalContent.innerHTML = `
+        <div class="text-center py-8">
+            <div class="animate-spin w-8 h-8 border-4 border-[#78350f] border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p class="text-gray-500">Đang tải...</p>
+        </div>
+    `;
+    
+    // Fetch member data via API
+    fetch(`/api/members/${memberId}/`)
+        .then(response => response.json())
+        .then(data => {
+            modalName.textContent = data.name;
+            
+            // Build family info HTML
+            let familyHTML = '';
+            if (data.father || data.mother) {
+                familyHTML += '<div class="mb-4"><h4 class="font-semibold text-sm text-gray-500 mb-2">Cha Mẹ</h4><div class="space-y-1">';
+                if (data.father) {
+                     familyHTML += `<p class="text-sm">👨 <a href="#" onclick="showMemberModal(${data.father.id}); return false;" class="text-[#78350f] hover:underline font-semibold">${data.father.name}</a></p>`;
+                } else if (data.father_name) {
+                     familyHTML += `<p class="text-sm">👨 ${data.father_name}</p>`;
+                }
+                
+                if (data.mother) {
+                     familyHTML += `<p class="text-sm">👩 <a href="#" onclick="showMemberModal(${data.mother.id}); return false;" class="text-[#78350f] hover:underline font-semibold">${data.mother.name}</a></p>`;
+                } else if (data.mother_name) {
+                     familyHTML += `<p class="text-sm">👩 ${data.mother_name}</p>`;
+                }
+                familyHTML += '</div></div>';
+            }
+            
+            if (data.spouses && data.spouses.length > 0) {
+                familyHTML += '<div class="mb-4"><h4 class="font-semibold text-sm text-gray-500 mb-2">Vợ/Chồng</h4><div class="space-y-1">';
+                data.spouses.forEach(spouse => {
+                    familyHTML += `<p class="text-sm">💑 <a href="#" onclick="showMemberModal(${spouse.id}); return false;" class="text-[#78350f] hover:underline font-semibold">${spouse.name}</a></p>`;
+                });
+                familyHTML += '</div></div>';
+            }
+            
+            if (data.children_names && data.children_names.length > 0) {
+                familyHTML += '<div class="mb-4"><h4 class="font-semibold text-sm text-gray-500 mb-2">Con cái (' + data.children_names.length + ')</h4>';
+                familyHTML += '<div class="children-grid">';
+                data.children_names.forEach(child => {
+                    const genderIcon = child.gender === 'male' ? '👦' : '👧';
+                    const genderClass = child.gender === 'male' ? 'male' : 'female';
+                    const orderText = child.birth_order ? ` (${child.birth_order})` : '';
+                    
+                    familyHTML += `
+                        <a href="#" onclick="showMemberModal(${child.id}); return false;" 
+                           class="child-link ${genderClass}">
+                            ${genderIcon} ${child.name}${orderText}
+                        </a>
+                    `;
+                });
+                familyHTML += '</div></div>';
+            }
+            
+            modalContent.innerHTML = `
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-sm text-gray-500 mb-2">Thông tin cơ bản</h4>
+                        <table class="text-sm w-full">
+                            <tr><td class="py-1 text-gray-500 w-28">Mã ID:</td><td class="py-1 font-mono">${data.id}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Giới tính:</td><td class="py-1">${data.gender === 'male' ? 'Nam' : 'Nữ'}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Chi số:</td><td class="py-1">${data.chi_name || 'Chưa xác định'}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Đời thứ:</td><td class="py-1">${data.generation || 'Chưa rõ'}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Tính Đinh:</td><td class="py-1">${data.is_dinh ? '✅ Có' : '❌ Không'}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Loại:</td><td class="py-1">${data.member_type_display || data.member_type}</td></tr>
+                            ${data.birth_date ? `<tr><td class="py-1 text-gray-500">Ngày sinh:</td><td class="py-1">${data.birth_date}</td></tr>` : ''}
+                            ${data.death_date ? `<tr><td class="py-1 text-gray-500">Ngày mất:</td><td class="py-1">${data.death_date}</td></tr>` : ''}
+                        </table>
+                        ${data.notes ? `<div class="mt-4 p-3 bg-[#fefce8] rounded-lg text-sm"><strong>Ghi chú:</strong> ${data.notes}</div>` : ''}
+                        
+                        <div class="mt-6">
+                           <a href="/member/${data.id}/" class="text-blue-600 hover:underline text-sm font-medium">Xem trang chi tiết đầy đủ &rarr;</a>
+                           ${data.can_edit ? `<a href="/member/${data.id}/edit/" class="ml-4 text-gray-500 hover:text-gray-700 text-sm">✏️ Chỉnh sửa</a>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        ${familyHTML}
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalContent.innerHTML = '<p class="text-red-500 text-center py-4">Có lỗi xảy ra khi tải thông tin.</p>';
+        });
+}
+
+function zoomToFit() {
+    myDiagram.commandHandler.zoomToFit();
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

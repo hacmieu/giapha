@@ -1,0 +1,680 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Phả Đồ - Vũ Tộc Làng Chuông{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tree-container {
+        overflow: auto;
+        padding: 2rem;
+        min-height: 70vh;
+        background: #fefbf3;
+    }
+    
+    .family-tree {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .generation {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        position: relative;
+        flex-wrap: wrap;
+        align-items: stretch; /* Ensure all items stretch to max height */
+    }
+    
+    .generation-label {
+        position: absolute;
+        left: -80px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.75rem;
+        color: #78350f;
+        font-weight: bold;
+        background: #fef3c7;
+        padding: 4px 8px;
+        border-radius: 4px;
+        z-index: 1;
+    }
+    
+    .person {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 120px;
+        position: relative;
+    }
+    
+    .person-card {
+        background: white;
+        border: 2px solid #78350f;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 100px;
+        height: 100%; /* Fill the height */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .person-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10;
+    }
+    
+    .person-card.male {
+        border-color: #1e40af;
+        background: linear-gradient(135deg, #fff, #dbeafe);
+    }
+    
+    .person-card.female {
+        border-color: #be185d;
+        background: linear-gradient(135deg, #fff, #fce7f3);
+    }
+    
+    .person-card.ancestor {
+        border-width: 3px;
+        background: linear-gradient(135deg, #fef3c7, #fcd34d);
+        border-color: #78350f;
+    }
+    
+    .person-card.dinh {
+        border-width: 3px;
+        border-color: #00796b;
+    }
+    
+    .person-name {
+        font-weight: bold;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .person-info {
+        font-size: 0.65rem;
+        color: #666;
+    }
+    
+    .spouse-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .spouse-link {
+        width: 20px;
+        height: 2px;
+        background: #f472b6;
+    }
+    
+    .chi-selector {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .chi-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid #78350f;
+        border-radius: 9999px;
+        background: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #78350f;
+    }
+    
+    .chi-btn:hover, .chi-btn.active {
+        background: #78350f;
+        color: white;
+    }
+    
+    .zoom-controls {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 100;
+    }
+    
+    .zoom-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #78350f;
+        color: white;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .zoom-btn:hover {
+        background: #92400e;
+    }
+    
+    #treeView {
+        transform-origin: center top;
+        transition: transform 0.3s ease;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 200;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .modal-overlay.active {
+        display: flex;
+    }
+    
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #78350f, #92400e);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .info-row {
+        display: flex;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #78350f;
+        width: 100px;
+        flex-shrink: 0;
+    }
+    
+    .info-value {
+        color: #374151;
+    }
+    
+    .family-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px dashed #fcd34d;
+    }
+    
+    .children-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        max-height: 150px;
+        overflow-y: auto;
+        padding: 0.5rem;
+        background: #f9fafb;
+        border-radius: 8px;
+    }
+    
+    .child-link {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .child-link:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .child-link.male {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .child-link.female {
+        background: #fce7f3;
+        color: #be185d;
+    }
+    
+    .family-section h4 {
+        color: #78350f;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .btn-primary {
+        flex: 1;
+        padding: 0.75rem;
+        background: #78350f;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    
+    .btn-secondary {
+        flex: 1;
+        padding: 0.75rem;
+        background: #f3f4f6;
+        color: #374151;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Chi Selector -->
+<div class="bg-white border-b shadow-sm py-4">
+    <div class="container mx-auto px-4">
+        <p class="text-sm text-gray-600 mb-3 text-center">Chọn Chi để xem phả đồ:</p>
+        <div class="chi-selector">
+            <button class="chi-btn active" data-chi="0">Thủy Tổ</button>
+            {% for i in "12345678" %}
+            <button class="chi-btn" data-chi="{{ i }}">Chi {{ i }}</button>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Tree View -->
+<div class="tree-container">
+    <div id="treeView" class="family-tree">
+        <!-- Tree will be rendered here -->
+    </div>
+    
+    <!-- Loading -->
+    <div id="loadingState" class="text-center py-12">
+        <div class="animate-spin w-8 h-8 border-4 border-[#78350f] border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p class="text-gray-500">Đang tải phả đồ...</p>
+    </div>
+</div>
+
+<!-- Zoom Controls -->
+<div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()" title="Phóng to">+</button>
+    <button class="zoom-btn" onclick="zoomOut()" title="Thu nhỏ">−</button>
+    <button class="zoom-btn text-sm" onclick="resetZoom()" title="Đặt lại">⟲</button>
+</div>
+
+<!-- Member Modal -->
+<div id="memberModal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 id="modalTitle">Thông tin thành viên</h3>
+            <button onclick="closeModalDirect()" class="text-white text-2xl">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Content loaded via AJAX -->
+        </div>
+    </div>
+</div>
+
+<!-- Instructions -->
+<div class="container mx-auto px-4 py-4">
+    <div class="bg-yellow-50 rounded-lg border border-yellow-200 p-4 text-sm">
+        <strong>Hướng dẫn:</strong>
+        <ul class="list-disc ml-5 mt-1 space-y-1">
+            <li>Click vào thành viên để xem thông tin chi tiết</li>
+            <li>Sử dụng nút zoom ở góc phải để phóng to/thu nhỏ</li>
+            <li>Chọn Chi ở trên để xem phả đồ từng Chi</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let membersMap = new Map();
+let currentZoom = 1;
+let currentChi = 0;
+
+// Load data from API
+async function loadData(chi = 0) {
+    currentChi = chi;
+    const treeView = document.getElementById('treeView');
+    const loading = document.getElementById('loadingState');
+    
+    loading.classList.remove('hidden');
+    treeView.innerHTML = '';
+    
+    try {
+        let url = '/api/graph/?full=1';
+        if (chi > 0) {
+            url += `&chi=${chi}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Build members map
+        membersMap.clear();
+        data.nodeDataArray.forEach(m => {
+            membersMap.set(m.key, m);
+        });
+        
+        loading.classList.add('hidden');
+        renderTree(data.nodeDataArray, chi);
+    } catch (error) {
+        console.error('Failed to load data:', error);
+        loading.innerHTML = '<p class="text-red-500">Lỗi tải dữ liệu</p>';
+    }
+}
+
+// Render tree
+function renderTree(members, chi) {
+    const treeView = document.getElementById('treeView');
+    
+    if (chi === 0) {
+        // Show Thủy Tổ and Chi heads
+        renderAncestorTree(treeView, members);
+    } else {
+        // Show specific Chi by generations
+        renderByGenerations(treeView, members.filter(m => !m.is_social));
+    }
+}
+
+function renderAncestorTree(container, members) {
+    // Only show Đinh members with their spouses
+    // Find Tổ Phụ (the main ancestor with is_dinh=true and gen=0)
+    const tofu = members.find(m => m.gen === 0 && m.is_dinh);
+    const toMau = tofu ? members.find(m => {
+        const spouseIds = tofu.ux || tofu.vir || [];
+        return spouseIds.includes(m.key);
+    }) : null;
+    
+    // Find Chi heads (Đinh from generation 1)
+    const chiHeads = members.filter(m => m.gen === 1 && m.is_dinh).sort((a, b) => {
+        const chiA = parseInt(a.chi?.replace('Chi ', '') || '99');
+        const chiB = parseInt(b.chi?.replace('Chi ', '') || '99');
+        return chiA - chiB;
+    });
+    
+    let html = '';
+    
+    // Tổ Phụ + Tổ Mẫu
+    if (tofu) {
+        html += `
+            <div class="generation">
+                <div class="person">
+                    ${renderPersonCard(tofu, true, toMau ? [toMau] : [])}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Chi heads with their spouses
+    if (chiHeads.length > 0) {
+        html += `
+            <div class="text-center text-sm text-gray-500 mb-4">↓ Các Trưởng Chi ↓</div>
+            <div class="generation" style="gap: 2rem;">
+        `;
+        chiHeads.forEach(m => {
+            // Find spouse
+            const spouseIds = m.ux || m.vir || [];
+            const spouses = spouseIds.map(id => membersMap.get(id)).filter(Boolean);
+            
+            html += `
+                <div class="person">
+                    ${renderPersonCard(m, false, spouses)}
+                    <div class="text-xs mt-1 font-bold text-[#78350f]">${m.chi || ''}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    
+    container.innerHTML = html || '<p class="text-gray-500 text-center">Không có dữ liệu</p>';
+}
+
+function renderByGenerations(container, members) {
+    // Only show Đinh members with their spouses attached
+    const dinhMembers = members.filter(m => m.is_dinh);
+    
+    // Group Đinh by generation
+    const genGroups = {};
+    dinhMembers.forEach(m => {
+        const gen = m.gen || 0;
+        if (!genGroups[gen]) genGroups[gen] = [];
+        genGroups[gen].push(m);
+    });
+    
+    const sortedGens = Object.keys(genGroups).map(Number).sort((a, b) => a - b);
+    
+    let html = '';
+    sortedGens.forEach(gen => {
+        const genMembers = genGroups[gen];
+        html += `
+            <div class="generation">
+                <div class="generation-label">Đời ${gen}</div>
+                ${genMembers.map(m => {
+                    // Find spouse(s)
+                    const spouseIds = m.ux || m.vir || [];
+                    const spouses = spouseIds.map(id => membersMap.get(id)).filter(s => s);
+                    
+                    return `
+                        <div class="person">
+                            ${renderPersonCard(m, false, spouses)}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html || '<p class="text-gray-500 text-center">Không có dữ liệu</p>';
+}
+
+function renderPersonCard(member, isAncestor = false, spouses = []) {
+    const genderClass = member.s === 'male' ? 'male' : 'female';
+    const ancestorClass = isAncestor ? 'ancestor' : '';
+    const dinhClass = member.is_dinh ? 'dinh' : '';
+    
+    let spousesHtml = '';
+    if (spouses && spouses.length > 0) {
+        spousesHtml = `<div class="mt-1 pt-1 border-t border-dashed border-gray-400 text-xs">`;
+        spouses.forEach(s => {
+            spousesHtml += `<div class="text-gray-600 font-medium">+ ${s.n}</div>`;
+        });
+        spousesHtml += `</div>`;
+    }
+    
+    return `
+        <div class="person-card ${genderClass} ${ancestorClass} ${dinhClass}" onclick="showMemberModal(${member.key})">
+            <div class="person-name">${member.n}</div>
+            <div class="person-info">
+                ${member.is_dinh ? '★ Đinh' : ''}
+                ${member.gen ? 'Đ' + member.gen : ''}
+            </div>
+            ${spousesHtml}
+        </div>
+    `;
+}
+
+// Modal functions
+async function showMemberModal(memberId) {
+    const modal = document.getElementById('memberModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    
+    modalBody.innerHTML = '<div class="text-center py-4"><div class="animate-spin w-6 h-6 border-2 border-[#78350f] border-t-transparent rounded-full mx-auto"></div></div>';
+    modal.classList.add('active');
+    
+    try {
+        const response = await fetch(`/api/members/${memberId}/`);
+        const data = await response.json();
+        
+        modalTitle.textContent = data.name;
+        
+        // Helper link
+        const makeLink = (id, name, cls='text-[#78350f] hover:underline font-semibold') => 
+            `<a href="#" onclick="showMemberModal(${id}); return false;" class="${cls}">${name}</a>`;
+
+        let familyHtml = '';
+        if (data.father_name || data.mother_name) {
+            familyHtml += `<p>👨 Cha: ${data.father ? makeLink(data.father.id, data.father_name) : (data.father_name || 'Không rõ')}</p>`;
+            familyHtml += `<p>👩 Mẹ: ${data.mother ? makeLink(data.mother.id, data.mother_name) : (data.mother_name || 'Không rõ')}</p>`;
+        }
+        if (data.spouse_names && data.spouse_names.length > 0) {
+            const spouseLinks = data.spouses.map(s => makeLink(s.id, s.name)).join(', ');
+            familyHtml += `<p>💑 Vợ/Chồng: ${spouseLinks}</p>`;
+        }
+        if (data.children_names && data.children_names.length > 0) {
+            familyHtml += `<p>👶 Con (${data.children_names.length}):</p>`;
+            familyHtml += `<div class="children-grid">`;
+            data.children_names.forEach((child, idx) => {
+                const genderIcon = child.gender === 'male' ? '👦' : '👧';
+                const genderClass = child.gender === 'male' ? 'male' : 'female';
+                const orderText = child.birth_order ? ` (${child.birth_order})` : '';
+                familyHtml += `
+                    <a href="#" onclick="showMemberModal(${child.id}); return false;" 
+                       class="child-link ${genderClass}">
+                        ${genderIcon} ${child.name}${orderText}
+                    </a>
+                `;
+            });
+            familyHtml += `</div>`;
+        }
+        
+        modalBody.innerHTML = `
+            <div class="info-row">
+                <span class="info-label">Mã ID:</span>
+                <span class="info-value">${data.id}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Giới tính:</span>
+                <span class="info-value">${data.gender === 'male' ? '👨 Nam' : '👩 Nữ'}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Chi:</span>
+                <span class="info-value">${data.chi_name || 'Chưa xác định'}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Đời thứ:</span>
+                <span class="info-value">${data.generation || 'Chưa xác định'}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Tính Đinh:</span>
+                <span class="info-value">${data.is_dinh ? '✅ Có' : '❌ Không'}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Loại:</span>
+                <span class="info-value">${data.member_type_display}</span>
+            </div>
+            
+            ${familyHtml ? `
+                <div class="family-section">
+                    <h4>👨‍👩‍👧‍👦 Gia đình</h4>
+                    ${familyHtml}
+                </div>
+            ` : ''}
+            
+            ${data.notes ? `
+                <div class="family-section">
+                    <h4>📝 Ghi chú</h4>
+                    <p class="text-sm text-gray-600">${data.notes}</p>
+                </div>
+            ` : ''}
+            
+            <div class="modal-actions">
+                <a href="/member/${data.id}/edit/" class="btn-primary text-center text-decoration-none">✏️ Sửa</a>
+                <a href="/member/${data.id}/" class="btn-secondary text-center text-decoration-none">📄 Chi tiết</a>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading member:', error);
+        modalBody.innerHTML = '<p class="text-red-500">Không thể tải thông tin</p>';
+    }
+}
+
+function closeModal(event) {
+    if (event.target === event.currentTarget) {
+        document.getElementById('memberModal').classList.remove('active');
+    }
+}
+
+function closeModalDirect() {
+    document.getElementById('memberModal').classList.remove('active');
+}
+
+// Zoom controls
+function zoomIn() {
+    currentZoom = Math.min(currentZoom + 0.2, 2);
+    applyZoom();
+}
+
+function zoomOut() {
+    currentZoom = Math.max(currentZoom - 0.2, 0.4);
+    applyZoom();
+}
+
+function resetZoom() {
+    currentZoom = 1;
+    applyZoom();
+}
+
+function applyZoom() {
+    document.getElementById('treeView').style.transform = `scale(${currentZoom})`;
+}
+
+// Chi selector
+document.querySelectorAll('.chi-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.chi-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadData(parseInt(btn.dataset.chi));
+    });
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadData(0);
+});
+</script>
+{% endblock %}

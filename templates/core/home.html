@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Trang chủ{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-[#78350f] mb-4 serif-font">
+            Hướng Dẫn Lập Gia Phả
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+            Tài liệu hướng dẫn chi tiết về cách lập và quản lý gia phả dòng họ theo phong tục truyền thống Việt Nam.
+        </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid md:grid-cols-4 gap-4 mb-12">
+        <div class="bg-white p-6 rounded-xl shadow text-center">
+            <div class="text-4xl font-bold text-[#78350f]">{{ total_members }}</div>
+            <div class="text-sm text-gray-500 mt-1">Thành viên</div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow text-center">
+            <div class="text-4xl font-bold text-[#b45309]">{{ total_dinh }}</div>
+            <div class="text-sm text-gray-500 mt-1">Suất Đinh</div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow text-center">
+            <div class="text-4xl font-bold text-[#059669]">8</div>
+            <div class="text-sm text-gray-500 mt-1">Chi</div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow text-center">
+            <div class="text-4xl font-bold text-[#2563eb]">16+</div>
+            <div class="text-sm text-gray-500 mt-1">Thế hệ</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid md:grid-cols-3 gap-6 mb-12">
+        <a href="{% url 'core:members' %}" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition group">
+            <div class="text-4xl mb-4">📋</div>
+            <h3 class="font-bold text-[#78350f] text-lg mb-2">Danh Sách Thành Viên</h3>
+            <p class="text-gray-600 text-sm">Xem, tìm kiếm và lọc danh sách {{ total_members }} thành viên trong dòng họ.</p>
+            <span class="inline-block mt-3 text-[#78350f] group-hover:underline">Xem ngay →</span>
+        </a>
+        
+        <a href="{% url 'core:family_tree' %}" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition group">
+            <div class="text-4xl mb-4">🌳</div>
+            <h3 class="font-bold text-[#78350f] text-lg mb-2">Phả Đồ</h3>
+            <p class="text-gray-600 text-sm">Xem cây phả hệ tương tác theo từng Chi với đầy đủ quan hệ cha-con.</p>
+            <span class="inline-block mt-3 text-[#78350f] group-hover:underline">Xem ngay →</span>
+        </a>
+        
+        <a href="{% url 'core:tonti' %}" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition group">
+            <div class="text-4xl mb-4">🏛️</div>
+            <h3 class="font-bold text-[#78350f] text-lg mb-2">Tôn Ti Trật Tự</h3>
+            <p class="text-gray-600 text-sm">Tìm hiểu về hệ thống Chi - Phái - Cành - Nhánh và quy tắc đặt tên.</p>
+            <span class="inline-block mt-3 text-[#78350f] group-hover:underline">Xem ngay →</span>
+        </a>
+    </div>
+
+    <!-- Chi Overview -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h3 class="font-bold text-[#78350f] text-xl mb-6 serif-font">Thống kê theo Chi</h3>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {% for chi in chi_list %}
+            <a href="{% url 'core:family_tree_chi' chi.number %}" 
+               class="p-4 border rounded-lg hover:bg-[#fef3c7] transition text-center">
+                <div class="text-2xl font-bold text-[#78350f]">Chi {{ chi.number }}</div>
+                <div class="text-sm text-gray-500 mt-1">{{ chi.member_count }} thành viên</div>
+                <div class="text-xs text-[#b45309]">{{ chi.dinh_count }} Đinh</div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="mt-12 bg-[#fefce8] rounded-xl p-6 border border-[#fde047]">
+        <h3 class="font-bold text-[#78350f] mb-4">📌 Lưu ý quan trọng</h3>
+        <ul class="space-y-2 text-gray-700 text-sm">
+            <li>• <strong>Đinh</strong>: Là con trai được tính theo dòng họ trực hệ (Nam họ Vũ).</li>
+            <li>• <strong>Chi</strong>: Là nhánh lớn do con trai của Thủy Tổ lập ra.</li>
+            <li>• <strong>Đời</strong>: Được tính từ Thủy Tổ là đời 1, con là đời 2, cháu là đời 3...</li>
+            <li>• Để chỉnh sửa thông tin, vui lòng <a href="{% url 'accounts:login' %}" class="text-[#78350f] underline">đăng nhập</a> với quyền Biên tập viên.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
