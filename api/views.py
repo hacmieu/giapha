@@ -171,6 +171,7 @@ class GraphDataView(APIView):
                 "chi": m.chi.name if m.chi else "",
                 "is_dinh": m.is_dinh,
                 "member_type": m.member_type,  # UC03: for visual distinction
+                "birth_order": m.birth_order,
             }
             nodes.append(node)
         

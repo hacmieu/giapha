@@ -307,8 +307,12 @@ function init() {
                     })
                 ),
                 $(go.TextBlock,
-                    { font: "bold 11px sans-serif", margin: 2, textAlign: "center", wrap: go.TextBlock.WrapFit, width: 80 },
+                    { font: "bold 11px sans-serif", margin: new go.Margin(2, 2, 0, 2), textAlign: "center", wrap: go.TextBlock.WrapFit, width: 80 },
                     new go.Binding("text", "n")
+                ),
+                $(go.TextBlock,
+                    { font: "italic 9px sans-serif", stroke: "#64748b", margin: new go.Margin(0, 2, 2, 2) },
+                    new go.Binding("text", "birth_order", b => b ? `(Con thứ ${b})` : "")
                 )
             )
         );
