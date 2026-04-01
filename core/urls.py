@@ -22,4 +22,7 @@ urlpatterns = [
     path('tonti/', views.TonTiView.as_view(), name='tonti'),
     path('genogram/', views.GoJSGenogramView.as_view(), name='genogram'),
     path('relationships/', views.RelationshipsView.as_view(), name='relationships'),
+    
+    # Genealogy Viewer
+    path('genealogy-viewer/', views.GenealogyViewerView.as_view(), name='genealogy_viewer'),
 ]

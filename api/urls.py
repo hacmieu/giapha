@@ -1,12 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from .genealogy_views import GenealogyViewSet
 
 app_name = 'api'
 
 router = DefaultRouter()
 router.register(r'members', views.FamilyMemberViewSet, basename='member')
 router.register(r'chi', views.ChiViewSet, basename='chi')
+router.register(r'genealogy', GenealogyViewSet, basename='genealogy')
 
 urlpatterns = [
     path('', include(router.urls)),

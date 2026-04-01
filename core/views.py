@@ -172,3 +172,14 @@ class GoJSGenogramView(TemplateView):
 class RelationshipsView(TemplateView):
     """Bảng quan hệ chi tiết - vợ/chồng, con nuôi, cháu ngoại..."""
     template_name = 'core/relationships.html'
+
+
+class GenealogyViewerView(TemplateView):
+    """Xem phả đồ GoJS"""
+    template_name = 'core/genealogy_viewer.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .models import Genealogy
+        context['genealogies'] = Genealogy.objects.all()
+        return context

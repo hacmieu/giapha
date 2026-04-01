@@ -317,3 +317,97 @@ class SpouseRelation(models.Model):
             father=self.husband,
             mother=self.wife
         ).order_by('birth_order', 'name')
+
+
+# ============================================================================
+# GENEALOGY MODELS - Phục vụ cho việc nhập và quản lý gia phả từ Excel
+# ============================================================================
+
+class Genealogy(models.Model):
+    """Model lưu trữ thông tin gia phả"""
+    name = models.CharField(max_length=200, verbose_name='Tên gia phả')
+    description = models.TextField(blank=True, verbose_name='Mô tả')
+    total_people = models.PositiveIntegerField(default=0, verbose_name='Tổng số người')
+    total_generations = models.PositiveIntegerField(default=0, verbose_name='Tổng số thế hệ')
+    json_data = models.JSONField(default=dict, blank=True, verbose_name='Dữ liệu JSON')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Gia phả'
+        verbose_name_plural = 'Gia phả'
+
+    def __str__(self):
+        return self.name
+
+
+class GenealogyPerson(models.Model):
+    """Model lưu trữ thông tin từng người trong gia phả"""
+    genealogy = models.ForeignKey(Genealogy, on_delete=models.CASCADE, 
+                                 related_name='people', verbose_name='Gia phả')
+    person_id = models.CharField(max_length=50, verbose_name='Mã người (ID)')
+    name = models.CharField(max_length=200, verbose_name='Họ và tên')
+    generation = models.PositiveIntegerField(null=True, blank=True, verbose_name='Thế hệ')
+    birth_year = models.IntegerField(null=True, blank=True, verbose_name='Năm sinh')
+    location = models.CharField(max_length=200, blank=True, verbose_name='Nơi ở')
+    notes = models.TextField(blank=True, verbose_name='Ghi chú')
+    father_id = models.CharField(max_length=50, null=True, blank=True, 
+                                verbose_name='Mã cha')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Thành viên gia phả'
+        verbose_name_plural = 'Thành viên gia phả'
+        unique_together = ('genealogy', 'person_id')
+
+    def __str__(self):
+        return f"{self.name} ({self.person_id})"
+
+
+class GenealogySpouse(models.Model):
+    """Model lưu trữ thông tin vợ của các thành viên"""
+    person = models.ForeignKey(GenealogyPerson, on_delete=models.CASCADE,
+                              related_name='spouses', verbose_name='Người chồng')
+    name = models.CharField(max_length=200, verbose_name='Tên vợ')
+    birth_year = models.IntegerField(null=True, blank=True, verbose_name='Năm sinh')
+    order = models.PositiveIntegerField(default=1, verbose_name='Thứ tự')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Vợ'
+        verbose_name_plural = 'Vợ'
+        ordering = ['person', 'order']
+
+    def __str__(self):
+        return f"{self.name} (vợ của {self.person.name})"
+
+
+class GenealogyRelationship(models.Model):
+    """Model lưu trữ quan hệ giữa các thành viên"""
+    RELATIONSHIP_TYPE_CHOICES = [
+        ('parent', 'Cha/Con'),
+        ('spouse', 'Vợ/Chồng'),
+        ('sibling', 'Anh/Em'),
+    ]
+
+    genealogy = models.ForeignKey(Genealogy, on_delete=models.CASCADE,
+                                 related_name='relationships', verbose_name='Gia phả')
+    from_person = models.ForeignKey(GenealogyPerson, on_delete=models.CASCADE,
+                                   related_name='relationships_from', 
+                                   verbose_name='Từ người')
+    to_person = models.ForeignKey(GenealogyPerson, on_delete=models.CASCADE,
+                                 related_name='relationships_to',
+                                 verbose_name='Đến người')
+    relationship_type = models.CharField(max_length=20, choices=RELATIONSHIP_TYPE_CHOICES,
+                                        verbose_name='Loại quan hệ')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Quan hệ'
+        verbose_name_plural = 'Quan hệ'
+        unique_together = ('genealogy', 'from_person', 'to_person', 'relationship_type')
+
+    def __str__(self):
+        rel_display = dict(self.RELATIONSHIP_TYPE_CHOICES)[self.relationship_type]
+        return f"{self.from_person.name} -> {self.to_person.name} ({rel_display})"
