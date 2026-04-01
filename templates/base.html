@@ -48,6 +48,11 @@
                         🏛️ Tôn Ti
                     </a>
                 </li>
+                <li>
+                    <a href="{% url 'core:genealogy_viewer' %}" class="nav-link px-3 py-2 rounded-lg hover:bg-[#fef3c7] transition-colors inline-block {% if request.resolver_match.url_name == 'genealogy_viewer' %}bg-[#fef3c7] font-bold border border-[#ffedd5]{% endif %}">
+                        📜 Phả Đồ Đinh
+                    </a>
+                </li>
                 {% if user.can_edit_members %}
                 <li>
                     <a href="{% url 'core:member_create' %}" class="nav-link px-3 py-2 rounded-lg hover:bg-[#fef3c7] transition-colors inline-block {% if request.resolver_match.url_name == 'member_create' %}bg-[#fef3c7] font-bold border border-[#ffedd5]{% endif %}">
