@@ -1,0 +1,293 @@
+/* Gia Phả Việt Nam - Main Styles */
+/* Warm Neutrals & Traditional Brown/Red Theme */
+
+/* Base Styles */
+body {
+    font-family: 'Noto Sans VN', sans-serif;
+    background-color: #f7f5f0;
+    color: #44403c;
+}
+
+h1, h2, h3, h4, .serif-font {
+    font-family: 'Merriweather', serif;
+}
+
+/* Tree Diagram Styles */
+.tree ul {
+    padding-top: 20px;
+    position: relative;
+    transition: all 0.5s;
+    display: flex;
+    justify-content: center;
+}
+
+.tree li {
+    float: left;
+    text-align: center;
+    list-style-type: none;
+    position: relative;
+    padding: 20px 5px 0 5px;
+    transition: all 0.5s;
+}
+
+/* Tree Connectors */
+.tree li::before, .tree li::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 50%;
+    border-top: 1px solid #78350f;
+    width: 50%;
+    height: 20px;
+}
+
+.tree li::after {
+    right: auto;
+    left: 50%;
+    border-left: 1px solid #78350f;
+}
+
+.tree li:only-child::after, .tree li:only-child::before {
+    display: none;
+}
+
+.tree li:only-child {
+    padding-top: 0;
+}
+
+.tree li:first-child::before, .tree li:last-child::after {
+    border: 0 none;
+}
+
+.tree li:last-child::before {
+    border-right: 1px solid #78350f;
+    border-radius: 0 5px 0 0;
+}
+
+.tree li:first-child::after {
+    border-radius: 5px 0 0 0;
+}
+
+.tree ul ul::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    border-left: 1px solid #78350f;
+    width: 0;
+    height: 20px;
+}
+
+/* Tree Node Styling */
+.tree-node {
+    border: 1px solid #78350f;
+    padding: 10px;
+    text-decoration: none;
+    color: #431407;
+    font-family: 'Merriweather', serif;
+    font-size: 14px;
+    display: inline-block;
+    background: #fff;
+    border-radius: 5px;
+    transition: all 0.5s;
+    cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+}
+
+.tree-node:hover, .tree-node.active {
+    background: #fef3c7;
+    border-color: #92400e;
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+/* Chart Container */
+.chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    height: 300px;
+    max-height: 400px;
+}
+
+/* Tab Transitions */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.5s;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Wood Pattern Header */
+.wood-pattern {
+    background-color: #78350f;
+    background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px);
+}
+
+/* Collapsible Navigation on Scroll */
+nav {
+    transition: all 0.3s ease;
+}
+
+nav.scrolled {
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+nav.scrolled .nav-btn {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+nav.scrolled ul {
+    padding-top: 0.375rem !important;
+    padding-bottom: 0.375rem !important;
+    gap: 0.25rem;
+}
+
+/* Mobile Responsive - iPhone 15 Pro and similar (max-width: 430px) */
+@media (max-width: 430px) {
+    nav .nav-btn {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.7rem;
+    }
+    
+    nav ul {
+        gap: 0.25rem;
+        padding: 0.5rem 0;
+    }
+    
+    nav.scrolled .nav-btn {
+        padding: 0.25rem 0.375rem;
+        font-size: 0.65rem;
+    }
+    
+    header .container {
+        padding: 1rem 0.5rem;
+    }
+    
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    header p {
+        font-size: 0.875rem;
+    }
+    
+    header .mt-6 {
+        margin-top: 0.75rem;
+    }
+    
+    header .mt-6 span {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.65rem;
+    }
+
+    main.container {
+        padding: 1rem 0.75rem;
+    }
+
+    .tab-content {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+    
+    .tab-content h2 {
+        font-size: 1.5rem;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+    }
+    
+    .tab-content h3 {
+        font-size: 1rem;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+    }
+    
+    .tab-content p,
+    .tab-content li,
+    .tab-content div {
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    #tong-quan .max-w-4xl {
+        max-width: 100%;
+        padding: 0 0.25rem;
+    }
+    
+    #tong-quan .bg-white {
+        padding: 1rem;
+    }
+    
+    #tong-quan ul li {
+        flex-wrap: wrap;
+    }
+    
+    #tong-quan ul li > div {
+        max-width: calc(100% - 2rem);
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+    
+    #tong-quan ul li strong {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    #thuc-hanh .grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    #thuc-hanh .bg-\[\#fefce8\] {
+        padding: 1rem;
+    }
+    
+    #thuc-hanh h3 {
+        font-size: 1rem;
+    }
+    
+    #outputContent {
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+    
+    #thuc-hanh form .grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    #phong-tuc .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* General Mobile (max-width: 768px) */
+@media (max-width: 768px) {
+    body {
+        overflow-x: hidden;
+    }
+    
+    .tab-content {
+        overflow-x: hidden;
+    }
+
+    .tree-node {
+        font-size: 11px;
+        padding: 6px;
+    }
+
+    .chart-container {
+        max-width: 280px;
+        height: 220px;
+    }
+}

@@ -48,12 +48,17 @@ class GenealogyGOJSSerializer(serializers.Serializer):
     """Serializer để convert dữ liệu Genealogy sang định dạng GoJS"""
     def to_representation(self, instance):
         genealogy = instance
-        
+
+        # Lấy tất cả person_id hợp lệ để lọc fatherId
+        all_ids = set(genealogy.people.values_list('person_id', flat=True))
+
         # Tạo node array
         nodeDataArray = []
         for person in genealogy.people.all():
             spouse_names = ', '.join([s.name for s in person.spouses.all()])
-            
+            # Chỉ gán fatherId nếu cha tồn tại trong dataset (tránh GoJS lỗi orphan)
+            father_id = person.father_id if person.father_id in all_ids else None
+
             node = {
                 'key': person.person_id,
                 'name': person.name,
@@ -62,10 +67,10 @@ class GenealogyGOJSSerializer(serializers.Serializer):
                 'spouses': spouse_names,
                 'notes': person.notes or '',
                 'birthYear': person.birth_year,
-                'fatherId': person.father_id
+                'fatherId': father_id
             }
             nodeDataArray.append(node)
-        
+
         # Tạo link array
         linkDataArray = []
         for rel in genealogy.relationships.all():

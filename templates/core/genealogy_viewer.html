@@ -1,198 +1,146 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Phả Đồ Đinh{% endblock %}
+
 {% block extra_css %}
 <style>
-    body, html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        font-family: Arial, sans-serif;
-    }
-    
-    .genealogy-container {
+    .genealogy-page {
         display: flex;
-        height: calc(100vh - 100px);
-        gap: 15px;
-        padding: 15px;
-        background: #f5f5f5;
+        height: calc(100vh - 115px);
+        gap: 0;
+        background: #f3f4f6;
     }
-    
-    .controls {
-        width: 300px;
-        background: white;
-        border-radius: 8px;
-        padding: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    .sidebar {
+        width: 270px;
+        min-width: 240px;
+        background: #fff;
+        border-right: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
         overflow-y: auto;
+        padding: 14px;
+        gap: 10px;
     }
-    
-    .diagram-container {
-        flex: 1;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        position: relative;
+    .sidebar h3 {
+        margin: 0 0 4px 0;
+        font-size: 15px;
+        color: #1f2937;
+        border-bottom: 2px solid #f59e0b;
+        padding-bottom: 6px;
     }
-    
-    #myDiagramDiv {
-        width: 100%;
-        height: 100%;
-        background: #ffffff;
-    }
-    
-    .control-group {
-        margin-bottom: 20px;
-    }
-    
-    .control-group label {
-        display: block;
-        font-weight: bold;
-        margin-bottom: 8px;
-        font-size: 14px;
-        color: #333;
-    }
-    
-    .control-group input,
-    .control-group select,
-    .control-group button {
-        width: 100%;
-        padding: 8px 12px;
-        font-size: 13px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin-bottom: 5px;
-    }
-    
-    .control-group button {
-        background: #4CAF50;
-        color: white;
-        border: none;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-    
-    .control-group button:hover {
-        background: #45a049;
-    }
-    
-    .control-group button.secondary {
-        background: #2196F3;
-    }
-    
-    .control-group button.secondary:hover {
-        background: #0b7dda;
-    }
-    
-    .info-panel {
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 10px;
-        margin-top: 15px;
+    .stats-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 6px;
+        padding: 8px 10px;
         font-size: 12px;
-        max-height: 200px;
+    }
+    .stats-box div { margin: 2px 0; color: #374151; }
+    .stats-box strong { color: #065f46; }
+    .ctrl-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 3px;
+        display: block;
+    }
+    .ctrl-input, .ctrl-select {
+        width: 100%;
+        padding: 6px 9px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+    .btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .btn {
+        flex: 1;
+        padding: 6px 8px;
+        font-size: 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        min-width: 70px;
+    }
+    .btn-green  { background: #16a34a; color: #fff; }
+    .btn-green:hover  { background: #15803d; }
+    .btn-blue   { background: #2563eb; color: #fff; }
+    .btn-blue:hover   { background: #1d4ed8; }
+    .btn-gray   { background: #6b7280; color: #fff; }
+    .btn-gray:hover   { background: #4b5563; }
+    .info-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 9px;
+        font-size: 12px;
+        flex: 1;
         overflow-y: auto;
+        min-height: 80px;
     }
-    
-    .info-item {
-        margin-bottom: 8px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .info-item:last-child {
-        border-bottom: none;
-    }
-    
-    .legend {
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid #ddd;
-    }
-    
-    .legend-item {
+    .legend-row {
         display: flex;
         align-items: center;
-        margin-bottom: 8px;
-        font-size: 12px;
-    }
-    
-    .legend-color {
-        width: 20px;
-        height: 20px;
-        margin-right: 8px;
-        border-radius: 3px;
-        border: 1px solid #333;
-    }
-    
-    .warning {
-        background: #fff3cd;
-        border: 1px solid #ffc107;
-        color: #856404;
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        font-size: 12px;
-    }
-    
-    .stats {
-        background: #e8f5e9;
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 10px;
-        font-size: 12px;
-    }
-    
-    .stats div {
+        gap: 6px;
         margin: 3px 0;
+        font-size: 11px;
+    }
+    .legend-dot {
+        width: 14px; height: 14px;
+        border-radius: 3px;
+        border: 1px solid #374151;
+        flex-shrink: 0;
+    }
+    #myDiagramDiv {
+        flex: 1;
+        background: #f8fafc;
+        min-width: 0;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="genealogy-container">
-    <div class="controls">
-        <h3 style="margin-top: 0;">Phả Đồ Gia Phả Họ Trần</h3>
-        
-        <div class="stats" id="statsPanel">
-            <div><strong>Tổng số người:</strong> <span id="totalPeople">0</span></div>
-            <div><strong>Tổng quan hệ:</strong> <span id="totalRelationships">0</span></div>
-            <div><strong>Thế hệ:</strong> <span id="generationRange">4-12</span></div>
+<div class="genealogy-page">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h3>📜 Phả Đồ Gia Phả Họ Trần</h3>
+
+        <div class="stats-box">
+            <div>👥 Tổng người: <strong id="totalPeople">--</strong></div>
+            <div>🔗 Quan hệ: <strong id="totalRelationships">--</strong></div>
+            <div>🏛 Thế hệ: <strong id="generationRange">4-12</strong></div>
         </div>
-        
-        <div class="control-group">
-            <label for="genealogySelect">Chọn Gia Phả:</label>
-            <select id="genealogySelect" onchange="loadGenealogy()">
-                <option value="">-- Tải Gia Phả --</option>
+
+        <!-- Chọn gia phả -->
+        <div>
+            <label class="ctrl-label">Chọn Gia Phả:</label>
+            <select id="genealogySelect" class="ctrl-select" onchange="loadGenealogy()">
+                <option value="">-- Chọn --</option>
+                {% for g in genealogies %}
+                <option value="{{ g.id }}" {% if forloop.first %}selected{% endif %}>
+                    {{ g.name }} ({{ g.total_people }} người)
+                </option>
+                {% endfor %}
             </select>
         </div>
-        
-        <div class="control-group">
-            <label for="searchInput">Tìm Kiếm:</label>
-            <input type="text" id="searchInput" placeholder="Nhập tên người..." 
-                   onkeyup="searchPerson(this.value)">
+
+        <!-- Tìm kiếm -->
+        <div>
+            <label class="ctrl-label">🔍 Tìm Kiếm:</label>
+            <input type="text" id="searchInput" class="ctrl-input"
+                   placeholder="Nhập tên..."
+                   oninput="searchPerson(this.value)">
         </div>
-        
-        <div class="control-group">
-            <button onclick="zoomToFit()">Zoom Vừa Vặn</button>
-            <button onclick="centerDiagram()">Căn Giữa</button>
-            <button class="secondary" onclick="exportAsImage()">Export Ảnh</button>
-            <button class="secondary" onclick="downloadJSON()">Download JSON</button>
-        </div>
-        
-        <div class="control-group">
-            <label for="viewMode">Chế Độ Xem:</label>
-            <select id="viewMode" onchange="changeViewMode()">
-                <option value="tree">Phả Đồ Thẳng</option>
-                <option value="relationship">Mối Quan Hệ</option>
-            </select>
-        </div>
-        
-        <div class="control-group">
-            <label for="filterGeneration">Lọc Thế Hệ:</label>
-            <select id="filterGeneration" onchange="filterByGeneration()">
-                <option value="">-- Tất Cả --</option>
+
+        <!-- Lọc thế hệ -->
+        <div>
+            <label class="ctrl-label">🏛 Lọc Thế Hệ:</label>
+            <select id="filterGeneration" class="ctrl-select" onchange="filterByGeneration()">
+                <option value="">Tất Cả</option>
+                {% for i in "456789" %}{% endfor %}
                 <option value="4">Đời thứ 4</option>
                 <option value="5">Đời thứ 5</option>
                 <option value="6">Đời thứ 6</option>
@@ -204,73 +152,66 @@
                 <option value="12">Đời thứ 12</option>
             </select>
         </div>
-        
-        <div class="info-panel">
-            <div id="selectedInfo" style="display: none;">
-                <strong>Thông Tin Người</strong>
-                <div id="personInfo" class="info-item"></div>
+
+        <!-- Chế độ xem -->
+        <div>
+            <label class="ctrl-label">🎨 Chế Độ:</label>
+            <select id="viewMode" class="ctrl-select" onchange="changeViewMode()">
+                <option value="tree">Phả Đồ Thẳng (Tree)</option>
+                <option value="force">Mối Quan Hệ (Force)</option>
+            </select>
+        </div>
+
+        <!-- Nút -->
+        <div class="btn-row">
+            <button class="btn btn-green" onclick="zoomToFit()">🔍 Fit</button>
+            <button class="btn btn-blue"  onclick="exportAsImage()">📷 Ảnh</button>
+            <button class="btn btn-gray"  onclick="downloadJSON()">📥 JSON</button>
+        </div>
+
+        <!-- Thông tin người -->
+        <div class="info-box">
+            <div id="noSelection" style="color:#9ca3af;font-style:italic;">
+                Nhấp vào nút để xem thông tin
             </div>
-            <div id="noSelection" style="font-style: italic; color: #999;">
-                Nhấn vào một nút để xem thông tin
+            <div id="selectedInfo" style="display:none;">
+                <div id="personInfo"></div>
             </div>
         </div>
-        
-        <div class="legend">
-            <strong>Chú Thích:</strong>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FFD700;"></div>
-                <span>Nam (Đinh)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FFB6C1;"></div>
-                <span>Nữ (Dâu)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #87CEEB;"></div>
-                <span>Khác</span>
-            </div>
+
+        <!-- Chú thích màu thế hệ -->
+        <div style="border-top:1px solid #e5e7eb;padding-top:8px;">
+            <div class="ctrl-label">Màu theo thế hệ:</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#7c3aed"></div>Đời 4</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#1d4ed8"></div>Đời 5</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#0369a1"></div>Đời 6</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#047857"></div>Đời 7</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#b45309"></div>Đời 8</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#b91c1c"></div>Đời 9</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#9d174d"></div>Đời 10-12</div>
         </div>
     </div>
-    
-    <div class="diagram-container">
-        <div id="myDiagramDiv"></div>
+
+    <!-- DIAGRAM -->
+    <div id="myDiagramDiv">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:16px;">
+            ⏳ Đang tải phả đồ...
+        </div>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
-<script src="{% static 'js/genealogy-viewer.js' %}"></script>
-
+<script src="{% static 'js/genealogy-viewer.js' %}?v=2"></script>
 <script>
-    // Load genealogies on page load
+    // Auto-load gia phả đầu tiên ngay khi trang mở
     document.addEventListener('DOMContentLoaded', function() {
-        fetch('/api/genealogy/')
-            .then(r => r.json())
-            .then(data => {
-                const select = document.getElementById('genealogySelect');
-                data.results.forEach(gen => {
-                    const option = document.createElement('option');
-                    option.value = gen.id;
-                    option.text = gen.name;
-                    select.appendChild(option);
-                });
-            });
+        const sel = document.getElementById('genealogySelect');
+        if (sel && sel.value) {
+            loadGenealogyById(sel.value);
+        } else {
+            document.getElementById('myDiagramDiv').innerHTML =
+                '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:15px;">Chưa có dữ liệu gia phả. Hãy import Excel qua API.</div>';
+        }
     });
-    
-    function loadGenealogy() {
-        const id = document.getElementById('genealogySelect').value;
-        if (!id) return;
-        
-        fetch(`/api/genealogy/${id}/gojs_data/`)
-            .then(r => r.json())
-            .then(data => {
-                initializeGenealogy(data);
-                updateStats(data.metadata);
-            });
-    }
-    
-    function updateStats(metadata) {
-        document.getElementById('totalPeople').textContent = metadata.totalPeople;
-        document.getElementById('totalRelationships').textContent = metadata.totalRelationships;
-    }
 </script>
 {% endblock %}
