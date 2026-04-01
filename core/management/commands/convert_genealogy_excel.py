@@ -171,14 +171,23 @@ class Command(BaseCommand):
 
     def resolve_father_id(self, father_ref, people):
         """Try to resolve father reference to actual ID"""
-        # If it's already an ID format, return it
+        # 1. Already in exact ID format NNNNN.NNNN
         if re.match(r'^\d{5}\.\d{4}$', father_ref):
             return father_ref if father_ref in people else None
 
-        # Try to find by name
+        # 2. Exact full_record_name or display name match
         for person_id, person in people.items():
             if person['full_record_name'] == father_ref or person['name'] == father_ref:
                 return person_id
+
+        # 3. Match by STT prefix alone (e.g. "0027" from "0027-Trần Đình Bàng")
+        #    Handles typos, extra nicknames, case differences in column F
+        stt_match = re.match(r'^(\d{4})-', father_ref)
+        if stt_match:
+            stt = stt_match.group(1)
+            for person_id, person in people.items():
+                if re.match(r'^' + stt + r'-', person.get('full_record_name', '')):
+                    return person_id
 
         return None
 

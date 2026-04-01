@@ -128,11 +128,11 @@ function loadGenealogyById(genealogyId) {
                 initDiagram();
             }
 
-            // Làm sạch fatherId không hợp lệ (trỏ ra ngoài dataset)
+            // Làm sạch fatherId: GoJS TreeModel chỉ chấp nhận undefined (không phải null)
             const validKeys = new Set(data.nodeDataArray.map(function(n) { return n.key; }));
             data.nodeDataArray.forEach(function(n) {
-                if (n.fatherId && !validKeys.has(n.fatherId)) {
-                    n.fatherId = undefined;
+                if (!n.fatherId || !validKeys.has(n.fatherId)) {
+                    delete n.fatherId;   // phải dùng delete, không được gán null
                 }
             });
 
