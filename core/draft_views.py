@@ -593,6 +593,18 @@ def draft_edit_person_ajax(request, draft_code, person_pk):
         val = request.POST.get(fld, '').strip()
         setattr(person, fld, int(val) if val else None)
 
+    # Handle father/mother changes
+    for parent_field in ('father_temp_id', 'mother_temp_id'):
+        val = request.POST.get(parent_field, '').strip()
+        if val:
+            parent_id = int(val)
+            # Validate parent exists in same draft
+            if draft.persons.filter(temp_id=parent_id).exists():
+                setattr(person, parent_field, parent_id)
+            # else: silently ignore invalid parent id
+        else:
+            setattr(person, parent_field, None)
+
     if 'photo' in request.FILES:
         person.photo = request.FILES['photo']
 

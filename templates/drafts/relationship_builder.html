@@ -242,6 +242,20 @@
                 <input type="text" id="edit-death" class="draft-input" placeholder="Còn sống → trống">
             </div>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field-row">
+                <label class="field-label">👨 Bố</label>
+                <select id="edit-father" class="draft-input">
+                    <option value="">— Chưa chọn —</option>
+                </select>
+            </div>
+            <div class="field-row">
+                <label class="field-label">👩 Mẹ</label>
+                <select id="edit-mother" class="draft-input">
+                    <option value="">— Chưa chọn —</option>
+                </select>
+            </div>
+        </div>
         <div class="field-row">
             <label class="field-label">Quan hệ với người khai</label>
             <select id="edit-relation" class="draft-input">
@@ -581,9 +595,9 @@ function doRearrange() {
     spouseRels.forEach(function(r) {
         var p1 = personMap[r.p1], p2 = personMap[r.p2];
         if (!p1 || !p2) return;
-        // Female with no children listed → mark spouseOf her husband
-        if (p2.gender === 'female') spouseOnlySet[r.p2] = r.p1;
-        else if (p1.gender === 'female') spouseOnlySet[r.p1] = r.p2;
+        // Only mark as spouseOf if she has NO father/mother (entered tree via marriage only)
+        if (p2.gender === 'female' && !p2.father_temp_id && !p2.mother_temp_id) spouseOnlySet[r.p2] = r.p1;
+        else if (p1.gender === 'female' && !p1.father_temp_id && !p1.mother_temp_id) spouseOnlySet[r.p1] = r.p2;
     });
 
     // Sort persons by birth_order so siblings display left→right correctly
@@ -634,8 +648,9 @@ function doRearrange() {
         spouseRels.forEach(function(r) {
             var p1 = personMap[r.p1], p2 = personMap[r.p2];
             if (!p1 || !p2) return;
-            if (p2.gender === 'female') newSpouseOnly[r.p2] = r.p1;
-            else if (p1.gender === 'female') newSpouseOnly[r.p1] = r.p2;
+            // Only mark as spouseOf if she has NO father/mother (entered tree via marriage only)
+            if (p2.gender === 'female' && !p2.father_temp_id && !p2.mother_temp_id) newSpouseOnly[r.p2] = r.p1;
+            else if (p1.gender === 'female' && !p1.father_temp_id && !p1.mother_temp_id) newSpouseOnly[r.p1] = r.p2;
         });
         diagram.startTransaction('spouseOf');
         diagram.nodes.each(function(node) {
@@ -968,6 +983,99 @@ function doRearrange() {
         });
     };
 
+    // ── Parent selection helpers ──
+    function getSpousesOf(personId) {
+        // Returns array of temp_ids who are spouses of personId
+        var spouses = [];
+        spouseRels.forEach(function(r) {
+            if (r.p1 === personId) spouses.push(r.p2);
+            else if (r.p2 === personId) spouses.push(r.p1);
+        });
+        return spouses;
+    }
+
+    function buildParentOptions(gender, excludeKey, priorityIds) {
+        // gender: 'male' for father, 'female' for mother
+        // priorityIds: spouse IDs to put at top of list
+        var prioritySet = {};
+        (priorityIds || []).forEach(function(id) { prioritySet[id] = true; });
+        var opts = [{ id: '', name: '— Chưa chọn —', priority: false }];
+        personsRaw.forEach(function(p) {
+            if (p.temp_id === excludeKey) return;
+            if (p.gender !== gender) return;
+            opts.push({
+                id: p.temp_id,
+                name: '#' + p.temp_id + ' ' + p.name,
+                priority: !!prioritySet[p.temp_id]
+            });
+        });
+        // Sort: priority first, then by name
+        opts.sort(function(a, b) {
+            if (a.id === '') return -1;
+            if (b.id === '') return 1;
+            if (a.priority !== b.priority) return a.priority ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        });
+        return opts;
+    }
+
+    function fillSelect(selectEl, options, selectedVal) {
+        selectEl.innerHTML = '';
+        options.forEach(function(opt) {
+            var o = document.createElement('option');
+            o.value = opt.id;
+            o.textContent = opt.priority ? '💑 ' + opt.name : opt.name;
+            if (String(opt.id) === String(selectedVal)) o.selected = true;
+            selectEl.appendChild(o);
+        });
+    }
+
+    function populateParentSelects(editKey, fatherId, motherId) {
+        var fatherSel = document.getElementById('edit-father');
+        var motherSel = document.getElementById('edit-mother');
+
+        // When father is selected, prioritize his wives in mother dropdown
+        function updateMotherList() {
+            var selectedFather = parseInt(fatherSel.value) || null;
+            var wifeIds = selectedFather ? getSpousesOf(selectedFather).filter(function(id) {
+                var p = personMap[id]; return p && p.gender === 'female';
+            }) : [];
+            var opts = buildParentOptions('female', editKey, wifeIds);
+            fillSelect(motherSel, opts, motherId);
+        }
+
+        // When mother is selected, prioritize her husbands in father dropdown
+        function updateFatherList() {
+            var selectedMother = parseInt(motherSel.value) || null;
+            var husbandIds = selectedMother ? getSpousesOf(selectedMother).filter(function(id) {
+                var p = personMap[id]; return p && p.gender === 'male';
+            }) : [];
+            var opts = buildParentOptions('male', editKey, husbandIds);
+            fillSelect(fatherSel, opts, fatherId);
+        }
+
+        // Initial population: if we already have a father, prioritize his wives for mother
+        var initWifeIds = fatherId ? getSpousesOf(fatherId).filter(function(id) {
+            var p = personMap[id]; return p && p.gender === 'female';
+        }) : [];
+        var initHusbandIds = motherId ? getSpousesOf(motherId).filter(function(id) {
+            var p = personMap[id]; return p && p.gender === 'male';
+        }) : [];
+
+        fillSelect(fatherSel, buildParentOptions('male', editKey, initHusbandIds), fatherId);
+        fillSelect(motherSel, buildParentOptions('female', editKey, initWifeIds), motherId);
+
+        // Remove old listeners to avoid stacking
+        fatherSel.onchange = function() {
+            fatherId = parseInt(fatherSel.value) || null;
+            updateMotherList();
+        };
+        motherSel.onchange = function() {
+            motherId = parseInt(motherSel.value) || null;
+            updateFatherList();
+        };
+    }
+
     // ── Edit person modal ──
     window.showEditModal = function(key) {
         if (!key) return;
@@ -992,6 +1100,9 @@ function doRearrange() {
 
         var gRadio = document.querySelector('input[name="edit-gender"][value="' + p.gender + '"]');
         if (gRadio) gRadio.checked = true;
+
+        // Populate father/mother dropdowns with smart ordering
+        populateParentSelects(key, p.father_temp_id, p.mother_temp_id);
 
         // Photo preview
         var imgEl = document.getElementById('edit-photo-img');
@@ -1063,6 +1174,8 @@ function doRearrange() {
         fd.append('birth_order', document.getElementById('edit-birth-order').value.trim());
         fd.append('chi_number', document.getElementById('edit-chi').value.trim());
         fd.append('generation', document.getElementById('edit-gen').value.trim());
+        fd.append('father_temp_id', document.getElementById('edit-father').value);
+        fd.append('mother_temp_id', document.getElementById('edit-mother').value);
         fd.append('csrfmiddlewaretoken', CSRF);
 
         var photoFile = document.getElementById('edit-photo-file').files[0];
@@ -1079,6 +1192,8 @@ function doRearrange() {
         .then(function(data) {
             if (data.ok && data.person) {
                 var p = data.person;
+                var oldFather = personMap[key].father_temp_id;
+                var oldMother = personMap[key].mother_temp_id;
                 // Update local data
                 personMap[key] = Object.assign(personMap[key], p);
                 // Update diagram node
@@ -1092,7 +1207,40 @@ function doRearrange() {
                     diagram.model.setDataProperty(nodeData, 'rel', RELATION_LABELS[p.relation_to_submitter] || '');
                     diagram.model.setDataProperty(nodeData, 'photo', p.photo_url || '');
                 }
+                // Update parent links if changed
+                var newFather = p.father_temp_id;
+                var newMother = p.mother_temp_id;
+                if (oldFather !== newFather) {
+                    // Remove old father link
+                    if (oldFather) {
+                        var oldFL = diagram.model.linkDataArray.find(function(l) {
+                            return l.from === oldFather && l.to === key && l.category === '';
+                        });
+                        if (oldFL) diagram.model.removeLinkData(oldFL);
+                    }
+                    // Add new father link
+                    if (newFather) {
+                        diagram.model.addLinkData({ from: newFather, to: key, category: '' });
+                    }
+                }
+                if (oldMother !== newMother) {
+                    // Remove old mother link
+                    if (oldMother) {
+                        var oldML = diagram.model.linkDataArray.find(function(l) {
+                            return l.from === oldMother && l.to === key && l.category === 'mother';
+                        });
+                        if (oldML) diagram.model.removeLinkData(oldML);
+                    }
+                    // Add new mother link
+                    if (newMother) {
+                        diagram.model.addLinkData({ from: newMother, to: key, category: 'mother' });
+                    }
+                }
                 diagram.commitTransaction('editNode');
+                // Recompute spouse positioning if parent links changed
+                if (oldFather !== newFather || oldMother !== newMother) {
+                    computeSpouseOf();
+                }
 
                 closeEditModal();
                 updateInstruction('saved');
