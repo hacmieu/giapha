@@ -119,8 +119,9 @@
             {% if can_edit %}
             <button class="tool-btn" onclick="showAddPersonModal()" style="background:#059669;color:white;border-color:#059669">➕ Thêm người</button>
             <button class="tool-btn" id="edit-btn" onclick="showEditModal(window.selectedKey)" style="display:none">✏️ Sửa</button>
+            <button class="tool-btn" id="save-layout-btn" onclick="saveLayout()" style="display:none;background:#7c3aed;color:white;border-color:#7c3aed" title="Lưu vị trí các node">💾 Lưu bố cục</button>
             {% endif %}
-            <button class="tool-btn" onclick="doRearrange()" title="Sắp xếp lại phả đồ">🔄 Sắp xếp lại</button>
+            <button class="tool-btn" onclick="doRearrange()" title="Xóa bố cục đã lưu, sắp xếp tự động">🔄 Tự sắp xếp</button>
             <button class="tool-btn" onclick="exportImage()">📷 Xuất ảnh</button>
             <button class="tool-btn" id="dinh-toggle-btn" onclick="toggleDinhOnly()">👨 Chỉ Đinh</button>
             <button class="tool-btn" onclick="diagram.commandHandler.increaseZoom()">＋</button>
@@ -156,15 +157,25 @@
     <div class="rel-modal-body">
         <h3 class="font-bold text-lg mb-1">Chọn quan hệ</h3>
         <p class="text-sm text-gray-500 mb-4" id="modal-desc"></p>
-        <button class="rel-btn" data-rel="father">👨 <span class="fn"></span> là <strong>Cha</strong> của <span class="tn"></span></button>
-        <button class="rel-btn" data-rel="mother">👩 <span class="fn"></span> là <strong>Mẹ</strong> của <span class="tn"></span></button>
-        <button class="rel-btn" data-rel="child">👶 <span class="fn"></span> là <strong>Con</strong> của <span class="tn"></span></button>
-        <button class="rel-btn" data-rel="spouse">💑 <span class="fn"></span> và <span class="tn"></span> là <strong>Vợ chồng</strong></button>
-        <button class="rel-btn" data-rel="spouse_divorced">💔 <span class="fn"></span> và <span class="tn"></span> <strong>Đã ly hôn</strong></button>
-        <button class="rel-btn" data-rel="spouse_widowed">🕯 <span class="fn"></span> và <span class="tn"></span> — <strong>Góa</strong> (một người đã mất)</button>
-        <div id="remove-section" style="display:none">
-            <hr class="my-3">
-            <button class="rel-btn danger" data-rel="remove">🗑️ Xóa quan hệ giữa 2 người này</button>
+        <div id="rel-buttons">
+            <button class="rel-btn" data-rel="father">👨 <span class="fn"></span> là <strong>Cha</strong> của <span class="tn"></span></button>
+            <button class="rel-btn" data-rel="mother">👩 <span class="fn"></span> là <strong>Mẹ</strong> của <span class="tn"></span></button>
+            <button class="rel-btn" data-rel="child">👶 <span class="fn"></span> là <strong>Con</strong> của <span class="tn"></span></button>
+            <button class="rel-btn" data-rel="spouse">💑 <span class="fn"></span> và <span class="tn"></span> là <strong>Vợ chồng</strong></button>
+            <button class="rel-btn" data-rel="spouse_divorced">💔 <span class="fn"></span> và <span class="tn"></span> <strong>Đã ly hôn</strong></button>
+            <button class="rel-btn" data-rel="spouse_widowed">🕯 <span class="fn"></span> và <span class="tn"></span> — <strong>Góa</strong> (một người đã mất)</button>
+            <div id="remove-section" style="display:none">
+                <hr class="my-3">
+                <button class="rel-btn danger" data-rel="remove">🗑️ Xóa quan hệ giữa 2 người này</button>
+            </div>
+        </div>
+        <!-- Step 2: pick other parent (after choosing father/mother/child) -->
+        <div id="rel-step2" style="display:none">
+            <div style="padding:10px;background:#f0fdf4;border-radius:8px;margin-bottom:12px" id="rel-step2-info"></div>
+            <label class="field-label" id="rel-step2-label" style="margin-bottom:4px;display:block"></label>
+            <select id="rel-step2-select" class="draft-input" style="margin-bottom:12px"></select>
+            <button class="rel-btn" id="rel-step2-confirm" style="background:#059669;color:white;font-weight:700">✅ Xác nhận</button>
+            <button class="rel-btn" id="rel-step2-back" style="color:#78716c">← Chọn lại</button>
         </div>
         <hr class="my-3">
         <button class="rel-btn" id="cancel-btn" style="text-align:center;color:#78716c;">Hủy</button>
@@ -173,6 +184,8 @@
 
 {{ persons|json_script:"persons-data" }}
 {{ spouse_relations|json_script:"spouse-data" }}
+{{ layout_data|json_script:"layout-data" }}
+<input type="hidden" id="layout-url" value="{% url 'draft_save_layout' draft.draft_code %}">
 
 <!-- Add person modal -->
 <div class="rel-modal" id="add-modal">
@@ -306,10 +319,52 @@
 <script src="https://unpkg.com/gojs/release/go.js"></script>
 <script>
 var diagram;
+var hasSavedLayout = false;
 
 function doRearrange() {
+    // Reset to auto-layout, clear saved positions
+    hasSavedLayout = false;
+    diagram.layout = go.GraphObject.make(go.LayeredDigraphLayout, {
+        direction: 90,
+        layerSpacing: 50,
+        columnSpacing: 30,
+        setsPortSpots: false,
+        initializeOption: go.LayeredDigraphLayout.InitDepthFirstIn,
+    });
     diagram.layoutDiagram(true);
     diagram.zoomToFit();
+    // Mark dirty so user can save the new auto-arranged layout
+    var btn = document.getElementById('save-layout-btn');
+    if (btn) btn.style.display = '';
+}
+
+function saveLayout() {
+    var positions = {};
+    diagram.nodes.each(function(node) {
+        var loc = node.location;
+        positions[String(node.data.key)] = { x: Math.round(loc.x * 10) / 10, y: Math.round(loc.y * 10) / 10 };
+    });
+    var btn = document.getElementById('save-layout-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
+
+    fetch(document.getElementById('layout-url').value, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ positions: positions })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            if (btn) { btn.style.display = 'none'; btn.textContent = '💾 Lưu bố cục'; btn.disabled = false; }
+        } else {
+            alert('Lỗi: ' + (data.error || 'Unknown'));
+            if (btn) { btn.textContent = '💾 Lưu bố cục'; btn.disabled = false; }
+        }
+    })
+    .catch(function(err) {
+        alert('Lỗi kết nối: ' + err.message);
+        if (btn) { btn.textContent = '💾 Lưu bố cục'; btn.disabled = false; }
+    });
 }
 
 (function() {
@@ -318,9 +373,11 @@ function doRearrange() {
     var SAVE_URL = '{% url "draft_save_relation" draft.draft_code %}';
     var ADD_URL = '{% url "draft_quick_add_person" draft.draft_code %}';
     var EDIT_URL_TPL = '{% url "draft_edit_person_ajax" draft.draft_code 99999 %}'.replace('99999', '{pk}');
+    var LAYOUT_URL = '{% url "draft_save_layout" draft.draft_code %}';
     var canEdit = {{ can_edit|yesno:"true,false" }};
     var personsRaw = JSON.parse(document.getElementById('persons-data').textContent);
     var spouseRelsRaw = JSON.parse(document.getElementById('spouse-data').textContent);
+    var savedLayout = JSON.parse(document.getElementById('layout-data').textContent);
 
     // Build lookup
     var personMap = {};
@@ -385,6 +442,9 @@ function doRearrange() {
     }
 
     // ── Diagram ──
+    hasSavedLayout = savedLayout && Object.keys(savedLayout).length > 0;
+    var layoutDirty = false;
+
     diagram = $(go.Diagram, 'myDiagramDiv', {
         'undoManager.isEnabled': false,
         'animationManager.isEnabled': true,
@@ -392,7 +452,7 @@ function doRearrange() {
         'linkingTool.isEnabled': false,
         'relinkingTool.isEnabled': false,
         initialAutoScale: go.Diagram.Uniform,
-        layout: $(go.LayeredDigraphLayout, {
+        layout: hasSavedLayout ? $(go.Layout) : $(go.LayeredDigraphLayout, {
             direction: 90,
             layerSpacing: 50,
             columnSpacing: 30,
@@ -706,6 +766,27 @@ function doRearrange() {
         positionWives();
     });
 
+    // Track node dragging → show save-layout button
+    diagram.addDiagramListener('SelectionMoved', function() {
+        if (!canEdit) return;
+        layoutDirty = true;
+        var btn = document.getElementById('save-layout-btn');
+        if (btn) btn.style.display = '';
+    });
+
+    // Apply saved layout positions after model is set
+    if (hasSavedLayout) {
+        diagram.startTransaction('loadLayout');
+        diagram.nodes.each(function(node) {
+            var pos = savedLayout[String(node.data.key)];
+            if (pos) {
+                node.location = new go.Point(pos.x, pos.y);
+            }
+        });
+        diagram.commitTransaction('loadLayout');
+        positionWives();
+    }
+
     // ── Click-to-connect logic ──
     function onNodeClick(key) {
         if (selectedKey === null) {
@@ -761,21 +842,133 @@ function doRearrange() {
     }
 
     // Modal button handlers
+    var pendingRelType = null;
+    var pendingOtherParentField = null;  // 'father_temp_id' or 'mother_temp_id'
+
+    function showStep2(relType, parentId, childId) {
+        // relType is 'father', 'mother', or 'child'
+        var parentPerson = personMap[parentId];
+        var childPerson = personMap[childId];
+        var otherGender, label, infoText;
+
+        if (relType === 'father' || (relType === 'child' && parentPerson.gender === 'male')) {
+            // Father established, offer to pick mother
+            otherGender = 'female';
+            label = '👩 Chọn Mẹ (nếu biết):';
+            pendingOtherParentField = 'mother_temp_id';
+            infoText = '✅ ' + getName(parentId) + ' là Cha của ' + getName(childId);
+        } else {
+            // Mother established, offer to pick father
+            otherGender = 'male';
+            label = '👨 Chọn Bố (nếu biết):';
+            pendingOtherParentField = 'father_temp_id';
+            infoText = '✅ ' + getName(parentId) + ' là Mẹ của ' + getName(childId);
+        }
+
+        // Build options: spouses of the parent first
+        var spouseIds = getSpousesOf(parentId).filter(function(id) {
+            var p = personMap[id];
+            return p && p.gender === otherGender && id !== childId;
+        });
+        var spouseSet = {};
+        spouseIds.forEach(function(id) { spouseSet[id] = true; });
+
+        var sel = document.getElementById('rel-step2-select');
+        sel.innerHTML = '<option value="">— Bỏ qua —</option>';
+        // Priority: spouses first
+        spouseIds.forEach(function(id) {
+            var o = document.createElement('option');
+            o.value = id;
+            o.textContent = '💑 #' + id + ' ' + getName(id);
+            sel.appendChild(o);
+        });
+        // Then others of that gender
+        personsRaw.forEach(function(p) {
+            if (p.gender !== otherGender || p.temp_id === childId || p.temp_id === parentId || spouseSet[p.temp_id]) return;
+            var o = document.createElement('option');
+            o.value = p.temp_id;
+            o.textContent = '#' + p.temp_id + ' ' + p.name;
+            sel.appendChild(o);
+        });
+
+        // Auto-select if child already has that parent
+        var existing = childPerson[pendingOtherParentField];
+        if (existing) sel.value = String(existing);
+
+        document.getElementById('rel-step2-info').innerHTML = infoText;
+        document.getElementById('rel-step2-label').textContent = label;
+        document.getElementById('rel-buttons').style.display = 'none';
+        document.getElementById('rel-step2').style.display = '';
+    }
+
     modal.querySelectorAll('[data-rel]').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            modal.classList.remove('show');
-            if (pendingFrom !== null && pendingTo !== null) {
-                saveRelation(pendingFrom, pendingTo, btn.dataset.rel);
+            var rel = btn.dataset.rel;
+            // For spouse/remove — just do it immediately
+            if (rel === 'spouse' || rel === 'spouse_divorced' || rel === 'spouse_widowed' || rel === 'remove') {
+                modal.classList.remove('show');
+                resetModalStep();
+                if (pendingFrom !== null && pendingTo !== null) {
+                    saveRelation(pendingFrom, pendingTo, rel);
+                }
+                return;
             }
+            // For father/mother/child — show step 2 to pick other parent
+            pendingRelType = rel;
+            var parentId, childId;
+            if (rel === 'father') {
+                parentId = pendingFrom; childId = pendingTo;
+            } else if (rel === 'mother') {
+                parentId = pendingFrom; childId = pendingTo;
+            } else if (rel === 'child') {
+                parentId = pendingTo; childId = pendingFrom;
+            }
+            showStep2(rel, parentId, childId);
         });
     });
+
+    document.getElementById('rel-step2-confirm').addEventListener('click', function() {
+        var otherVal = parseInt(document.getElementById('rel-step2-select').value) || null;
+        modal.classList.remove('show');
+        resetModalStep();
+        if (pendingFrom !== null && pendingTo !== null) {
+            saveRelation(pendingFrom, pendingTo, pendingRelType);
+            // Also set the other parent if selected
+            if (otherVal && pendingOtherParentField) {
+                var childId = (pendingRelType === 'child') ? pendingFrom : pendingTo;
+                var childPerson = personMap[childId];
+                if (childPerson) {
+                    var currentOther = childPerson[pendingOtherParentField];
+                    if (currentOther !== otherVal) {
+                        // Save the other parent relation
+                        var otherRelType = pendingOtherParentField === 'father_temp_id' ? 'father' : 'mother';
+                        saveRelation(otherVal, childId, otherRelType);
+                    }
+                }
+            }
+        }
+    });
+
+    document.getElementById('rel-step2-back').addEventListener('click', function() {
+        resetModalStep();
+    });
+
+    function resetModalStep() {
+        document.getElementById('rel-buttons').style.display = '';
+        document.getElementById('rel-step2').style.display = 'none';
+        pendingRelType = null;
+        pendingOtherParentField = null;
+    }
+
     document.getElementById('cancel-btn').addEventListener('click', function() {
         modal.classList.remove('show');
+        resetModalStep();
         updateInstruction('idle');
     });
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             modal.classList.remove('show');
+            resetModalStep();
             updateInstruction('idle');
         }
     });
@@ -880,7 +1073,14 @@ function doRearrange() {
         diagram.model.linkDataArray = links;
         diagram.commitTransaction('rebuild');
         computeSpouseOf();
-        diagram.layoutDiagram(true);
+        // Only auto-layout if no saved layout exists
+        if (!hasSavedLayout) {
+            diagram.layoutDiagram(true);
+        } else {
+            // Mark dirty since relationships changed and user may want to rearrange
+            var btn = document.getElementById('save-layout-btn');
+            if (btn) btn.style.display = '';
+        }
     }
 
     // ── Quick add person ──

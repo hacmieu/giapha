@@ -18,6 +18,7 @@ urlpatterns = [
     path('<str:draft_code>/api/save-relation/', draft_views.draft_save_relation, name='draft_save_relation'),
     path('<str:draft_code>/api/quick-add/', draft_views.draft_quick_add_person, name='draft_quick_add_person'),
     path('<str:draft_code>/api/edit-person/<int:person_pk>/', draft_views.draft_edit_person_ajax, name='draft_edit_person_ajax'),
+    path('<str:draft_code>/api/save-layout/', draft_views.draft_save_layout, name='draft_save_layout'),
 
     # Admin — cần đăng nhập + quyền editor
     path('quan-ly/danh-sach/', draft_views.AdminDraftListView.as_view(), name='admin_draft_list'),

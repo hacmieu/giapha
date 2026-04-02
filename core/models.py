@@ -518,6 +518,9 @@ class DraftSubmission(models.Model):
     review_notes = models.TextField(blank=True, verbose_name='Ghi chú duyệt')
     reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name='Ngày duyệt')
 
+    # Layout positions for relationship builder (JSON: {temp_id: {x, y}})
+    layout_data = models.JSONField(default=dict, blank=True, verbose_name='Bố cục phả đồ')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

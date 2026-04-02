@@ -518,6 +518,7 @@ class DraftRelationshipBuilderView(TemplateView):
         )
         ctx['spouse_relations'] = list(spouse_rels)
         ctx['can_edit'] = _can_edit_draft(self.request, self.draft)
+        ctx['layout_data'] = self.draft.layout_data or {}
         return ctx
 
 
@@ -634,6 +635,32 @@ def draft_edit_person_ajax(request, draft_code, person_pk):
             'generation': person.generation,
         }
     })
+
+
+def draft_save_layout(request, draft_code):
+    """AJAX: Lưu vị trí các node trên phả đồ"""
+    draft = get_object_or_404(DraftSubmission, draft_code=draft_code)
+    if not _can_edit_draft(request, draft):
+        return JsonResponse({'error': 'Không có quyền sửa'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    import json
+    try:
+        body = json.loads(request.body)
+        positions = body.get('positions', {})
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    # Validate: positions should be {str(temp_id): {x: float, y: float}}
+    clean = {}
+    for key, val in positions.items():
+        if isinstance(val, dict) and 'x' in val and 'y' in val:
+            clean[str(key)] = {'x': round(float(val['x']), 1), 'y': round(float(val['y']), 1)}
+
+    draft.layout_data = clean
+    draft.save(update_fields=['layout_data', 'updated_at'])
+    return JsonResponse({'ok': True})
 
 
 def draft_save_relation(request, draft_code):
