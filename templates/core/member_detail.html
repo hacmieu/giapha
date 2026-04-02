@@ -1,181 +1,312 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ member.name }}{% endblock %}
+{% block title %}{{ member.name }} — Chi tiết{% endblock %}
+
+{% block extra_css %}
+<style>
+    .relation-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+    .relation-link:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .relation-link.male   { background: #dbeafe; color: #1e40af; }
+    .relation-link.female { background: #fce7f3; color: #be185d; }
+    .quick-form { background: #fafaf9; border: 1px dashed #d6d3d1; border-radius: 12px; padding: 16px; }
+    .form-input-sm {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        width: 100%;
+    }
+    .form-input-sm:focus {
+        outline: none; border-color: #78350f;
+        box-shadow: 0 0 0 2px rgba(120,53,15,0.1);
+    }
+    .section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #78350f;
+        border-bottom: 2px solid #fde68a;
+        padding-bottom: 6px;
+        margin-bottom: 12px;
+    }
+    .badge-dinh {
+        display: inline-block;
+        background: #fef3c7;
+        color: #78350f;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        border: 1px solid #f59e0b;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #6b7280; min-width: 100px; }
+    .info-value { font-weight: 500; color: #111827; text-align: right; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto py-4">
     <!-- Breadcrumb -->
-    <nav class="mb-4 text-sm">
+    <nav class="mb-4 text-sm flex items-center gap-2">
         <a href="{% url 'core:members' %}" class="text-[#78350f] hover:underline">Danh sách</a>
-        <span class="text-gray-400 mx-2">›</span>
+        <span class="text-gray-300">›</span>
         <span class="text-gray-600">{{ member.name }}</span>
     </nav>
 
-    <!-- Member Card -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <!-- Header -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="p-3 rounded-lg text-sm {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% else %}bg-blue-50 text-blue-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ═══ HEADER CARD ═══ -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
         <div class="bg-[#78350f] text-white p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold serif-font">{{ member.name }}</h1>
-                    <p class="opacity-80">
-                        {% if member.chi %}Chi {{ member.chi.number }}{% else %}Chưa xác định Chi{% endif %}
-                        {% if member.generation %} • Đời thứ {{ member.generation }}{% endif %}
+                    <h1 class="text-2xl font-bold">{{ member.name }}</h1>
+                    <p class="opacity-80 text-sm mt-1">
+                        {% if member.person_code %}<span class="font-mono bg-white/20 px-2 py-0.5 rounded">{{ member.person_code }}</span>{% endif %}
+                        {% if member.chi %} Chi {{ member.chi.number }}{% endif %}
+                        {% if member.generation %} · Đời {{ member.generation }}{% endif %}
                     </p>
                 </div>
-                <span class="text-5xl">{% if member.gender == 'male' %}👨{% else %}👩{% endif %}</span>
+                <div class="text-5xl">
+                    {% if member.photo %}
+                    <img src="{{ member.photo.url }}" class="w-16 h-16 rounded-full object-cover border-2 border-white">
+                    {% else %}
+                    {% if member.gender == 'male' %}👨{% else %}👩{% endif %}
+                    {% endif %}
+                </div>
             </div>
-            {% if member.is_dinh %}
-            <span class="inline-block mt-2 bg-[#fef3c7] text-[#78350f] px-3 py-1 rounded-full text-sm font-bold">
-                ⭐ Suất Đinh
-            </span>
+            <div class="flex gap-2 mt-3 flex-wrap">
+                {% if member.is_dinh %}<span class="badge-dinh">⭐ Suất Đinh</span>{% endif %}
+                {% if member.death_date %}<span class="text-xs bg-gray-300 text-gray-800 px-2 py-0.5 rounded-full">🕯 Đã mất</span>{% endif %}
+                <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">{{ member.get_member_type_display }}</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        {% if can_edit %}
+        <div class="flex gap-2 p-4 bg-[#fefbf3] border-b">
+            <a href="{% url 'core:member_update' member.pk %}" class="px-4 py-2 bg-[#78350f] text-white rounded-lg text-sm font-semibold hover:bg-[#92400e] transition">✏️ Sửa</a>
+            <a href="{% url 'core:member_create' %}?father={{ member.pk }}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition">👶 Thêm con</a>
+            {% if member.gender == 'male' and member.is_dinh %}
+            <button onclick="document.getElementById('spouseForm').classList.toggle('hidden')" class="px-4 py-2 bg-pink-600 text-white rounded-lg text-sm font-semibold hover:bg-pink-700 transition">💍 Thêm vợ</button>
+            {% endif %}
+            <a href="{% url 'core:member_delete' member.pk %}" class="ml-auto px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">🗑️ Xóa</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+        <!-- ═══ CỘT TRÁI: Thông tin ═══ -->
+        <div class="space-y-6">
+            <!-- Thông tin cơ bản -->
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="section-title">📋 Thông tin cơ bản</h3>
+                <div>
+                    <div class="info-row">
+                        <span class="info-label">Mã người:</span>
+                        <span class="info-value font-mono">{{ member.person_code|default:"Chưa có" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Giới tính:</span>
+                        <span class="info-value">{{ member.get_gender_display }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Chi:</span>
+                        <span class="info-value">{% if member.chi %}Chi {{ member.chi.number }}{% else %}Chưa xác định{% endif %}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Đời thứ:</span>
+                        <span class="info-value">{{ member.generation|default:"Chưa xác định" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Con thứ:</span>
+                        <span class="info-value">{{ member.birth_order|default:"—" }}</span>
+                    </div>
+                    {% if member.birth_date %}
+                    <div class="info-row">
+                        <span class="info-label">Ngày sinh:</span>
+                        <span class="info-value">{{ member.birth_date }}</span>
+                    </div>
+                    {% endif %}
+                    {% if member.death_date %}
+                    <div class="info-row">
+                        <span class="info-label">Ngày mất:</span>
+                        <span class="info-value">{{ member.death_date }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if member.notes %}
+                <div class="mt-4 p-3 bg-[#fefce8] rounded-lg text-sm">
+                    <strong>Ghi chú:</strong> {{ member.notes }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Form thêm vợ (ẩn mặc định) -->
+            {% if can_edit and member.gender == 'male' and member.is_dinh %}
+            <div id="spouseForm" class="hidden bg-white rounded-xl shadow p-5">
+                <h3 class="section-title">💍 Thêm Vợ</h3>
+                <form method="post" action="{% url 'core:add_spouse' member.pk %}">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Chọn vợ</label>
+                            {{ spouse_form.wife }}
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Bà thứ</label>
+                            {{ spouse_form.wife_order }}
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Năm cưới</label>
+                            {{ spouse_form.marriage_date }}
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium text-gray-600">Ghi chú</label>
+                            {{ spouse_form.notes }}
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-2 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition">💍 Lưu</button>
+                </form>
+            </div>
             {% endif %}
         </div>
 
-        <!-- Content -->
-        <div class="p-6">
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- Basic Info -->
-                <div>
-                    <h3 class="font-bold text-[#78350f] mb-3 border-b pb-2">Thông tin cơ bản</h3>
-                    <table class="w-full text-sm">
-                        <tr>
-                            <td class="py-2 text-gray-500 w-32">Mã ID:</td>
-                            <td class="py-2 font-mono">{{ member.legacy_id }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-500">Giới tính:</td>
-                            <td class="py-2">{{ member.get_gender_display }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-500">Chi:</td>
-                            <td class="py-2">{% if member.chi %}Chi {{ member.chi.number }}{% else %}Chưa xác định{% endif %}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-500">Đời thứ:</td>
-                            <td class="py-2">{{ member.generation|default:"Chưa xác định" }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-2 text-gray-500">Loại:</td>
-                            <td class="py-2">{{ member.get_member_type_display }}</td>
-                        </tr>
-                        {% if member.birth_order %}
-                        <tr>
-                            <td class="py-2 text-gray-500">Con thứ:</td>
-                            <td class="py-2">{{ member.birth_order }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if member.birth_date %}
-                        <tr>
-                            <td class="py-2 text-gray-500">Ngày sinh:</td>
-                            <td class="py-2">{{ member.birth_date }}</td>
-                        </tr>
-                        {% endif %}
-                        {% if member.death_date %}
-                        <tr>
-                            <td class="py-2 text-gray-500">Ngày mất:</td>
-                            <td class="py-2">{{ member.death_date }}</td>
-                        </tr>
-                        {% endif %}
-                    </table>
-
-                    {% if member.notes %}
-                    <div class="mt-4 p-3 bg-[#fefce8] rounded-lg text-sm">
-                        <strong>Ghi chú:</strong> {{ member.notes }}
-                    </div>
+        <!-- ═══ CỘT PHẢI: Quan hệ ═══ -->
+        <div class="space-y-6">
+            <!-- Cha Mẹ -->
+            {% if member.father or member.mother %}
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="section-title">👨‍👩‍👦 Cha Mẹ</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% if member.father %}
+                    <a href="{% url 'core:member_detail' member.father.pk %}" class="relation-link male">
+                        👨 {{ member.father.name }}
+                        {% if member.father.person_code %}<span class="text-xs opacity-60">({{ member.father.person_code }})</span>{% endif %}
+                    </a>
                     {% endif %}
-
-                    <!-- Actions -->
-                    {% if user.can_edit_members %}
-                    <div class="mt-6 flex gap-2">
-                        <a href="{% url 'core:member_update' member.pk %}" 
-                           class="flex-1 text-center py-2 px-4 bg-[#78350f] text-white rounded-lg hover:bg-[#92400e] transition font-semibold">
-                            ✏️ Sửa
-                        </a>
-                        <a href="{% url 'core:member_delete' member.pk %}" 
-                           class="py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold">
-                            🗑️ Xóa
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Family Relations -->
-                <div>
-                    <h3 class="font-bold text-[#78350f] mb-3 border-b pb-2">Quan hệ gia đình</h3>
-                    
-                    <!-- Parents -->
-                    {% if member.father or member.mother %}
-                    <div class="mb-4">
-                        <h4 class="font-semibold text-sm text-gray-500 mb-2">Cha Mẹ</h4>
-                        <div class="space-y-1">
-                            {% if member.father %}
-                            <p class="text-sm">
-                                👨 <a href="{% url 'core:member_detail' member.father.pk %}" class="text-[#78350f] hover:underline">{{ member.father.name }}</a>
-                                {% if member.father.is_dinh %}<span class="text-xs bg-[#78350f] text-white px-1 rounded">Đinh</span>{% endif %}
-                            </p>
-                            {% endif %}
-                            {% if member.mother %}
-                            <p class="text-sm">
-                                👩 <a href="{% url 'core:member_detail' member.mother.pk %}" class="text-[#78350f] hover:underline">{{ member.mother.name }}</a>
-                            </p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Spouses -->
-                    {% if spouses %}
-                    <div class="mb-4">
-                        <h4 class="font-semibold text-sm text-gray-500 mb-2">Vợ/Chồng</h4>
-                        <div class="space-y-1">
-                            {% for spouse in spouses %}
-                            <p class="text-sm">
-                                {% if spouse.gender == 'male' %}👨{% else %}👩{% endif %}
-                                <a href="{% url 'core:member_detail' spouse.pk %}" class="text-[#78350f] hover:underline">{{ spouse.name }}</a>
-                            </p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Children -->
-                    {% if children %}
-                    <div class="mb-4">
-                        <h4 class="font-semibold text-sm text-gray-500 mb-2">Con cái ({{ children.count }})</h4>
-                        <div class="space-y-1">
-                            {% for child in children %}
-                            <p class="text-sm">
-                                {% if child.gender == 'male' %}👦{% else %}👧{% endif %}
-                                <a href="{% url 'core:member_detail' child.pk %}" class="text-[#78350f] hover:underline">{{ child.name }}</a>
-                                {% if child.is_dinh %}<span class="text-xs bg-[#78350f] text-white px-1 rounded">Đinh</span>{% endif %}
-                            </p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Siblings -->
-                    {% if siblings %}
-                    <div class="mb-4">
-                        <h4 class="font-semibold text-sm text-gray-500 mb-2">Anh chị em ({{ siblings.count }})</h4>
-                        <div class="space-y-1">
-                            {% for sibling in siblings %}
-                            <p class="text-sm">
-                                {% if sibling.gender == 'male' %}👦{% else %}👧{% endif %}
-                                <a href="{% url 'core:member_detail' sibling.pk %}" class="text-[#78350f] hover:underline">{{ sibling.name }}</a>
-                                {% if sibling.is_dinh %}<span class="text-xs bg-[#78350f] text-white px-1 rounded">Đinh</span>{% endif %}
-                            </p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if not member.father and not member.mother and not spouses and not children and not siblings %}
-                    <p class="text-gray-400 text-sm">Chưa có thông tin quan hệ gia đình.</p>
+                    {% if member.mother %}
+                    <a href="{% url 'core:member_detail' member.mother.pk %}" class="relation-link female">
+                        👩 {{ member.mother.name }}
+                    </a>
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
+
+            <!-- Vợ / Chồng -->
+            {% if wife_relations or spouses %}
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="section-title">💑 Vợ / Chồng</h3>
+                {% if wife_relations %}
+                <div class="space-y-2">
+                    {% for wr in wife_relations %}
+                    <a href="{% url 'core:member_detail' wr.wife.pk %}" class="relation-link female">
+                        👩 {{ wr.wife.name }}
+                        <span class="text-xs opacity-60">(Bà {{ wr.wife_order }}{% if wr.marriage_date %} · {{ wr.marriage_date }}{% endif %})</span>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="flex flex-wrap gap-2">
+                    {% for spouse in spouses %}
+                    <a href="{% url 'core:member_detail' spouse.pk %}" class="relation-link {% if spouse.gender == 'male' %}male{% else %}female{% endif %}">
+                        {% if spouse.gender == 'male' %}👨{% else %}👩{% endif %} {{ spouse.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Con cái -->
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="section-title flex items-center justify-between">
+                    <span>👶 Con cái {% if children %}({{ children.count }}){% endif %}</span>
+                    {% if can_edit and children.count > 1 %}
+                    <a href="{% url 'core:reorder_children' member.pk %}" class="text-xs font-normal text-blue-600 hover:underline">↕ Sắp thứ tự</a>
+                    {% endif %}
+                </h3>
+                {% if children %}
+                <div class="flex flex-wrap gap-2">
+                    {% for child in children %}
+                    <a href="{% url 'core:member_detail' child.pk %}" class="relation-link {% if child.gender == 'male' %}male{% else %}female{% endif %}">
+                        {% if child.gender == 'male' %}👦{% else %}👧{% endif %}
+                        {% if child.birth_order %}<span class="text-xs opacity-60">{{ child.birth_order }}.</span>{% endif %}
+                        {{ child.name }}
+                        {% if child.is_dinh %}<span class="badge-dinh text-[10px]">Đinh</span>{% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-400 text-sm">Chưa có thông tin con cái.</p>
+                {% endif %}
+
+                <!-- Thêm con nhanh -->
+                {% if can_edit %}
+                <div class="mt-4 quick-form">
+                    <p class="text-sm font-semibold text-gray-600 mb-2">➕ Thêm con nhanh:</p>
+                    <form method="post" action="{% url 'core:add_child' member.pk %}" class="grid grid-cols-2 gap-2">
+                        {% csrf_token %}
+                        <input type="text" name="name" placeholder="Họ tên con" required class="form-input-sm col-span-2">
+                        <select name="gender" required class="form-input-sm">
+                            <option value="">Giới tính</option>
+                            <option value="male">Nam</option>
+                            <option value="female">Nữ</option>
+                        </select>
+                        <input type="number" name="birth_order" placeholder="Con thứ" min="1" class="form-input-sm">
+                        <input type="text" name="birth_date" placeholder="Ngày sinh" class="form-input-sm">
+                        <select name="member_type" class="form-input-sm">
+                            <option value="blood">Dòng trực hệ</option>
+                            <option value="adopted_child">Con nuôi</option>
+                        </select>
+                        <button type="submit" class="col-span-2 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition">
+                            ➕ Thêm
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Anh chị em -->
+            {% if siblings %}
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="section-title">👫 Anh chị em ({{ siblings.count }})</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for sibling in siblings %}
+                    <a href="{% url 'core:member_detail' sibling.pk %}" class="relation-link {% if sibling.gender == 'male' %}male{% else %}female{% endif %}">
+                        {% if sibling.gender == 'male' %}👦{% else %}👧{% endif %}
+                        {% if sibling.birth_order %}<span class="text-xs opacity-60">{{ sibling.birth_order }}.</span>{% endif %}
+                        {{ sibling.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

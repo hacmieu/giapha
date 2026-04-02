@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Noto+Sans+VN:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-[#f7f5f0] min-h-screen flex flex-col">
@@ -53,10 +54,20 @@
                         📜 Phả Đồ Đinh
                     </a>
                 </li>
+                <li>
+                    <a href="{% url 'draft_landing' %}" class="nav-link px-3 py-2 rounded-lg hover:bg-[#fef3c7] transition-colors inline-block {% if 'draft' in request.resolver_match.url_name %}bg-[#fef3c7] font-bold border border-[#ffedd5]{% endif %}">
+                        ✍️ Tự Khai
+                    </a>
+                </li>
                 {% if user.can_edit_members %}
                 <li>
                     <a href="{% url 'core:member_create' %}" class="nav-link px-3 py-2 rounded-lg hover:bg-[#fef3c7] transition-colors inline-block {% if request.resolver_match.url_name == 'member_create' %}bg-[#fef3c7] font-bold border border-[#ffedd5]{% endif %}">
                         ➕ Thêm Mới
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin_draft_list' %}" class="nav-link px-3 py-2 rounded-lg hover:bg-[#fef3c7] transition-colors inline-block {% if request.resolver_match.url_name == 'admin_draft_list' or request.resolver_match.url_name == 'admin_draft_review' %}bg-[#fef3c7] font-bold border border-[#ffedd5]{% endif %}">
+                        📋 Duyệt Khai
                     </a>
                 </li>
                 {% endif %}

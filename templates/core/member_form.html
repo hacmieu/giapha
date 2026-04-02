@@ -2,162 +2,194 @@
 
 {% block title %}{{ title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .form-input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #78350f;
+        box-shadow: 0 0 0 3px rgba(120,53,15,0.1);
+    }
+    .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 4px;
+    }
+    .form-label .required { color: #dc2626; }
+    .form-hint {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 2px;
+    }
+    .step-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 16px;
+    }
+    .step-num {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+    }
+    .preset-info {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto">
-    <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
-        <h2 class="text-2xl font-bold text-[#78350f] mb-6 serif-font">{{ title }}</h2>
+<div class="max-w-2xl mx-auto py-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-4 text-sm">
+        <a href="{% url 'core:members' %}" class="text-[#78350f] hover:underline">Danh sách</a>
+        <span class="text-gray-400 mx-2">›</span>
+        <span class="text-gray-600">{{ title }}</span>
+    </nav>
 
-        <form method="post" enctype="multipart/form-data" class="space-y-6">
-            {% csrf_token %}
-            
-            <!-- Basic Info Section -->
-            <div class="border-l-4 border-[#78350f] pl-4">
-                <h3 class="font-semibold text-[#78350f] mb-4">Thông tin cơ bản</h3>
-                
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Họ và Tên <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" value="{{ form.name.value|default:'' }}" required
-                            class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#78350f]"
-                            placeholder="VD: Vũ Văn An">
-                        {% if form.name.errors %}<p class="text-red-500 text-sm mt-1">{{ form.name.errors.0 }}</p>{% endif %}
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Giới tính <span class="text-red-500">*</span></label>
-                        <select name="gender" required class="w-full border border-gray-300 rounded-lg p-2.5">
-                            <option value="male" {% if form.gender.value == 'male' %}selected{% endif %}>Nam</option>
-                            <option value="female" {% if form.gender.value == 'female' %}selected{% endif %}>Nữ</option>
-                        </select>
-                    </div>
+    <form method="post" enctype="multipart/form-data" id="memberForm">
+        {% csrf_token %}
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Chi số</label>
-                        <select name="chi" class="w-full border border-gray-300 rounded-lg p-2.5">
-                            <option value="">-- Chọn Chi --</option>
-                            {% for chi in chi_list %}
-                            <option value="{{ chi.id }}" {% if form.chi.value == chi.id %}selected{% endif %}>Chi {{ chi.number }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="p-3 rounded-lg text-sm {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Đời thứ</label>
-                        <input type="number" name="generation" value="{{ form.generation.value|default:'' }}" min="1"
-                            class="w-full border border-gray-300 rounded-lg p-2.5"
-                            placeholder="VD: 3, 4, 5...">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tính Đinh?</label>
-                        <select name="is_dinh" class="w-full border border-gray-300 rounded-lg p-2.5">
-                            <option value="False" {% if not form.is_dinh.value %}selected{% endif %}>Không</option>
-                            <option value="True" {% if form.is_dinh.value %}selected{% endif %}>Có - Đinh (Nam họ Vũ dòng trực hệ)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Loại thành viên</label>
-                        <select name="member_type" class="w-full border border-gray-300 rounded-lg p-2.5">
-                            <option value="blood" {% if form.member_type.value == 'blood' %}selected{% endif %}>Dòng trực hệ (họ Vũ)</option>
-                            <option value="spouse_in" {% if form.member_type.value == 'spouse_in' %}selected{% endif %}>Dâu/Rể (lấy vào họ)</option>
-                            <option value="child_out" {% if form.member_type.value == 'child_out' %}selected{% endif %}>Cháu ngoại</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Con thứ</label>
-                        <input type="number" name="birth_order" value="{{ form.birth_order.value|default:'' }}" min="1" max="20"
-                            class="w-full border border-gray-300 rounded-lg p-2.5"
-                            placeholder="VD: 1, 2, 3...">
-                    </div>
-                </div>
+        <!-- ═══ BƯỚC 1: Thông tin cơ bản ═══ -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="step-header bg-[#fef3c7] text-[#78350f]">
+                <div class="step-num bg-[#78350f]">1</div>
+                Thông tin cơ bản
             </div>
 
-            <!-- Dates Section -->
-            <div class="border-l-4 border-[#d97706] pl-4">
-                <h3 class="font-semibold text-[#d97706] mb-4">Ngày tháng</h3>
-                
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
-                        <input type="text" name="birth_date" value="{{ form.birth_date.value|default:'' }}"
-                            class="w-full border border-gray-300 rounded-lg p-2.5"
-                            placeholder="VD: 15/03/1985">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Ngày mất</label>
-                        <input type="text" name="death_date" value="{{ form.death_date.value|default:'' }}"
-                            class="w-full border border-gray-300 rounded-lg p-2.5"
-                            placeholder="Để trống nếu còn sống">
-                    </div>
-                </div>
+            {% if preset_father %}
+            <div class="preset-info">
+                <strong>👨 Cha:</strong> {{ preset_father.name }}
+                (Chi {{ preset_father.chi.number|default:"?" }} — Đời {{ preset_father.generation|default:"?" }})
             </div>
+            {% endif %}
 
-            <!-- Family Relations Section -->
-            <div class="border-l-4 border-[#059669] pl-4">
-                <h3 class="font-semibold text-[#059669] mb-4">Quan hệ gia đình</h3>
-                
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Cha</label>
-                        <select name="father" class="w-full border border-gray-300 rounded-lg p-2.5">
-                            <option value="">-- Chọn Cha --</option>
-                            {% for m in members %}
-                            {% if m.gender == 'male' %}
-                            <option value="{{ m.id }}" {% if form.father.value == m.id %}selected{% endif %}>{{ m.name }}</option>
-                            {% endif %}
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Mẹ</label>
-                        <select name="mother" class="w-full border border-gray-300 rounded-lg p-2.5">
-                            <option value="">-- Chọn Mẹ --</option>
-                            {% for m in members %}
-                            {% if m.gender == 'female' %}
-                            <option value="{{ m.id }}" {% if form.mother.value == m.id %}selected{% endif %}>{{ m.name }}</option>
-                            {% endif %}
-                            {% endfor %}
-                        </select>
-                    </div>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="form-label">Họ và Tên <span class="required">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<p class="text-red-500 text-sm mt-1">{{ form.name.errors.0 }}</p>{% endif %}
                 </div>
-            </div>
 
-            <!-- Notes Section -->
-            <div class="border-l-4 border-[#6366f1] pl-4">
-                <h3 class="font-semibold text-[#6366f1] mb-4">Ghi chú</h3>
-                
                 <div>
-                    <textarea name="notes" rows="3" class="w-full border border-gray-300 rounded-lg p-2.5"
-                        placeholder="VD: Sinh ra Vũ Thành An, làm công chức tại...">{{ form.notes.value|default:'' }}</textarea>
+                    <label class="form-label">Giới tính <span class="required">*</span></label>
+                    {{ form.gender }}
                 </div>
-            </div>
 
-            <!-- Photo Section -->
-            <div class="border-l-4 border-gray-400 pl-4">
-                <h3 class="font-semibold text-gray-600 mb-4">Ảnh đại diện</h3>
-                
                 <div>
-                    <input type="file" name="photo" accept="image/*" class="w-full border border-gray-300 rounded-lg p-2.5">
-                    {% if form.instance.photo %}
-                    <p class="text-sm text-gray-500 mt-1">Ảnh hiện tại: {{ form.instance.photo.name }}</p>
-                    {% endif %}
+                    <label class="form-label">Loại thành viên</label>
+                    {{ form.member_type }}
+                    <p class="form-hint">Chọn "Dâu/Rể" cho vợ/chồng lấy vào họ</p>
+                </div>
+
+                <div>
+                    <label class="form-label">Chi</label>
+                    {{ form.chi }}
+                    <p class="form-hint">Tự điền nếu đã chọn Cha ở bước 2</p>
+                </div>
+
+                <div>
+                    <label class="form-label">Đời thứ</label>
+                    {{ form.generation }}
+                    <p class="form-hint">Tự tính nếu đã chọn Cha</p>
+                </div>
+
+                <div>
+                    <label class="form-label">Con thứ</label>
+                    {{ form.birth_order }}
+                    <p class="form-hint">Thứ tự sinh trong gia đình (1=cả, 2=hai...)</p>
+                </div>
+
+                <div>
+                    <label class="form-label">Ngày sinh</label>
+                    {{ form.birth_date }}
+                </div>
+
+                <div>
+                    <label class="form-label">Ngày mất</label>
+                    {{ form.death_date }}
+                </div>
+
+                <div>
+                    <label class="form-label">Ảnh</label>
+                    {{ form.photo }}
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="form-label">Ghi chú</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ BƯỚC 2: Quan hệ gia đình ═══ -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="step-header bg-[#d1fae5] text-[#065f46]">
+                <div class="step-num bg-[#059669]">2</div>
+                Quan hệ gia đình (Cha / Mẹ)
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="form-label">👨 Cha</label>
+                    {{ family_form.father }}
+                    <p class="form-hint">Chỉ hiện nam cùng chi, đời trên 1 bậc</p>
+                </div>
+                <div>
+                    <label class="form-label">👩 Mẹ</label>
+                    {{ family_form.mother }}
+                    <p class="form-hint">Chỉ hiện nữ đời tương ứng</p>
                 </div>
             </div>
 
-            <!-- Submit Buttons -->
-            <div class="flex flex-wrap gap-3 pt-4">
-                <button type="submit" class="flex-1 bg-[#78350f] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#92400e] transition shadow-lg">
-                    💾 Lưu Thành Viên
-                </button>
-                <a href="{% url 'core:members' %}" class="px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-100 transition text-center">
-                    ❌ Hủy
-                </a>
+            <div class="mt-3 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-800 border border-yellow-200">
+                💡 <strong>Mẹo:</strong> Chọn Cha trước → Chi và Đời sẽ tự tính. Quan hệ vợ/chồng thêm sau khi lưu.
             </div>
-        </form>
-    </div>
+        </div>
+
+        <!-- ═══ NÚT LƯU ═══ -->
+        <div class="flex gap-3">
+            <button type="submit" class="flex-1 py-3 px-6 bg-[#78350f] text-white rounded-xl font-bold text-lg hover:bg-[#92400e] transition shadow-lg">
+                {% if is_create %}➕ Thêm Thành Viên{% else %}💾 Lưu Thay Đổi{% endif %}
+            </button>
+            <a href="{% if is_create %}{% url 'core:members' %}{% else %}{% url 'core:member_detail' form.instance.pk %}{% endif %}"
+               class="py-3 px-6 bg-gray-200 text-gray-700 rounded-xl font-bold text-lg hover:bg-gray-300 transition">
+                Hủy
+            </a>
+        </div>
+    </form>
 </div>
 {% endblock %}

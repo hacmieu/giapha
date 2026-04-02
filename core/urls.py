@@ -13,6 +13,12 @@ urlpatterns = [
     path('member/add/', views.MemberCreateView.as_view(), name='member_create'),
     path('member/<int:pk>/edit/', views.MemberUpdateView.as_view(), name='member_update'),
     path('member/<int:pk>/delete/', views.MemberDeleteView.as_view(), name='member_delete'),
+    path('member/<int:pk>/add-child/', views.AddChildView.as_view(), name='add_child'),
+    path('member/<int:pk>/add-spouse/', views.AddSpouseView.as_view(), name='add_spouse'),
+    path('member/<int:pk>/reorder-children/', views.ReorderChildrenView.as_view(), name='reorder_children'),
+    
+    # API
+    path('api/members-filter/', views.api_members_by_generation, name='api_members_filter'),
     
     # Family Tree
     path('phadoo/', views.FamilyTreeView.as_view(), name='family_tree'),

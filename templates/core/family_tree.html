@@ -571,7 +571,7 @@ async function showMemberModal(memberId) {
             data.children_names.forEach((child, idx) => {
                 const genderIcon = child.gender === 'male' ? '👦' : '👧';
                 const genderClass = child.gender === 'male' ? 'male' : 'female';
-                const orderText = child.birth_order ? ` (${child.birth_order})` : '';
+                const orderText = child.birth_order ? ` (SX: ${child.birth_order})` : '';
                 familyHtml += `
                     <a href="#" onclick="showMemberModal(${child.id}); return false;" 
                        class="child-link ${genderClass}">

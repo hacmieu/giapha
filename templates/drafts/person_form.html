@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} — {{ draft.draft_code }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .draft-input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 2px solid #d6d3d1;
+        border-radius: 10px;
+        font-size: 15px;
+        transition: all 0.15s;
+        background: white;
+    }
+    .draft-input:focus {
+        outline: none;
+        border-color: #78350f;
+        box-shadow: 0 0 0 3px rgba(120,53,15,0.1);
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 4px; }
+    .form-hint { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-6">
+    <nav class="mb-4 text-sm flex items-center gap-2">
+        <a href="{% url 'draft_detail' draft.draft_code %}" class="text-[#78350f] hover:underline">{{ draft.draft_code }}</a>
+        <span class="text-gray-300">›</span>
+        <span class="text-gray-600">{{ title }}</span>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-xl font-bold text-[#78350f] mb-6">{{ title }}</h2>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                Vui lòng sửa lỗi bên dưới.
+                {{ form.errors }}
+            </div>
+            {% endif %}
+
+            <!-- Thông tin cơ bản -->
+            <div class="bg-green-50 rounded-lg px-4 py-2 mb-4">
+                <h3 class="font-bold text-green-800 text-sm">👤 Thông tin người này</h3>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group col-span-2">
+                    <label class="form-label">{{ form.name.label }}</label>
+                    {{ form.name }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ form.gender.label }}</label>
+                    {{ form.gender }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ form.relation_to_submitter.label }}</label>
+                    {{ form.relation_to_submitter }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ form.birth_date.label }}</label>
+                    {{ form.birth_date }}
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ form.death_date.label }}</label>
+                    {{ form.death_date }}
+                </div>
+            </div>
+
+            <!-- Quan hệ -->
+            <div class="bg-blue-50 rounded-lg px-4 py-2 mb-4 mt-6">
+                <h3 class="font-bold text-blue-800 text-sm">🔗 Quan hệ (chọn từ danh sách đã thêm)</h3>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">{{ form.father_temp_id.label }}</label>
+                    {{ form.father_temp_id }}
+                    <p class="form-hint">Chọn cha từ những người đã thêm</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ form.mother_temp_id.label }}</label>
+                    {{ form.mother_temp_id }}
+                    <p class="form-hint">Chọn mẹ từ những người đã thêm</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-400 mt-1">💡 Quan hệ vợ chồng được nối trong trang <strong>Nối quan hệ</strong>.</p>
+
+            <!-- Ghi chú — phần quan trọng nhất -->
+            <div class="bg-amber-50 border-2 border-amber-200 rounded-lg px-4 py-2 mb-4 mt-6">
+                <h3 class="font-bold text-amber-800 text-sm">📝 Ghi chú — Hãy ghi tất cả những gì bạn nhớ!</h3>
+                <p class="text-xs text-amber-700 mt-1">Không nhớ chính xác cũng ghi vào: "nghe bác kể...", "hình như là...", "con ông X ở xóm Y"</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">{{ form.notes.label }}</label>
+                {{ form.notes }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">{{ form.photo.label }}</label>
+                {{ form.photo }}
+            </div>
+
+            <!-- Thông tin bổ sung — ẩn mặc định -->
+            <details class="mt-4 border rounded-lg">
+                <summary class="px-4 py-2 bg-gray-50 cursor-pointer text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg">
+                    ⚙️ Thông tin bổ sung (nếu biết Chi, Đời, con thứ mấy)
+                </summary>
+                <div class="p-4 grid grid-cols-3 gap-4">
+                    <div class="form-group">
+                        <label class="form-label">{{ form.birth_order.label }}</label>
+                        {{ form.birth_order }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">{{ form.chi_number.label }}</label>
+                        {{ form.chi_number }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">{{ form.generation.label }}</label>
+                        {{ form.generation }}
+                    </div>
+                </div>
+            </details>
+
+            <!-- Submit -->
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 py-3 bg-[#78350f] text-white rounded-xl font-bold text-lg hover:bg-[#92400e] transition">
+                    {% if is_create %}➕ Thêm{% else %}💾 Lưu{% endif %}
+                </button>
+                <a href="{% url 'draft_detail' draft.draft_code %}" class="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition text-center">
+                    Hủy
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

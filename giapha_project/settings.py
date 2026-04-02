@@ -17,6 +17,12 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'giapha.hay1.net', '.hay1.net']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://giaphavutoc.hay1.net',
+    'https://giapha.hay1.net',
+    'http://localhost:8765',
+]
+
 
 # Application definition
 
@@ -120,6 +126,10 @@ REST_FRAMEWORK = {
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'core:home'
 LOGOUT_REDIRECT_URL = 'core:home'
+
+# Session — kéo dài 90 ngày để người khai quay lại vẫn thấy bản khai cũ
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 90  # 90 days
+SESSION_SAVE_EVERY_REQUEST = True
 
 
 # Default primary key field type

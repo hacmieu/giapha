@@ -1,0 +1,1197 @@
+{% extends 'base.html' %}
+
+{% block title %}Nối quan hệ — {{ draft.draft_code }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    #myDiagramDiv {
+        width: 100%;
+        height: 70vh;
+        background: #fefbf3;
+        border: 2px solid #e7e5e4;
+        border-radius: 12px;
+    }
+    .legend-item {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; margin-right: 16px;
+    }
+    .legend-line { width: 24px; height: 3px; border-radius: 2px; }
+    .instruction-bar {
+        background: #fef3c7; border: 1px solid #fbbf24;
+        border-radius: 10px; padding: 10px 16px;
+        font-size: 14px; text-align: center;
+        transition: all 0.2s;
+    }
+    .instruction-bar.step2 {
+        background: #dbeafe; border-color: #3b82f6;
+    }
+    .instruction-bar.success {
+        background: #d1fae5; border-color: #059669;
+    }
+    /* Modal */
+    .rel-modal {
+        position: fixed; inset: 0; z-index: 1000;
+        display: none; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.45);
+    }
+    .rel-modal.show { display: flex; }
+    .rel-modal-body {
+        background: white; border-radius: 16px; padding: 24px;
+        min-width: 340px; max-width: 90vw;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .rel-btn {
+        display: block; width: 100%; padding: 10px 16px; margin-bottom: 8px;
+        border: 2px solid #e5e7eb; border-radius: 10px;
+        text-align: left; font-size: 15px; font-weight: 600;
+        cursor: pointer; transition: all 0.1s; background: white;
+    }
+    .rel-btn:hover { border-color: #78350f; background: #fef3c7; }
+    .rel-btn.danger { border-color: #fca5a5; color: #dc2626; }
+    .rel-btn.danger:hover { background: #fee2e2; border-color: #dc2626; }
+    /* Toolbar */
+    .toolbar {
+        display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .tool-btn {
+        padding: 6px 14px; border-radius: 8px; font-size: 13px;
+        font-weight: 600; cursor: pointer; border: 2px solid #d6d3d1;
+        background: white; transition: all 0.15s;
+    }
+    .tool-btn:hover { border-color: #78350f; background: #fef3c7; }
+    .tool-btn.active { border-color: #78350f; background: #78350f; color: white; }
+    .zoom-controls {
+        position: fixed; bottom: 2rem; right: 2rem;
+        display: flex; flex-direction: column; gap: 0.5rem; z-index: 100;
+    }
+    .zoom-btn {
+        width: 44px; height: 44px; border-radius: 50%;
+        background: #78350f; color: white; border: none;
+        font-size: 1.5rem; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .zoom-btn:hover { background: #92400e; }
+    .draft-input {
+        width: 100%; padding: 10px 14px;
+        border: 2px solid #d6d3d1; border-radius: 10px;
+        font-size: 15px; background: white; transition: all 0.15s;
+    }
+    .draft-input:focus {
+        outline: none; border-color: #78350f;
+        box-shadow: 0 0 0 3px rgba(120,53,15,0.1);
+    }
+    .edit-photo-wrap {
+        text-align: center; margin-bottom: 12px;
+    }
+    .edit-photo-preview {
+        width: 72px; height: 72px; border-radius: 50%;
+        object-fit: cover; border: 3px solid #e5e7eb;
+    }
+    .edit-photo-default {
+        width: 72px; height: 72px; border-radius: 50%;
+        background: #f3f4f6; display: inline-flex; align-items: center;
+        justify-content: center; font-size: 32px;
+        border: 3px solid #e5e7eb;
+    }
+    .field-row { margin-bottom: 10px; }
+    .field-label {
+        display: block; font-size: 13px; font-weight: 600;
+        color: #374151; margin-bottom: 3px;
+    }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-4 px-2">
+    <!-- Breadcrumb -->
+    <nav class="mb-3 text-sm flex items-center gap-2">
+        <a href="{% url 'draft_landing' %}" class="text-[#78350f] hover:underline">Tự Khai</a>
+        <span class="text-gray-300">›</span>
+        <a href="{% url 'draft_detail' draft.draft_code %}" class="text-[#78350f] hover:underline">{{ draft.draft_code }}</a>
+        <span class="text-gray-300">›</span>
+        <span class="text-gray-600">Nối quan hệ</span>
+    </nav>
+
+    <!-- Title + toolbar -->
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h1 class="text-xl font-bold text-[#78350f]">🔗 Nối quan hệ gia đình</h1>
+        <div class="toolbar">
+            {% if can_edit %}
+            <button class="tool-btn" onclick="showAddPersonModal()" style="background:#059669;color:white;border-color:#059669">➕ Thêm người</button>
+            <button class="tool-btn" id="edit-btn" onclick="showEditModal(window.selectedKey)" style="display:none">✏️ Sửa</button>
+            {% endif %}
+            <button class="tool-btn" onclick="doRearrange()" title="Sắp xếp lại phả đồ">🔄 Sắp xếp lại</button>
+            <button class="tool-btn" onclick="exportImage()">📷 Xuất ảnh</button>
+            <button class="tool-btn" id="dinh-toggle-btn" onclick="toggleDinhOnly()">👨 Chỉ Đinh</button>
+            <button class="tool-btn" onclick="diagram.commandHandler.increaseZoom()">＋</button>
+            <button class="tool-btn" onclick="diagram.commandHandler.decreaseZoom()">－</button>
+            <button class="tool-btn" onclick="diagram.zoomToFit()">⊡ Vừa</button>
+            {% if can_edit %}
+            <button class="tool-btn" id="deselect-btn" onclick="deselectAll()" style="display:none">✕ Bỏ chọn</button>
+            {% endif %}
+            <a href="{% url 'draft_detail' draft.draft_code %}" class="tool-btn" style="text-decoration:none">← Quay lại</a>
+        </div>
+    </div>
+
+    <!-- Instruction -->
+    <div class="instruction-bar mb-3" id="instruction">
+        💡 Bấm chọn <strong>người thứ nhất</strong>, rồi bấm <strong>người thứ hai</strong> để nối quan hệ.
+    </div>
+
+    <!-- Legend -->
+    <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1">
+        <span class="legend-item"><span class="legend-line" style="background:#059669"></span> Cha → Con</span>
+        <span class="legend-item"><span class="legend-line" style="background:#d946ef"></span> Mẹ → Con</span>
+        <span class="legend-item"><span class="legend-line" style="background:#e11d48;height:0;border-top:2px dashed #e11d48"></span> Vợ ↔ Chồng</span>
+        <span class="legend-item"><span class="legend-line" style="background:#9ca3af;height:0;border-top:2px dashed #9ca3af"></span> 💔 Ly hôn</span>
+        <span class="legend-item"><span class="legend-line" style="background:#6b7280;height:0;border-top:2px dotted #6b7280"></span> 🕯 Góa</span>
+    </div>
+
+    <!-- GoJS Diagram -->
+    <div id="myDiagramDiv"></div>
+</div>
+
+<!-- Relationship type modal -->
+<div class="rel-modal" id="rel-modal">
+    <div class="rel-modal-body">
+        <h3 class="font-bold text-lg mb-1">Chọn quan hệ</h3>
+        <p class="text-sm text-gray-500 mb-4" id="modal-desc"></p>
+        <button class="rel-btn" data-rel="father">👨 <span class="fn"></span> là <strong>Cha</strong> của <span class="tn"></span></button>
+        <button class="rel-btn" data-rel="mother">👩 <span class="fn"></span> là <strong>Mẹ</strong> của <span class="tn"></span></button>
+        <button class="rel-btn" data-rel="child">👶 <span class="fn"></span> là <strong>Con</strong> của <span class="tn"></span></button>
+        <button class="rel-btn" data-rel="spouse">💑 <span class="fn"></span> và <span class="tn"></span> là <strong>Vợ chồng</strong></button>
+        <button class="rel-btn" data-rel="spouse_divorced">💔 <span class="fn"></span> và <span class="tn"></span> <strong>Đã ly hôn</strong></button>
+        <button class="rel-btn" data-rel="spouse_widowed">🕯 <span class="fn"></span> và <span class="tn"></span> — <strong>Góa</strong> (một người đã mất)</button>
+        <div id="remove-section" style="display:none">
+            <hr class="my-3">
+            <button class="rel-btn danger" data-rel="remove">🗑️ Xóa quan hệ giữa 2 người này</button>
+        </div>
+        <hr class="my-3">
+        <button class="rel-btn" id="cancel-btn" style="text-align:center;color:#78716c;">Hủy</button>
+    </div>
+</div>
+
+{{ persons|json_script:"persons-data" }}
+{{ spouse_relations|json_script:"spouse-data" }}
+
+<!-- Add person modal -->
+<div class="rel-modal" id="add-modal">
+    <div class="rel-modal-body" style="min-width:360px">
+        <h3 class="font-bold text-lg mb-3">➕ Thêm người thân</h3>
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Họ và tên <span style="color:#dc2626">*</span></label>
+            <input type="text" id="add-name" class="draft-input" placeholder="VD: Vũ Văn Bình" autofocus>
+        </div>
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Giới tính</label>
+            <div style="display:flex;gap:12px">
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+                    <input type="radio" name="add-gender" value="male" checked> 👨 Nam
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+                    <input type="radio" name="add-gender" value="female"> 👩 Nữ
+                </label>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+            <div>
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Năm sinh</label>
+                <input type="text" id="add-birth" class="draft-input" placeholder="VD: 1965">
+            </div>
+            <div>
+                <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Năm mất</label>
+                <input type="text" id="add-death" class="draft-input" placeholder="Để trống nếu còn sống">
+            </div>
+        </div>
+        <div id="add-error" style="display:none;padding:8px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;margin-bottom:12px"></div>
+        <button id="add-submit-btn" onclick="submitAddPerson()" style="width:100%;padding:10px;background:#059669;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">➕ Thêm</button>
+        <button onclick="closeAddModal()" style="width:100%;padding:8px;background:none;border:2px solid #e5e7eb;border-radius:10px;font-size:14px;cursor:pointer;color:#78716c">Hủy</button>
+    </div>
+</div>
+
+<!-- Edit person modal -->
+<div class="rel-modal" id="edit-modal">
+    <div class="rel-modal-body" style="min-width:400px;max-width:95vw;max-height:90vh;overflow-y:auto">
+        <h3 class="font-bold text-lg mb-3">✏️ Sửa thông tin — <span id="edit-title"></span></h3>
+        <div class="edit-photo-wrap">
+            <div id="edit-photo-default" class="edit-photo-default">👨</div>
+            <img id="edit-photo-img" class="edit-photo-preview" style="display:none" alt="Ảnh">
+        </div>
+        <div class="field-row">
+            <label class="field-label">Họ và tên <span style="color:#dc2626">*</span></label>
+            <input type="text" id="edit-name" class="draft-input">
+        </div>
+        <div class="field-row">
+            <label class="field-label">Giới tính</label>
+            <div style="display:flex;gap:12px">
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+                    <input type="radio" name="edit-gender" value="male"> 👨 Nam
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+                    <input type="radio" name="edit-gender" value="female"> 👩 Nữ
+                </label>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field-row">
+                <label class="field-label">Năm sinh</label>
+                <input type="text" id="edit-birth" class="draft-input" placeholder="VD: 1965">
+            </div>
+            <div class="field-row">
+                <label class="field-label">Năm mất</label>
+                <input type="text" id="edit-death" class="draft-input" placeholder="Còn sống → trống">
+            </div>
+        </div>
+        <div class="field-row">
+            <label class="field-label">Quan hệ với người khai</label>
+            <select id="edit-relation" class="draft-input">
+                <option value="self">Bản thân</option>
+                <option value="father">Cha</option>
+                <option value="mother">Mẹ</option>
+                <option value="spouse">Vợ/Chồng</option>
+                <option value="child">Con</option>
+                <option value="sibling">Anh/Chị/Em</option>
+                <option value="grandparent">Ông/Bà</option>
+                <option value="grandchild">Cháu</option>
+                <option value="uncle_aunt">Chú/Bác/Cô/Dì</option>
+                <option value="other">Khác</option>
+            </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div class="field-row">
+                <label class="field-label">Thứ tự sắp xếp <span style="font-weight:400;color:#78716c">(10, 20, 30...)</span></label>
+                <input type="number" id="edit-birth-order" class="draft-input" min="1" placeholder="10, 20, 30...">
+            </div>
+            <div class="field-row">
+                <label class="field-label">Chi số</label>
+                <input type="number" id="edit-chi" class="draft-input" min="1" max="8" placeholder="?">
+            </div>
+            <div class="field-row">
+                <label class="field-label">Đời thứ</label>
+                <input type="number" id="edit-gen" class="draft-input" min="0" placeholder="?">
+            </div>
+        </div>
+        <div class="field-row">
+            <label class="field-label">Ghi chú</label>
+            <textarea id="edit-notes" class="draft-input" rows="3" placeholder="Nghề nghiệp, địa chỉ, thông tin nghe kể..."></textarea>
+        </div>
+        <div class="field-row">
+            <label class="field-label">Ảnh (thay đổi)</label>
+            <input type="file" id="edit-photo-file" class="draft-input" accept="image/*">
+        </div>
+        <div id="edit-error" style="display:none;padding:8px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;margin-bottom:12px"></div>
+        <input type="hidden" id="edit-pk" value="">
+        <input type="hidden" id="edit-key" value="">
+        <button id="edit-submit-btn" onclick="submitEditPerson()" style="width:100%;padding:10px;background:#78350f;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">💾 Lưu</button>
+        <button onclick="closeEditModal()" style="width:100%;padding:8px;background:none;border:2px solid #e5e7eb;border-radius:10px;font-size:14px;cursor:pointer;color:#78716c">Hủy</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/gojs/release/go.js"></script>
+<script>
+var diagram;
+
+function doRearrange() {
+    diagram.layoutDiagram(true);
+    diagram.zoomToFit();
+}
+
+(function() {
+    var $ = go.GraphObject.make;
+    var CSRF = '{{ csrf_token }}';
+    var SAVE_URL = '{% url "draft_save_relation" draft.draft_code %}';
+    var ADD_URL = '{% url "draft_quick_add_person" draft.draft_code %}';
+    var EDIT_URL_TPL = '{% url "draft_edit_person_ajax" draft.draft_code 99999 %}'.replace('99999', '{pk}');
+    var canEdit = {{ can_edit|yesno:"true,false" }};
+    var personsRaw = JSON.parse(document.getElementById('persons-data').textContent);
+    var spouseRelsRaw = JSON.parse(document.getElementById('spouse-data').textContent);
+
+    // Build lookup
+    var personMap = {};
+    personsRaw.forEach(function(p) { personMap[p.temp_id] = p; });
+
+    // Spouse relations: array of {p1, p2, status, wo} (p1 < p2)
+    var spouseRels = [];
+    spouseRelsRaw.forEach(function(r) {
+        spouseRels.push({
+            p1: r.person1_temp_id,
+            p2: r.person2_temp_id,
+            status: r.status,
+            wo: r.wife_order || 1,
+        });
+    });
+
+    // ── Selection state ──
+    window.selectedKey = null; // first person clicked
+
+    function updateInstruction(state, name1, name2) {
+        var el = document.getElementById('instruction');
+        var btn = document.getElementById('deselect-btn');
+        var editBtn = document.getElementById('edit-btn');
+        if (state === 'idle') {
+            el.innerHTML = '💡 Bấm chọn <strong>người thứ nhất</strong>, rồi bấm <strong>người thứ hai</strong> để nối quan hệ.';
+            el.className = 'instruction-bar mb-3';
+            if (btn) btn.style.display = 'none';
+            if (editBtn) editBtn.style.display = 'none';
+        } else if (state === 'selected') {
+            el.innerHTML = '✋ Đã chọn <strong>' + escHtml(name1) + '</strong>. Bấm vào người thứ 2 hoặc ✏️ Sửa.';
+            el.className = 'instruction-bar step2 mb-3';
+            if (btn) btn.style.display = '';
+            if (editBtn) editBtn.style.display = '';
+        } else if (state === 'saving') {
+            el.innerHTML = '⏳ Đang lưu...';
+            el.className = 'instruction-bar mb-3';
+            if (editBtn) editBtn.style.display = 'none';
+        } else if (state === 'saved') {
+            el.innerHTML = '✅ Đã lưu! Bấm tiếp để nối thêm.';
+            el.className = 'instruction-bar success mb-3';
+            if (btn) btn.style.display = 'none';
+            if (editBtn) editBtn.style.display = 'none';
+        } else if (state === 'error') {
+            el.innerHTML = '❌ Lỗi: ' + escHtml(name1 || '');
+            el.className = 'instruction-bar mb-3';
+            if (btn) btn.style.display = 'none';
+            if (editBtn) editBtn.style.display = 'none';
+        }
+    }
+
+    window.deselectAll = function() {
+        selectedKey = null;
+        diagram.clearHighlighteds();
+        diagram.clearSelection();
+        updateInstruction('idle');
+    };
+
+    function escHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s || '';
+        return d.innerHTML;
+    }
+
+    // ── Diagram ──
+    diagram = $(go.Diagram, 'myDiagramDiv', {
+        'undoManager.isEnabled': false,
+        'animationManager.isEnabled': true,
+        // DISABLE link drawing by drag
+        'linkingTool.isEnabled': false,
+        'relinkingTool.isEnabled': false,
+        initialAutoScale: go.Diagram.Uniform,
+        layout: $(go.LayeredDigraphLayout, {
+            direction: 90,
+            layerSpacing: 50,
+            columnSpacing: 30,
+            setsPortSpots: false,
+            initializeOption: go.LayeredDigraphLayout.InitDepthFirstIn,
+        }),
+    });
+
+    // ── Node template — portrait card (like genogram) ──
+    diagram.nodeTemplate = $(go.Node, 'Auto',
+        {
+            cursor: canEdit ? 'pointer' : 'default',
+            click: function(e, node) {
+                if (!canEdit) return;
+                onNodeClick(node.data.key);
+            },
+            doubleClick: function(e, node) {
+                if (!canEdit) return;
+                e.handled = true;
+                showEditModal(node.data.key);
+            },
+            selectionAdornmentTemplate: $(go.Adornment, 'Auto',
+                $(go.Shape, 'RoundedRectangle', {
+                    fill: null, stroke: '#78350f',
+                    strokeWidth: 3, parameter1: 10,
+                }),
+                $(go.Placeholder)
+            ),
+        },
+        new go.Binding('isLayoutPositioned', 'spouseOf', function(v) { return !v; }),
+        $(go.Shape, 'RoundedRectangle', {
+            strokeWidth: 2, parameter1: 8,
+        },
+        new go.Binding('fill', 's', function(s) {
+            return s === 'male' ? '#EFF6FF' : '#FDF2F8';
+        }),
+        new go.Binding('stroke', 's', function(s) {
+            return s === 'male' ? '#1e40af' : '#be185d';
+        }),
+        new go.Binding('strokeWidth', 'spouseOf', function(v) { return v ? 1.5 : 2; })),
+        $(go.Panel, 'Vertical', { margin: 8, defaultAlignment: go.Spot.Center },
+            // Photo: portrait 3:4 ratio (60 × 80)
+            $(go.Picture, {
+                width: 60, height: 80,
+                margin: new go.Margin(0, 0, 6, 0),
+                imageStretch: go.GraphObject.UniformToFill,
+                background: '#f0f0f0',
+            }, new go.Binding('source', '', function(d) {
+                if (d.photo) return d.photo;
+                return d.s === 'male'
+                    ? '/media/members/male_placeholder.jpg'
+                    : '/media/members/female_placeholder.jpg';
+            })),
+            // ID
+            $(go.TextBlock, {
+                font: '9px monospace', stroke: '#a8a29e',
+            }, new go.Binding('text', 'key', function(k) { return '#' + k; })),
+            // Name
+            $(go.TextBlock, {
+                font: 'bold 12px sans-serif', stroke: '#1c1917',
+                textAlign: 'center',
+                maxSize: new go.Size(110, NaN),
+                wrap: go.TextBlock.WrapFit,
+                margin: new go.Margin(2, 0, 0, 0),
+            }, new go.Binding('text', 'n')),
+            // Dates
+            $(go.TextBlock, {
+                font: '10px sans-serif', stroke: '#78716c',
+                textAlign: 'center',
+                margin: new go.Margin(2, 0, 0, 0),
+            }, new go.Binding('text', '', function(d) {
+                var parts = [];
+                if (d.b) parts.push(d.b);
+                if (d.d) parts.push('✝ ' + d.d);
+                return parts.join(' – ');
+            }),
+            new go.Binding('visible', '', function(d) { return !!(d.b || d.d); })),
+            // Relation label
+            $(go.TextBlock, {
+                font: '9px sans-serif', stroke: '#78350f',
+                background: '#fef3c7',
+                textAlign: 'center',
+                margin: new go.Margin(3, 0, 0, 0),
+            }, new go.Binding('text', 'rel'),
+               new go.Binding('visible', 'rel', function(r) { return !!r; })),
+            // Wives list (shown in Đinh-only mode)
+            $(go.TextBlock, {
+                font: 'italic 9px sans-serif', stroke: '#be185d',
+                textAlign: 'center',
+                maxSize: new go.Size(110, NaN),
+                wrap: go.TextBlock.WrapFit,
+                margin: new go.Margin(3, 0, 0, 0),
+            }, new go.Binding('text', 'wives'),
+               new go.Binding('visible', 'wives', function(w) { return !!w; }))
+        )
+    );
+
+    // ── Link templates ──
+    // Father → Child (green)
+    diagram.linkTemplate = $(go.Link,
+        {
+            routing: go.Link.AvoidsNodes, corner: 8,
+            cursor: 'pointer',
+            click: function(e, link) {
+                if (!canEdit) return;
+                var fk = link.fromNode.data.key;
+                var tk = link.toNode.data.key;
+                if (confirm('Xóa quan hệ: ' + getName(fk) + ' → ' + getName(tk) + ' ?')) {
+                    saveRelation(fk, tk, 'remove');
+                }
+            }
+        },
+        $(go.Shape, { strokeWidth: 2, stroke: '#059669' }),
+        $(go.Shape, { toArrow: 'Triangle', stroke: '#059669', fill: '#059669', scale: 1.2 })
+    );
+
+    // Mother → Child (purple)
+    diagram.linkTemplateMap.add('mother', $(go.Link,
+        {
+            routing: go.Link.AvoidsNodes, corner: 8,
+            cursor: 'pointer',
+            click: function(e, link) {
+                if (!canEdit) return;
+                var fk = link.fromNode.data.key;
+                var tk = link.toNode.data.key;
+                if (confirm('Xóa quan hệ: ' + getName(fk) + ' → ' + getName(tk) + ' ?')) {
+                    saveRelation(fk, tk, 'remove');
+                }
+            }
+        },
+        $(go.Shape, { strokeWidth: 2, stroke: '#D946EF' }),
+        $(go.Shape, { toArrow: 'Triangle', stroke: '#D946EF', fill: '#D946EF', scale: 1.2 })
+    ));
+
+    // Spouse (red dashed)
+    var spouseClickHandler = function(e, link) {
+        if (!canEdit) return;
+        var fk = link.fromNode.data.key;
+        var tk = link.toNode.data.key;
+        if (confirm('Xóa quan hệ: ' + getName(fk) + ' ↔ ' + getName(tk) + ' ?')) {
+            saveRelation(fk, tk, 'remove');
+        }
+    };
+
+    var WIFE_ORDER_NAMES = { 1: 'Bà Cả', 2: 'Bà Hai', 3: 'Bà Ba', 4: 'Bà Tư' };
+    function wifeLabel(wo) { return WIFE_ORDER_NAMES[wo] || ('Bà ' + wo); }
+
+    // Married spouse (red dashed 💑)
+    diagram.linkTemplateMap.add('spouse', $(go.Link,
+        { routing: go.Link.Normal, corner: 0, cursor: 'pointer', click: spouseClickHandler, isLayoutPositioned: false },
+        $(go.Shape, { strokeWidth: 2.5, stroke: '#E11D48', strokeDashArray: [6, 4] }),
+        $(go.TextBlock, {
+            segmentIndex: 0, segmentFraction: 0.5,
+            font: '11px sans-serif', stroke: '#E11D48',
+            background: 'white',
+            margin: 2,
+        }, new go.Binding('text', 'woLabel'))
+    ));
+
+    // Divorced spouse (gray dashed 💔)
+    diagram.linkTemplateMap.add('divorced', $(go.Link,
+        { routing: go.Link.Normal, corner: 0, cursor: 'pointer', click: spouseClickHandler, isLayoutPositioned: false },
+        $(go.Shape, { strokeWidth: 2.5, stroke: '#9CA3AF', strokeDashArray: [6, 4] }),
+        $(go.TextBlock, {
+            segmentIndex: 0, segmentFraction: 0.5,
+            font: '11px sans-serif', stroke: '#9CA3AF',
+            background: 'white',
+            margin: 2,
+        }, new go.Binding('text', 'woLabel'))
+    ));
+
+    // Widowed spouse (dark gray dotted 🕯)
+    diagram.linkTemplateMap.add('widowed', $(go.Link,
+        { routing: go.Link.Normal, corner: 0, cursor: 'pointer', click: spouseClickHandler, isLayoutPositioned: false },
+        $(go.Shape, { strokeWidth: 2, stroke: '#6B7280', strokeDashArray: [2, 3] }),
+        $(go.TextBlock, {
+            segmentIndex: 0, segmentFraction: 0.5,
+            font: '11px sans-serif', stroke: '#6B7280',
+            background: 'white',
+            margin: 2,
+        }, new go.Binding('text', 'woLabel'))
+    ));
+
+    function getName(key) {
+        return personMap[key] ? personMap[key].name : '#' + key;
+    }
+
+    // ── Build data ──
+    var nodeDataArray = [];
+    var linkDataArray = [];
+    var RELATION_LABELS = {
+        'self': 'Bản thân', 'father': 'Cha', 'mother': 'Mẹ',
+        'spouse': 'Vợ/Chồng', 'child': 'Con', 'sibling': 'Anh/Chị/Em',
+        'grandparent': 'Ông/Bà', 'grandchild': 'Cháu',
+        'uncle_aunt': 'Chú/Bác/Cô/Dì', 'other': '',
+    };
+
+    // Precompute which females are spouse-only (no parent-child links → use manual layout)
+    var spouseOnlySet = {};
+    spouseRels.forEach(function(r) {
+        var p1 = personMap[r.p1], p2 = personMap[r.p2];
+        if (!p1 || !p2) return;
+        // Female with no children listed → mark spouseOf her husband
+        if (p2.gender === 'female') spouseOnlySet[r.p2] = r.p1;
+        else if (p1.gender === 'female') spouseOnlySet[r.p1] = r.p2;
+    });
+
+    // Sort persons by birth_order so siblings display left→right correctly
+    var sortedPersons = personsRaw.slice().sort(function(a, b) {
+        var ao = a.birth_order || 9999;
+        var bo = b.birth_order || 9999;
+        if (ao !== bo) return ao - bo;
+        return a.temp_id - b.temp_id;
+    });
+
+    sortedPersons.forEach(function(p) {
+        nodeDataArray.push({
+            key: p.temp_id,
+            n: p.name,
+            s: p.gender,
+            b: p.birth_date || '',
+            d: p.death_date || '',
+            rel: RELATION_LABELS[p.relation_to_submitter] || '',
+            photo: p.photo_url || '',
+            spouseOf: spouseOnlySet[p.temp_id] || null,
+            wives: '',
+            ord: p.birth_order || 9999,
+        });
+        if (p.father_temp_id && personMap[p.father_temp_id]) {
+            linkDataArray.push({ from: p.father_temp_id, to: p.temp_id, category: '' });
+        }
+        if (p.mother_temp_id && personMap[p.mother_temp_id]) {
+            linkDataArray.push({ from: p.mother_temp_id, to: p.temp_id, category: 'mother' });
+        }
+    });
+
+    // Add spouse links from spouseRels
+    spouseRels.forEach(function(r) {
+        if (personMap[r.p1] && personMap[r.p2]) {
+            var cat = r.status === 'divorced' ? 'divorced' :
+                      r.status === 'widowed' ? 'widowed' : 'spouse';
+            var emoji = r.status === 'divorced' ? '💔 ' : r.status === 'widowed' ? '🕯 ' : '💑 ';
+            linkDataArray.push({ from: r.p1, to: r.p2, category: cat, woLabel: emoji + wifeLabel(r.wo) });
+        }
+    });
+
+    diagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+
+    // ── Position wife nodes after each layout ──
+    function computeSpouseOf() {
+        // Recompute spouseOnly set from current spouseRels
+        var newSpouseOnly = {};
+        spouseRels.forEach(function(r) {
+            var p1 = personMap[r.p1], p2 = personMap[r.p2];
+            if (!p1 || !p2) return;
+            if (p2.gender === 'female') newSpouseOnly[r.p2] = r.p1;
+            else if (p1.gender === 'female') newSpouseOnly[r.p1] = r.p2;
+        });
+        diagram.startTransaction('spouseOf');
+        diagram.nodes.each(function(node) {
+            var key = node.data.key;
+            var oldVal = node.data.spouseOf;
+            var newVal = newSpouseOnly[key] || null;
+            if (oldVal !== newVal) {
+                diagram.model.setDataProperty(node.data, 'spouseOf', newVal);
+            }
+        });
+        diagram.commitTransaction('spouseOf');
+    }
+
+    function positionWives() {
+        diagram.startTransaction('posWives');
+        // Group wives by husband, sorted by wife_order
+        var wifesByHusband = {};
+        spouseRels.forEach(function(r) {
+            var p1 = personMap[r.p1], p2 = personMap[r.p2];
+            if (!p1 || !p2) return;
+            var husbandId = p1.gender === 'male' ? r.p1 : (p2.gender === 'male' ? r.p2 : null);
+            var wifeId    = p1.gender === 'female' ? r.p1 : (p2.gender === 'female' ? r.p2 : null);
+            if (!husbandId || !wifeId) return;
+            if (!wifesByHusband[husbandId]) wifesByHusband[husbandId] = [];
+            wifesByHusband[husbandId].push({ id: wifeId, wo: r.wo || 1 });
+        });
+        var gap = 16;
+        Object.keys(wifesByHusband).forEach(function(hKeyStr) {
+            var hn = diagram.findNodeForKey(parseInt(hKeyStr));
+            if (!hn) return;
+            var hb = hn.actualBounds;
+            // Sort by wife_order
+            var sorted = wifesByHusband[hKeyStr].sort(function(a, b) { return a.wo - b.wo; });
+            var wifeNodes = sorted.map(function(w) {
+                return diagram.findNodeForKey(w.id);
+            }).filter(function(wn) { return wn && wn.data.spouseOf; });
+            if (wifeNodes.length === 0) return;
+            // All wives on the RIGHT, stacked vertically centered on husband
+            var totalH = wifeNodes.reduce(function(s, wn) {
+                return s + wn.actualBounds.height;
+            }, 0) + (wifeNodes.length - 1) * gap;
+            var startY = hb.y + (hb.height - totalH) / 2;
+            var rightX = hb.x + hb.width + gap;
+            wifeNodes.forEach(function(wn) {
+                wn.location = new go.Point(rightX, startY);
+                startY += wn.actualBounds.height + gap;
+            });
+        });
+        diagram.commitTransaction('posWives');
+    }
+
+    diagram.addDiagramListener('LayoutCompleted', function() {
+        positionWives();
+    });
+
+    // ── Click-to-connect logic ──
+    function onNodeClick(key) {
+        if (selectedKey === null) {
+            // First click → select
+            selectedKey = key;
+            var node = diagram.findNodeForKey(key);
+            if (node) diagram.select(node);
+            updateInstruction('selected', getName(key));
+        } else if (selectedKey === key) {
+            // Click same → deselect
+            deselectAll();
+        } else {
+            // Second click → show modal
+            diagram.clearSelection();
+            showRelationModal(selectedKey, key);
+            selectedKey = null;
+        }
+    }
+
+    // ── Modal ──
+    var modal = document.getElementById('rel-modal');
+    var pendingFrom = null, pendingTo = null;
+
+    function showRelationModal(fromId, toId) {
+        pendingFrom = fromId;
+        pendingTo = toId;
+        var fn = getName(fromId);
+        var tn = getName(toId);
+
+        document.getElementById('modal-desc').textContent = fn + ' ↔ ' + tn;
+        modal.querySelectorAll('.fn').forEach(function(el) { el.textContent = fn; });
+        modal.querySelectorAll('.tn').forEach(function(el) { el.textContent = tn; });
+
+        // Show remove button if there's an existing relation
+        var hasRel = checkExistingRelation(fromId, toId);
+        document.getElementById('remove-section').style.display = hasRel ? '' : 'none';
+
+        modal.classList.add('show');
+    }
+
+    function checkExistingRelation(a, b) {
+        var da = personMap[a], db = personMap[b];
+        if (!da || !db) return false;
+        // Check parent-child
+        if (db.father_temp_id === a || db.mother_temp_id === a ||
+            da.father_temp_id === b || da.mother_temp_id === b) return true;
+        // Check spouse
+        var lo = Math.min(a, b), hi = Math.max(a, b);
+        for (var i = 0; i < spouseRels.length; i++) {
+            if (spouseRels[i].p1 === lo && spouseRels[i].p2 === hi) return true;
+        }
+        return false;
+    }
+
+    // Modal button handlers
+    modal.querySelectorAll('[data-rel]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            modal.classList.remove('show');
+            if (pendingFrom !== null && pendingTo !== null) {
+                saveRelation(pendingFrom, pendingTo, btn.dataset.rel);
+            }
+        });
+    });
+    document.getElementById('cancel-btn').addEventListener('click', function() {
+        modal.classList.remove('show');
+        updateInstruction('idle');
+    });
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            updateInstruction('idle');
+        }
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            modal.classList.remove('show');
+            document.getElementById('edit-modal').classList.remove('show');
+            document.getElementById('add-modal').classList.remove('show');
+            deselectAll();
+        }
+    });
+
+    // ── Save relation via AJAX ──
+    function saveRelation(fromId, toId, relType) {
+        var fd = new FormData();
+        fd.append('from_id', fromId);
+        fd.append('to_id', toId);
+        fd.append('rel_type', relType);
+        fd.append('csrfmiddlewaretoken', CSRF);
+
+        updateInstruction('saving');
+
+        fetch(SAVE_URL, { method: 'POST', body: fd })
+        .then(function(r) {
+            if (!r.ok) {
+                return r.text().then(function(t) {
+                    throw new Error('Server ' + r.status + ': ' + t.substring(0, 100));
+                });
+            }
+            return r.json();
+        })
+        .then(function(data) {
+            if (data.ok) {
+                updateLocalData(fromId, toId, relType);
+                rebuildLinks();
+                updateInstruction('saved');
+            } else {
+                updateInstruction('error', data.error || 'Unknown');
+            }
+        })
+        .catch(function(err) {
+            console.error('save-relation error:', err);
+            updateInstruction('error', err.message || 'Lỗi kết nối');
+        });
+    }
+
+    function updateLocalData(fromId, toId, relType) {
+        var df = personMap[fromId];
+        var dt = personMap[toId];
+        if (!df || !dt) return;
+
+        if (relType === 'father') {
+            dt.father_temp_id = fromId;
+        } else if (relType === 'mother') {
+            dt.mother_temp_id = fromId;
+        } else if (relType === 'child') {
+            if (dt.gender === 'male') df.father_temp_id = toId;
+            else df.mother_temp_id = toId;
+        } else if (relType === 'spouse' || relType === 'spouse_divorced' || relType === 'spouse_widowed') {
+            var st = relType === 'spouse_divorced' ? 'divorced' : relType === 'spouse_widowed' ? 'widowed' : 'married';
+            var lo = Math.min(fromId, toId), hi = Math.max(fromId, toId);
+            // Remove existing spouse rel between these two (if any)
+            spouseRels = spouseRels.filter(function(r) { return !(r.p1 === lo && r.p2 === hi); });
+            // Auto wife_order: count existing rels for the male person
+            var maleId = df.gender === 'male' ? fromId : toId;
+            var existingWo = spouseRels.filter(function(r) {
+                return r.p1 === maleId || r.p2 === maleId;
+            }).length;
+            // Add new
+            spouseRels.push({ p1: lo, p2: hi, status: st, wo: existingWo + 1 });
+        } else if (relType === 'remove') {
+            if (dt.father_temp_id === fromId) dt.father_temp_id = null;
+            if (dt.mother_temp_id === fromId) dt.mother_temp_id = null;
+            if (df.father_temp_id === toId) df.father_temp_id = null;
+            if (df.mother_temp_id === toId) df.mother_temp_id = null;
+            var lo = Math.min(fromId, toId), hi = Math.max(fromId, toId);
+            spouseRels = spouseRels.filter(function(r) { return !(r.p1 === lo && r.p2 === hi); });
+        }
+    }
+
+    function rebuildLinks() {
+        var links = [];
+        Object.keys(personMap).forEach(function(key) {
+            var p = personMap[key];
+            if (p.father_temp_id && personMap[p.father_temp_id]) {
+                links.push({ from: p.father_temp_id, to: p.temp_id, category: '' });
+            }
+            if (p.mother_temp_id && personMap[p.mother_temp_id]) {
+                links.push({ from: p.mother_temp_id, to: p.temp_id, category: 'mother' });
+            }
+        });
+        // Spouse links from spouseRels
+        spouseRels.forEach(function(r) {
+            if (personMap[r.p1] && personMap[r.p2]) {
+                var sc = r.status === 'divorced' ? 'divorced' :
+                         r.status === 'widowed' ? 'widowed' : 'spouse';
+                var emoji = r.status === 'divorced' ? '💔 ' : r.status === 'widowed' ? '🕯 ' : '💑 ';
+                links.push({ from: r.p1, to: r.p2, category: sc, woLabel: emoji + wifeLabel(r.wo) });
+            }
+        });
+        diagram.startTransaction('rebuild');
+        diagram.model.linkDataArray = links;
+        diagram.commitTransaction('rebuild');
+        computeSpouseOf();
+        diagram.layoutDiagram(true);
+    }
+
+    // ── Quick add person ──
+    window.showAddPersonModal = function() {
+        deselectAll();
+        document.getElementById('add-name').value = '';
+        document.getElementById('add-birth').value = '';
+        document.getElementById('add-death').value = '';
+        document.querySelector('input[name="add-gender"][value="male"]').checked = true;
+        document.getElementById('add-error').style.display = 'none';
+        document.getElementById('add-submit-btn').disabled = false;
+        document.getElementById('add-modal').classList.add('show');
+        setTimeout(function() { document.getElementById('add-name').focus(); }, 100);
+    };
+
+    window.closeAddModal = function() {
+        document.getElementById('add-modal').classList.remove('show');
+    };
+
+    // Enter key in add modal
+    document.getElementById('add-modal').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); submitAddPerson(); }
+        if (e.key === 'Escape') closeAddModal();
+    });
+
+    window.submitAddPerson = function() {
+        var name = document.getElementById('add-name').value.trim();
+        var gender = document.querySelector('input[name="add-gender"]:checked').value;
+        var birth = document.getElementById('add-birth').value.trim();
+        var death = document.getElementById('add-death').value.trim();
+        var errEl = document.getElementById('add-error');
+        var btn = document.getElementById('add-submit-btn');
+
+        if (!name) {
+            errEl.textContent = 'Vui lòng nhập họ tên.';
+            errEl.style.display = '';
+            document.getElementById('add-name').focus();
+            return;
+        }
+
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang thêm...';
+
+        var fd = new FormData();
+        fd.append('name', name);
+        fd.append('gender', gender);
+        fd.append('birth_date', birth);
+        fd.append('death_date', death);
+        fd.append('csrfmiddlewaretoken', CSRF);
+
+        fetch(ADD_URL, { method: 'POST', body: fd })
+        .then(function(r) {
+            if (!r.ok) {
+                return r.text().then(function(t) { throw new Error('Server ' + r.status); });
+            }
+            return r.json();
+        })
+        .then(function(data) {
+            if (data.ok && data.person) {
+                var p = data.person;
+                // Update local data
+                personMap[p.temp_id] = p;
+                // Add node to diagram
+                diagram.startTransaction('addNode');
+                diagram.model.addNodeData({
+                    key: p.temp_id,
+                    n: p.name,
+                    s: p.gender,
+                    b: p.birth_date || '',
+                    d: p.death_date || '',
+                    rel: '',
+                    photo: '',
+                    spouseOf: null,
+                    wives: '',
+                });
+                diagram.commitTransaction('addNode');
+                diagram.layoutDiagram(true);
+
+                closeAddModal();
+                updateInstruction('saved');
+
+                // Auto-select the new person for immediate relation linking
+                selectedKey = p.temp_id;
+                var node = diagram.findNodeForKey(p.temp_id);
+                if (node) diagram.select(node);
+                updateInstruction('selected', p.name);
+            } else {
+                errEl.textContent = data.error || 'Lỗi không xác định';
+                errEl.style.display = '';
+            }
+        })
+        .catch(function(err) {
+            errEl.textContent = err.message || 'Lỗi kết nối';
+            errEl.style.display = '';
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.textContent = '➕ Thêm';
+        });
+    };
+
+    // ── Edit person modal ──
+    window.showEditModal = function(key) {
+        if (!key) return;
+        var p = personMap[key];
+        if (!p) return;
+        deselectAll();
+
+        document.getElementById('edit-title').textContent = '#' + p.temp_id + ' ' + p.name;
+        document.getElementById('edit-name').value = p.name;
+        document.getElementById('edit-birth').value = p.birth_date || '';
+        document.getElementById('edit-death').value = p.death_date || '';
+        document.getElementById('edit-notes').value = p.notes || '';
+        document.getElementById('edit-relation').value = p.relation_to_submitter || 'other';
+        document.getElementById('edit-birth-order').value = p.birth_order || '';
+        document.getElementById('edit-chi').value = p.chi_number || '';
+        document.getElementById('edit-gen').value = p.generation || '';
+        document.getElementById('edit-pk').value = p.pk;
+        document.getElementById('edit-key').value = key;
+        document.getElementById('edit-photo-file').value = '';
+        document.getElementById('edit-error').style.display = 'none';
+        document.getElementById('edit-submit-btn').disabled = false;
+
+        var gRadio = document.querySelector('input[name="edit-gender"][value="' + p.gender + '"]');
+        if (gRadio) gRadio.checked = true;
+
+        // Photo preview
+        var imgEl = document.getElementById('edit-photo-img');
+        var defEl = document.getElementById('edit-photo-default');
+        if (p.photo_url) {
+            imgEl.src = p.photo_url;
+            imgEl.style.display = '';
+            defEl.style.display = 'none';
+        } else {
+            imgEl.style.display = 'none';
+            defEl.style.display = '';
+            defEl.textContent = p.gender === 'male' ? '👨' : '👩';
+        }
+
+        document.getElementById('edit-modal').classList.add('show');
+        setTimeout(function() { document.getElementById('edit-name').focus(); }, 100);
+    };
+
+    window.closeEditModal = function() {
+        document.getElementById('edit-modal').classList.remove('show');
+    };
+
+    document.getElementById('edit-modal').addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { e.preventDefault(); closeEditModal(); }
+    });
+    document.getElementById('edit-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditModal();
+    });
+
+    // Preview photo when file selected
+    document.getElementById('edit-photo-file').addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var imgEl = document.getElementById('edit-photo-img');
+                imgEl.src = ev.target.result;
+                imgEl.style.display = '';
+                document.getElementById('edit-photo-default').style.display = 'none';
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    window.submitEditPerson = function() {
+        var pk = document.getElementById('edit-pk').value;
+        var key = parseInt(document.getElementById('edit-key').value);
+        var name = document.getElementById('edit-name').value.trim();
+        var gender = document.querySelector('input[name="edit-gender"]:checked').value;
+        var errEl = document.getElementById('edit-error');
+        var btn = document.getElementById('edit-submit-btn');
+
+        if (!name) {
+            errEl.textContent = 'Vui lòng nhập họ tên.';
+            errEl.style.display = '';
+            return;
+        }
+
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang lưu...';
+
+        var fd = new FormData();
+        fd.append('name', name);
+        fd.append('gender', gender);
+        fd.append('birth_date', document.getElementById('edit-birth').value.trim());
+        fd.append('death_date', document.getElementById('edit-death').value.trim());
+        fd.append('notes', document.getElementById('edit-notes').value.trim());
+        fd.append('relation_to_submitter', document.getElementById('edit-relation').value);
+        fd.append('birth_order', document.getElementById('edit-birth-order').value.trim());
+        fd.append('chi_number', document.getElementById('edit-chi').value.trim());
+        fd.append('generation', document.getElementById('edit-gen').value.trim());
+        fd.append('csrfmiddlewaretoken', CSRF);
+
+        var photoFile = document.getElementById('edit-photo-file').files[0];
+        if (photoFile) fd.append('photo', photoFile);
+
+        var url = EDIT_URL_TPL.replace('{pk}', pk);
+        fetch(url, { method: 'POST', body: fd })
+        .then(function(r) {
+            if (!r.ok) {
+                return r.text().then(function(t) { throw new Error('Server ' + r.status + ': ' + t.substring(0, 100)); });
+            }
+            return r.json();
+        })
+        .then(function(data) {
+            if (data.ok && data.person) {
+                var p = data.person;
+                // Update local data
+                personMap[key] = Object.assign(personMap[key], p);
+                // Update diagram node
+                diagram.startTransaction('editNode');
+                var nodeData = diagram.model.findNodeDataForKey(key);
+                if (nodeData) {
+                    diagram.model.setDataProperty(nodeData, 'n', p.name);
+                    diagram.model.setDataProperty(nodeData, 's', p.gender);
+                    diagram.model.setDataProperty(nodeData, 'b', p.birth_date || '');
+                    diagram.model.setDataProperty(nodeData, 'd', p.death_date || '');
+                    diagram.model.setDataProperty(nodeData, 'rel', RELATION_LABELS[p.relation_to_submitter] || '');
+                    diagram.model.setDataProperty(nodeData, 'photo', p.photo_url || '');
+                }
+                diagram.commitTransaction('editNode');
+
+                closeEditModal();
+                updateInstruction('saved');
+            } else {
+                errEl.textContent = data.error || 'Lỗi không xác định';
+                errEl.style.display = '';
+            }
+        })
+        .catch(function(err) {
+            errEl.textContent = err.message || 'Lỗi kết nối';
+            errEl.style.display = '';
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.textContent = '💾 Lưu';
+        });
+    };
+
+    // ── Export diagram to image ──
+    window.exportImage = function() {
+        var imgData = diagram.makeImageData({
+            scale: 2,
+            background: 'white',
+            type: 'image/png',
+            maxSize: new go.Size(8000, 8000),
+        });
+        if (!imgData || imgData === 'data:,') {
+            alert('Không thể xuất ảnh. Hãy thử lại.');
+            return;
+        }
+        var a = document.createElement('a');
+        a.href = imgData;
+        a.download = 'gia-pha-{{ draft.draft_code }}.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    // ── Toggle Đinh-only view ──
+    var dinhOnly = false;
+    window.toggleDinhOnly = function() {
+        dinhOnly = !dinhOnly;
+        var btn = document.getElementById('dinh-toggle-btn');
+        if (dinhOnly) {
+            btn.className = 'tool-btn active';
+            btn.textContent = '👨 Chỉ Đinh ✓';
+        } else {
+            btn.className = 'tool-btn';
+            btn.textContent = '👨 Chỉ Đinh';
+        }
+        diagram.startTransaction('toggleDinh');
+        // Build wives maps from spouseRels
+        var wivesMap = {}; // husbandId → [wifeName, ...]
+        if (dinhOnly) {
+            spouseRels.forEach(function(r) {
+                var p1 = personMap[r.p1], p2 = personMap[r.p2];
+                if (!p1 || !p2) return;
+                var hId = p1.gender === 'male' ? r.p1 : (p2.gender === 'male' ? r.p2 : null);
+                var wName = p1.gender === 'female' ? p1.name : (p2.gender === 'female' ? p2.name : null);
+                if (hId && wName) {
+                    if (!wivesMap[hId]) wivesMap[hId] = [];
+                    var prefix = r.status === 'divorced' ? '💔 ' : r.status === 'widowed' ? '🕯 ' : '♥ ';
+                    wivesMap[hId].push({ text: prefix + wifeLabel(r.wo) + ': ' + wName, wo: r.wo });
+                }
+            });
+        }
+        diagram.nodes.each(function(node) {
+            var d = node.data;
+            if (dinhOnly) {
+                node.visible = d.s === 'male';
+                // Embed wife names into male node
+                if (d.s === 'male') {
+                    var wList = wivesMap[d.key] || [];
+                    wList.sort(function(a, b) { return a.wo - b.wo; });
+                    var wives = wList.map(function(w) { return w.text; }).join('\n');
+                    diagram.model.setDataProperty(d, 'wives', wives);
+                }
+            } else {
+                node.visible = true;
+                diagram.model.setDataProperty(d, 'wives', '');
+            }
+        });
+        diagram.links.each(function(link) {
+            if (dinhOnly) {
+                var cat = link.data.category;
+                if (cat === 'spouse' || cat === 'divorced' || cat === 'widowed' || cat === 'mother') {
+                    link.visible = false;
+                } else {
+                    link.visible = link.fromNode && link.toNode &&
+                                   link.fromNode.visible && link.toNode.visible;
+                }
+            } else {
+                link.visible = true;
+            }
+        });
+        diagram.commitTransaction('toggleDinh');
+        diagram.layoutDiagram(true);
+    };
+
+})();
+</script>
+{% endblock %}

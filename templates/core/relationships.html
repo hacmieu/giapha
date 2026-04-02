@@ -312,7 +312,7 @@ function init() {
                 ),
                 $(go.TextBlock,
                     { font: "italic 9px sans-serif", stroke: "#64748b", margin: new go.Margin(0, 2, 2, 2) },
-                    new go.Binding("text", "birth_order", b => b ? `(Con thứ ${b})` : "")
+                    new go.Binding("text", "birth_order", b => b ? `(SX: ${b})` : "")
                 )
             )
         );
@@ -661,7 +661,7 @@ function showMemberModal(memberId) {
                 data.children_names.forEach(child => {
                     const genderIcon = child.gender === 'male' ? '👦' : '👧';
                     const genderClass = child.gender === 'male' ? 'male' : 'female';
-                    const orderText = child.birth_order ? ` (${child.birth_order})` : '';
+                    const orderText = child.birth_order ? ` (SX: ${child.birth_order})` : '';
                     
                     familyHTML += `
                         <a href="#" onclick="showMemberModal(${child.id}); return false;" 

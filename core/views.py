@@ -1,10 +1,13 @@
 from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Count
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
+from django.http import JsonResponse
 
-from .models import Family, Chi, FamilyMember
+from .models import Family, Chi, FamilyMember, SpouseRelation
+from .forms import MemberBasicForm, MemberFamilyForm, SpouseRelationForm, AddChildForm
 
 
 class EditorRequiredMixin(UserPassesTestMixin):
@@ -87,45 +90,90 @@ class MemberDetailView(DetailView):
         context['children'] = member.children
         context['siblings'] = member.siblings
         context['spouses'] = member.spouses.all()
+        context['wife_relations'] = SpouseRelation.objects.filter(husband=member).select_related('wife').order_by('wife_order')
+        context['add_child_form'] = AddChildForm()
+        context['spouse_form'] = SpouseRelationForm(husband=member)
+        context['can_edit'] = self.request.user.is_authenticated and self.request.user.can_edit_members()
         return context
 
 
 class MemberCreateView(LoginRequiredMixin, EditorRequiredMixin, CreateView):
-    """Thêm thành viên mới"""
+    """Thêm thành viên — form mới gọn gàng"""
     model = FamilyMember
+    form_class = MemberBasicForm
     template_name = 'core/member_form.html'
-    fields = ['name', 'gender', 'chi', 'generation', 'is_dinh', 'member_type', 
-              'father', 'mother', 'birth_order', 'birth_date', 'death_date', 'notes', 'photo']
-    success_url = reverse_lazy('core:members')
     
-    def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        return super().form_valid(form)
+    def get_initial(self):
+        initial = super().get_initial()
+        # Pre-fill from query params (cha truyền vào)
+        father_pk = self.request.GET.get('father')
+        if father_pk:
+            try:
+                father = FamilyMember.objects.select_related('chi').get(pk=father_pk)
+                initial['chi'] = father.chi
+                initial['generation'] = (father.generation or 0) + 1
+                initial['member_type'] = 'blood'
+            except FamilyMember.DoesNotExist:
+                pass
+        return initial
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Thêm Thành Viên Mới'
-        context['chi_list'] = Chi.objects.all()
-        context['members'] = FamilyMember.objects.all().order_by('name')
+        context['is_create'] = True
+        
+        father_pk = self.request.GET.get('father')
+        if father_pk:
+            context['preset_father'] = FamilyMember.objects.filter(pk=father_pk).first()
+        
+        # Family form for step 2 (server-rendered together)
+        context['family_form'] = MemberFamilyForm()
         return context
+    
+    def form_valid(self, form):
+        form.instance.created_by = self.request.user
+        
+        # Also grab father/mother from family fields
+        father_pk = self.request.POST.get('father')
+        mother_pk = self.request.POST.get('mother')
+        if father_pk:
+            form.instance.father_id = father_pk
+        if mother_pk:
+            form.instance.mother_id = mother_pk
+        
+        response = super().form_valid(form)
+        messages.success(self.request, f'Đã thêm {self.object.name} — Mã: {self.object.person_code or "chưa có"}')
+        return response
+    
+    def get_success_url(self):
+        return reverse('core:member_detail', kwargs={'pk': self.object.pk})
 
 
 class MemberUpdateView(LoginRequiredMixin, EditorRequiredMixin, UpdateView):
     """Chỉnh sửa thành viên"""
     model = FamilyMember
+    form_class = MemberBasicForm
     template_name = 'core/member_form.html'
-    fields = ['name', 'gender', 'chi', 'generation', 'is_dinh', 'member_type',
-              'father', 'mother', 'birth_order', 'birth_date', 'death_date', 'notes', 'photo']
-    
-    def get_success_url(self):
-        return reverse_lazy('core:member_detail', kwargs={'pk': self.object.pk})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = f'Sửa: {self.object.name}'
-        context['chi_list'] = Chi.objects.all()
-        context['members'] = FamilyMember.objects.exclude(pk=self.object.pk).order_by('name')
+        context['is_create'] = False
+        context['family_form'] = MemberFamilyForm(instance=self.object)
         return context
+    
+    def form_valid(self, form):
+        father_pk = self.request.POST.get('father')
+        mother_pk = self.request.POST.get('mother')
+        form.instance.father_id = father_pk if father_pk else None
+        form.instance.mother_id = mother_pk if mother_pk else None
+        
+        response = super().form_valid(form)
+        messages.success(self.request, f'Đã cập nhật {self.object.name}')
+        return response
+    
+    def get_success_url(self):
+        return reverse('core:member_detail', kwargs={'pk': self.object.pk})
 
 
 class MemberDeleteView(LoginRequiredMixin, EditorRequiredMixin, DeleteView):
@@ -133,6 +181,98 @@ class MemberDeleteView(LoginRequiredMixin, EditorRequiredMixin, DeleteView):
     model = FamilyMember
     template_name = 'core/member_confirm_delete.html'
     success_url = reverse_lazy('core:members')
+    
+    def form_valid(self, form):
+        name = self.object.name
+        response = super().form_valid(form)
+        messages.success(self.request, f'Đã xóa {name}')
+        return response
+
+
+class AddChildView(LoginRequiredMixin, EditorRequiredMixin, CreateView):
+    """Thêm con nhanh từ trang chi tiết cha"""
+    model = FamilyMember
+    form_class = AddChildForm
+    
+    def form_valid(self, form):
+        father = get_object_or_404(FamilyMember, pk=self.kwargs['pk'])
+        child = form.save(commit=False)
+        child.father = father
+        child.chi = father.chi
+        child.generation = (father.generation or 0) + 1
+        child.created_by = self.request.user
+        child.save()
+        messages.success(self.request, f'Đã thêm con: {child.name}')
+        return redirect('core:member_detail', pk=father.pk)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Lỗi khi thêm con. Vui lòng kiểm tra lại.')
+        return redirect('core:member_detail', pk=self.kwargs['pk'])
+
+
+class AddSpouseView(LoginRequiredMixin, EditorRequiredMixin, CreateView):
+    """Thêm vợ cho thành viên nam"""
+    model = SpouseRelation
+    form_class = SpouseRelationForm
+    
+    def form_valid(self, form):
+        husband = get_object_or_404(FamilyMember, pk=self.kwargs['pk'])
+        relation = form.save(commit=False)
+        relation.husband = husband
+        relation.save()
+        # Also add to M2M spouses
+        husband.spouses.add(relation.wife)
+        messages.success(self.request, f'Đã thêm vợ: {relation.wife.name}')
+        return redirect('core:member_detail', pk=husband.pk)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Lỗi khi thêm vợ.')
+        return redirect('core:member_detail', pk=self.kwargs['pk'])
+
+
+class ReorderChildrenView(LoginRequiredMixin, EditorRequiredMixin, TemplateView):
+    """Sắp xếp thứ tự con"""
+    template_name = 'core/reorder_children.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        parent = get_object_or_404(FamilyMember, pk=self.kwargs['pk'])
+        context['parent'] = parent
+        context['children'] = parent.children
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        parent = get_object_or_404(FamilyMember, pk=self.kwargs['pk'])
+        order_data = request.POST.get('order', '')
+        if order_data:
+            for i, child_pk in enumerate(order_data.split(','), start=1):
+                FamilyMember.objects.filter(pk=int(child_pk)).update(birth_order=i)
+            messages.success(request, 'Đã cập nhật thứ tự con')
+        return redirect('core:member_detail', pk=parent.pk)
+
+
+def api_members_by_generation(request):
+    """API nhỏ: Lấy danh sách thành viên theo đời (AJAX cho form)"""
+    gen = request.GET.get('generation')
+    gender = request.GET.get('gender')
+    chi_id = request.GET.get('chi')
+    
+    qs = FamilyMember.objects.select_related('chi').all()
+    if gen:
+        qs = qs.filter(generation=int(gen))
+    if gender:
+        qs = qs.filter(gender=gender)
+    if chi_id:
+        qs = qs.filter(chi_id=int(chi_id))
+    
+    data = [
+        {
+            'id': m.pk,
+            'text': f"{m.person_code or '?'} — {m.name}" + (f" (Chi {m.chi.number})" if m.chi else ""),
+        }
+        for m in qs.order_by('chi__number', 'birth_order', 'name')[:200]
+    ]
+    return JsonResponse(data, safe=False)
 
 
 class FamilyTreeView(TemplateView):

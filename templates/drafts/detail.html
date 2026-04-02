@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block title %}Bản khai {{ draft.draft_code }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .draft-input {
+        width: 100%;
+        padding: 10px 14px;
+        border: 2px solid #d6d3d1;
+        border-radius: 10px;
+        font-size: 15px;
+        transition: all 0.15s;
+        background: white;
+    }
+    .draft-input:focus {
+        outline: none;
+        border-color: #78350f;
+        box-shadow: 0 0 0 3px rgba(120,53,15,0.1);
+    }
+    .person-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.15s;
+    }
+    .person-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .status-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .status-draft { background: #fef3c7; color: #78350f; }
+    .status-submitted { background: #dbeafe; color: #1e40af; }
+    .status-approved { background: #d1fae5; color: #065f46; }
+    .status-rejected { background: #fee2e2; color: #991b1b; }
+    .relation-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .relation-tag.male { background: #dbeafe; color: #1e40af; }
+    .relation-tag.female { background: #fce7f3; color: #be185d; }
+    .tree-line {
+        border-left: 2px dashed #d6d3d1;
+        margin-left: 20px;
+        padding-left: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-4">
+    <!-- Breadcrumb -->
+    <nav class="mb-4 text-sm flex items-center gap-2">
+        <a href="{% url 'draft_landing' %}" class="text-[#78350f] hover:underline">Tự Khai</a>
+        <span class="text-gray-300">›</span>
+        <span class="text-gray-600">{{ draft.draft_code }}</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
+        <div class="bg-[#78350f] text-white p-5 flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-bold">📝 {{ draft.submitter_name }}</h1>
+                <p class="text-sm opacity-80 mt-1">
+                    Mã: <span class="font-mono bg-white/20 px-2 py-0.5 rounded">{{ draft.draft_code }}</span>
+                    {% if draft.submitter_relation %} · {{ draft.submitter_relation }}{% endif %}
+                </p>
+            </div>
+            <span class="status-badge status-{{ draft.status }}">{{ draft.get_status_display }}</span>
+        </div>
+
+        <div class="p-4 bg-[#fefbf3] flex flex-wrap gap-3 text-sm">
+            {% if draft.submitter_phone %}
+            <span>📱 {{ draft.submitter_phone }}</span>
+            {% endif %}
+            <span>👥 {{ persons.count }} người</span>
+            <span>📅 {{ draft.created_at|date:"d/m/Y H:i" }}</span>
+            {% if draft.notes %}
+            <span class="text-gray-500">📝 {{ draft.notes }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Action buttons -->
+        <div class="p-4 flex flex-wrap gap-2 border-t">
+            {% if can_edit %}
+            <a href="{% url 'draft_add_person' draft.draft_code %}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition">
+                ➕ Thêm người thân
+            </a>
+            <!-- Excel upload -->
+            <button onclick="document.getElementById('excel-panel').classList.toggle('hidden')"
+                    class="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-lg text-sm font-semibold hover:bg-emerald-200 transition">
+                📥 Nhập từ Excel
+            </button>
+            {% if persons.count > 1 %}
+            <a href="{% url 'draft_relationship_builder' draft.draft_code %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 transition">
+                🔗 Nối quan hệ
+            </a>
+            {% endif %}
+            {% if persons.count > 0 %}
+            <form method="post" action="{% url 'draft_submit' draft.draft_code %}" class="inline"
+                  onsubmit="return confirm('Sau khi gửi, bạn không thể sửa nữa. Xác nhận gửi?')">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
+                    📤 Gửi cho trưởng họ
+                </button>
+            </form>
+            {% endif %}
+            {% endif %}
+            <a href="{% url 'draft_json' draft.draft_code %}" target="_blank" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+                📋 Xuất JSON
+            </a>
+            {% if draft.status == 'submitted' %}
+            <form method="post" action="{% url 'draft_recall' draft.draft_code %}" class="inline"
+                  onsubmit="return confirm('Thu hồi bản khai để sửa lại?')">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-semibold hover:bg-yellow-200 transition">
+                    ↩️ Thu hồi để sửa
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Excel upload panel -->
+        {% if can_edit %}
+        <div id="excel-panel" class="hidden p-4 border-t bg-emerald-50">
+            <form method="post" action="{% url 'draft_upload_excel' draft.draft_code %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <p class="text-sm text-emerald-800 mb-2">
+                    📄 Chọn file Excel (.xlsx) có cột: <strong>Họ tên</strong> (bắt buộc), Giới tính, Năm sinh, Năm mất, Ghi chú
+                </p>
+                <div class="flex gap-2 items-center">
+                    <input type="file" name="excel_file" accept=".xlsx,.xls" required
+                           class="text-sm file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:font-semibold file:cursor-pointer hover:file:bg-emerald-700">
+                    <button type="submit" class="px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-semibold hover:bg-emerald-800 transition">
+                        Tải lên
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Person list -->
+    {% if persons %}
+    <h2 class="text-lg font-bold text-[#78350f] mb-3">👥 Danh sách người thân ({{ persons.count }})</h2>
+    <div class="space-y-3">
+        {% for p in persons %}
+        <div class="person-card">
+            <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">{% if p.gender == 'male' %}👨{% else %}👩{% endif %}</span>
+                    <div>
+                        <h3 class="font-bold text-gray-900">
+                            <span class="text-xs text-gray-400 font-mono">#{{ p.temp_id }}</span>
+                            {{ p.name }}
+                        </h3>
+                        <div class="flex flex-wrap gap-1.5 mt-1">
+                            <span class="relation-tag {% if p.gender == 'male' %}male{% else %}female{% endif %}">
+                                {{ p.get_relation_to_submitter_display }}
+                            </span>
+                            {% if p.birth_date %}
+                            <span class="relation-tag" style="background: #f3f4f6; color: #4b5563;">🎂 {{ p.birth_date }}</span>
+                            {% endif %}
+                            {% if p.death_date %}
+                            <span class="relation-tag" style="background: #f3f4f6; color: #4b5563;">🕯 {{ p.death_date }}</span>
+                            {% endif %}
+                            {% if p.chi_number %}
+                            <span class="relation-tag" style="background: #fef3c7; color: #78350f;">Chi {{ p.chi_number }}</span>
+                            {% endif %}
+                            {% if p.generation %}
+                            <span class="relation-tag" style="background: #fef3c7; color: #78350f;">Đời {{ p.generation }}</span>
+                            {% endif %}
+                            {% if p.birth_order %}
+                            <span class="relation-tag" style="background: #f3f4f6; color: #4b5563;">SX: {{ p.birth_order }}</span>
+                            {% endif %}
+                        </div>
+                        {% if p.father_name or p.mother_name %}
+                        <p class="text-xs text-gray-400 mt-1">
+                            {% if p.father_name %}Cha: {{ p.father_name }}{% endif %}
+                            {% if p.mother_name %}{% if p.father_name %} · {% endif %}Mẹ: {{ p.mother_name }}{% endif %}
+                        </p>
+                        {% endif %}
+                        {% if p.notes %}
+                        <p class="text-xs text-gray-500 mt-1">📝 {{ p.notes }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if can_edit %}
+                <div class="flex gap-1">
+                    <a href="{% url 'draft_edit_person' draft.draft_code p.pk %}" class="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200" title="Sửa">✏️</a>
+                    <form method="post" action="{% url 'draft_delete_person' draft.draft_code p.pk %}"
+                          onsubmit="return confirm('Xóa {{ p.name }}?')">
+                        {% csrf_token %}
+                        <button type="submit" class="px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100" title="Xóa">🗑️</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-8 text-center">
+        <p class="text-5xl mb-4">👨‍👩‍👧‍👦</p>
+        <p class="text-gray-500 text-lg">Chưa có ai trong danh sách.</p>
+        {% if can_edit %}
+        <a href="{% url 'draft_add_person' draft.draft_code %}" class="inline-block mt-4 px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition">
+            ➕ Thêm người đầu tiên
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Mã bản khai reminder -->
+    {% if draft.status == 'draft' %}
+    <div class="mt-6 bg-[#fef3c7] rounded-xl p-4 text-center">
+        <p class="text-sm text-[#78350f]">
+            💡 Lưu mã <strong class="font-mono text-lg">{{ draft.draft_code }}</strong> để tra cứu lại bất cứ lúc nào!
+        </p>
+    </div>
+    {% endif %}
+
+    {% if draft.status == 'submitted' %}
+    <div class="mt-6 bg-blue-50 rounded-xl p-4 text-center">
+        <p class="text-sm text-blue-800">
+            ✅ Bản khai đã gửi. Trưởng họ sẽ duyệt sớm nhất có thể.
+        </p>
+    </div>
+    {% endif %}
+
+    {% if draft.status == 'approved' %}
+    <div class="mt-6 bg-green-50 rounded-xl p-4 text-center">
+        <p class="text-sm text-green-800">
+            🎉 Bản khai đã được duyệt! Thông tin gia đình bạn đã được nhập vào gia phả chính thức.
+        </p>
+    </div>
+    {% endif %}
+
+    {% if draft.status == 'rejected' %}
+    <div class="mt-6 bg-red-50 rounded-xl p-4 text-center">
+        <p class="text-sm text-red-800">
+            ❌ Bản khai bị từ chối. {% if draft.review_notes %}Lý do: {{ draft.review_notes }}{% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

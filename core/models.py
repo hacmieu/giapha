@@ -66,6 +66,8 @@ class FamilyMember(models.Model):
     
     # Basic info
     legacy_id = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name='ID cũ')
+    person_code = models.CharField(max_length=12, unique=True, null=True, blank=True, 
+                                   verbose_name='Mã người', help_text='VD: 04.05.001 (Chi.Đời.STT)')
     name = models.CharField(max_length=100, verbose_name='Họ và tên')
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, verbose_name='Giới tính')
     chi = models.ForeignKey(Chi, null=True, blank=True, on_delete=models.SET_NULL, 
@@ -119,10 +121,15 @@ class FamilyMember(models.Model):
             elif self.mother and self.mother.generation is not None:
                 self.generation = self.mother.generation + 1
         
-        # AUTO-SET IS_DINH: Con trai của Đinh → là Đinh
+        # AUTO-SET IS_DINH: Con TRAI của Đinh → tự động là Đinh
+        # (Con gái Đinh: admin gán thủ công cho trường hợp chồng mất, về đóng góp)
         if self.gender == 'male' and self.member_type in ('blood', 'adopted_in', 'adopted_child'):
             if self.father and self.father.is_dinh:
                 self.is_dinh = True
+        
+        # AUTO-GENERATE PERSON_CODE nếu chưa có
+        if not self.person_code and self.chi and self.generation is not None:
+            self.person_code = self._generate_person_code()
         
         super().save(*args, **kwargs)
         
@@ -133,15 +140,53 @@ class FamilyMember(models.Model):
                     spouse.generation = self.generation
                     spouse.save(update_fields=['generation'])
     
+    def _generate_person_code(self):
+        """Tạo mã người: Chi.Đời.STT — VD: 04.05.001"""
+        chi_num = self.chi.number if self.chi else 0
+        gen_num = self.generation or 0
+        prefix = f"{chi_num:02d}.{gen_num:02d}."
+        
+        existing = FamilyMember.objects.filter(
+            person_code__startswith=prefix
+        ).order_by('-person_code').values_list('person_code', flat=True).first()
+        
+        if existing:
+            try:
+                last_stt = int(existing.split('.')[-1])
+                next_stt = last_stt + 1
+            except (ValueError, IndexError):
+                next_stt = 1
+        else:
+            next_stt = 1
+        
+        return f"{prefix}{next_stt:03d}"
+    
     def get_absolute_url(self):
         return reverse('core:member_detail', kwargs={'pk': self.pk})
     
     @property
     def children(self):
-        """Lấy tất cả con của thành viên này"""
+        """Lấy tất cả con — dùng cho trang chi tiết (phả quan hệ)"""
         return FamilyMember.objects.filter(
             models.Q(father=self) | models.Q(mother=self)
         ).distinct().order_by('birth_order', 'name')
+
+    @property
+    def children_in_tree(self):
+        """
+        Con hiện trong phả tộc (cây chính).
+        - Nam: hiện tất cả con (father=self)
+        - Nữ Đinh (chồng mất, về đóng góp): KHÔNG hiện con trong cây,
+          vì con mang họ chồng, không nối vào phả tộc.
+          Con của nữ Đinh chỉ hiện trong phả quan hệ (trang chi tiết).
+        """
+        if self.gender == 'male':
+            return FamilyMember.objects.filter(
+                father=self
+            ).order_by('birth_order', 'name')
+        else:
+            # Nữ: không hiện con trong cây phả tộc
+            return FamilyMember.objects.none()
     
     @property
     def siblings(self):
@@ -271,6 +316,12 @@ class SpouseRelation(models.Model):
     Quan hệ vợ chồng chi tiết
     Dùng để ghi nhận: Bà Cả, Bà Hai... và con của bà nào
     """
+    STATUS_CHOICES = [
+        ('married', 'Đang hôn phối'),
+        ('divorced', 'Đã ly hôn'),
+        ('widowed', 'Góa'),
+    ]
+
     husband = models.ForeignKey(
         FamilyMember,
         on_delete=models.CASCADE,
@@ -288,6 +339,10 @@ class SpouseRelation(models.Model):
         default=1,
         verbose_name='Thứ tự',
         help_text='1=Bà Cả, 2=Bà Hai, 3=Bà Ba...'
+    )
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default='married',
+        verbose_name='Tình trạng'
     )
     marriage_date = models.CharField(
         max_length=50, blank=True,
@@ -411,3 +466,198 @@ class GenealogyRelationship(models.Model):
     def __str__(self):
         rel_display = dict(self.RELATIONSHIP_TYPE_CHOICES)[self.relationship_type]
         return f"{self.from_person.name} -> {self.to_person.name} ({rel_display})"
+
+
+# ============================================================================
+# DRAFT SUBMISSION MODELS - Hệ thống Tự Khai Gia Phả
+# ============================================================================
+
+import uuid
+
+
+def generate_draft_code():
+    return f"DK-{uuid.uuid4().hex[:8]}"
+
+
+class DraftSubmission(models.Model):
+    """Bản khai gia phả do người dân tự điền (không cần đăng nhập)"""
+    STATUS_CHOICES = [
+        ('draft', 'Đang soạn'),
+        ('submitted', 'Đã gửi'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối'),
+    ]
+
+    draft_code = models.CharField(
+        max_length=12, unique=True, default=generate_draft_code,
+        verbose_name='Mã bản khai'
+    )
+    session_key = models.CharField(max_length=40, blank=True, verbose_name='Session ID')
+    ip_address = models.GenericIPAddressField(verbose_name='Địa chỉ IP')
+    
+    # Thông tin người khai
+    submitter_name = models.CharField(max_length=100, verbose_name='Họ tên người khai')
+    submitter_phone = models.CharField(max_length=20, blank=True, verbose_name='Số điện thoại')
+    submitter_relation = models.CharField(
+        max_length=200, blank=True,
+        verbose_name='Quan hệ với dòng họ',
+        help_text='VD: Con trai trưởng, Chi 4, Đời 6'
+    )
+    notes = models.TextField(blank=True, verbose_name='Ghi chú chung')
+
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default='draft',
+        verbose_name='Trạng thái'
+    )
+    
+    # Admin review
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Người duyệt'
+    )
+    review_notes = models.TextField(blank=True, verbose_name='Ghi chú duyệt')
+    reviewed_at = models.DateTimeField(null=True, blank=True, verbose_name='Ngày duyệt')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Bản khai gia phả'
+        verbose_name_plural = 'Các bản khai gia phả'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.draft_code} — {self.submitter_name} ({self.get_status_display()})"
+
+    @property
+    def person_count(self):
+        return self.persons.count()
+
+
+class DraftPerson(models.Model):
+    """Một người trong bản khai"""
+    RELATION_CHOICES = [
+        ('self', 'Bản thân người khai'),
+        ('father', 'Cha'),
+        ('mother', 'Mẹ'),
+        ('spouse', 'Vợ/Chồng'),
+        ('child', 'Con'),
+        ('sibling', 'Anh/Chị/Em'),
+        ('grandparent', 'Ông/Bà'),
+        ('grandchild', 'Cháu'),
+        ('uncle_aunt', 'Chú/Bác/Cô/Dì'),
+        ('other', 'Khác'),
+    ]
+    GENDER_CHOICES = FamilyMember.GENDER_CHOICES
+    ACTION_CHOICES = [
+        ('pending', 'Chờ xử lý'),
+        ('create_new', 'Tạo mới'),
+        ('link_existing', 'Liên kết người đã có'),
+        ('skip', 'Bỏ qua'),
+    ]
+
+    submission = models.ForeignKey(
+        DraftSubmission, on_delete=models.CASCADE,
+        related_name='persons', verbose_name='Bản khai'
+    )
+    temp_id = models.PositiveIntegerField(verbose_name='Số TT trong bản khai')
+
+    # Thông tin cá nhân
+    name = models.CharField(max_length=100, verbose_name='Họ và tên')
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, verbose_name='Giới tính')
+    birth_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày sinh')
+    death_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất')
+    notes = models.TextField(blank=True, verbose_name='Ghi chú')
+    photo = models.ImageField(upload_to='drafts/', null=True, blank=True, verbose_name='Ảnh')
+
+    # Quan hệ
+    relation_to_submitter = models.CharField(
+        max_length=20, choices=RELATION_CHOICES, default='other',
+        verbose_name='Quan hệ với người khai'
+    )
+    father_temp_id = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name='Cha (Số TT)'
+    )
+    mother_temp_id = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name='Mẹ (Số TT)'
+    )
+    birth_order = models.PositiveIntegerField(null=True, blank=True, verbose_name='Con thứ')
+    chi_number = models.PositiveIntegerField(null=True, blank=True, verbose_name='Chi số')
+    generation = models.PositiveIntegerField(null=True, blank=True, verbose_name='Đời thứ')
+
+    # Admin mapping
+    action = models.CharField(
+        max_length=15, choices=ACTION_CHOICES, default='pending',
+        verbose_name='Hành động khi duyệt'
+    )
+    linked_member = models.ForeignKey(
+        FamilyMember, null=True, blank=True,
+        on_delete=models.SET_NULL, verbose_name='Liên kết thành viên'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Người trong bản khai'
+        verbose_name_plural = 'Người trong bản khai'
+        ordering = ['submission', 'temp_id']
+        unique_together = ['submission', 'temp_id']
+
+    def __str__(self):
+        return f"#{self.temp_id} {self.name} ({self.get_relation_to_submitter_display()})"
+
+    @property
+    def father_name(self):
+        if self.father_temp_id:
+            p = self.submission.persons.filter(temp_id=self.father_temp_id).first()
+            return p.name if p else None
+        return None
+
+    @property
+    def mother_name(self):
+        if self.mother_temp_id:
+            p = self.submission.persons.filter(temp_id=self.mother_temp_id).first()
+            return p.name if p else None
+        return None
+
+
+class DraftSpouseRelation(models.Model):
+    """Quan hệ vợ chồng trong bản khai — hỗ trợ nhiều vợ/chồng"""
+    SPOUSE_STATUS_CHOICES = [
+        ('married', 'Đang hôn phối'),
+        ('divorced', 'Đã ly hôn'),
+        ('widowed', 'Góa'),
+    ]
+
+    submission = models.ForeignKey(
+        DraftSubmission, on_delete=models.CASCADE,
+        related_name='spouse_relations', verbose_name='Bản khai'
+    )
+    person1_temp_id = models.PositiveIntegerField(verbose_name='Người 1 (Số TT)')
+    person2_temp_id = models.PositiveIntegerField(verbose_name='Người 2 (Số TT)')
+    status = models.CharField(
+        max_length=10, choices=SPOUSE_STATUS_CHOICES,
+        default='married', verbose_name='Tình trạng'
+    )
+    wife_order = models.PositiveIntegerField(
+        default=1, verbose_name='Thứ tự bà',
+        help_text='1=Bà Cả, 2=Bà Hai, 3=Bà Ba...'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Quan hệ vợ chồng (bản khai)'
+        verbose_name_plural = 'Các quan hệ vợ chồng (bản khai)'
+        unique_together = ['submission', 'person1_temp_id', 'person2_temp_id']
+
+    def __str__(self):
+        return f"#{self.person1_temp_id} ↔ #{self.person2_temp_id} ({self.get_status_display()})"
+
+    def save(self, *args, **kwargs):
+        # Always store with person1 < person2 to avoid duplicates
+        if self.person1_temp_id > self.person2_temp_id:
+            self.person1_temp_id, self.person2_temp_id = self.person2_temp_id, self.person1_temp_id
+        super().save(*args, **kwargs)

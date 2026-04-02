@@ -40,21 +40,27 @@ function initDiagram() {
         contentAlignment: go.Spot.TopCenter,
         layout: $(go.TreeLayout, {
             angle: 90,
-            layerSpacing: 40,
-            nodeSpacing: 10,
+            layerSpacing: 50,
+            nodeSpacing: 15,
             compaction: go.TreeLayout.CompactionBlock,
             sorting: go.TreeLayout.SortingAscending
         }),
         "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
     });
 
-    // ── Node template ──────────────────────────
+    // ── Node template: photo-card style ───────
     myDiagram.nodeTemplate = $(go.Node, "Auto",
         {
             cursor: "pointer",
+            selectionAdorned: true,
+            selectionAdornmentTemplate: $(go.Adornment, "Auto",
+                $(go.Shape, "RoundedRectangle",
+                    { fill: null, stroke: "#d50000", strokeWidth: 3, parameter1: 8 }),
+                $(go.Placeholder)
+            ),
             toolTip: $(go.Adornment, "Auto",
-                $(go.Shape, { fill: "#fffde7", stroke: "#f59e0b" }),
-                $(go.TextBlock, { margin: 6, font: "12px Arial" },
+                $(go.Shape, { fill: "#fffde7", stroke: "#f59e0b", parameter1: 6 }),
+                $(go.TextBlock, { margin: 8, font: "12px Arial", maxSize: new go.Size(220, NaN), wrap: go.TextBlock.WrapFit },
                     new go.Binding("text", "", function(d) {
                         let lines = [d.name];
                         if (d.spouses) lines.push("Vợ: " + d.spouses);
@@ -67,34 +73,93 @@ function initDiagram() {
             ),
             click: function(e, node) { showPersonInfo(node.data); }
         },
+
+        // Outer shape — fill & border based on generation
         $(go.Shape, "RoundedRectangle",
-            {
-                parameter1: 4,
-                strokeWidth: 1.5,
-                stroke: "#1f2937"
-            },
-            new go.Binding("fill", "generation", getGenColor)
+            { parameter1: 8, strokeWidth: 2 },
+            new go.Binding("fill", "generation", function(gen) {
+                if (gen === 4) return "#fef3c7";   // vàng nhạt — Tổ
+                if (gen === 5) return "#eff6ff";   // xanh dương nhạt
+                if (gen === 6) return "#f0f9ff";
+                if (gen === 7) return "#f0fdf4";   // xanh lá nhạt
+                if (gen === 8) return "#fff7ed";   // cam nhạt
+                if (gen === 9) return "#fef2f2";   // đỏ nhạt
+                return "#faf5ff";                  // tím nhạt — Đời 10-12
+            }),
+            new go.Binding("stroke", "generation", function(gen) {
+                if (gen === 4)  return "#78350f";  // nâu — Tổ
+                if (gen === 5)  return "#1d4ed8";  // xanh dương
+                if (gen === 6)  return "#0369a1";
+                if (gen === 7)  return "#047857";  // xanh lá
+                if (gen === 8)  return "#b45309";  // cam
+                if (gen === 9)  return "#b91c1c";  // đỏ
+                if (gen === 10) return "#7e22ce";  // tím
+                if (gen === 11) return "#6b21a8";
+                return "#4c1d95";                  // Đời 12
+            }),
+            new go.Binding("strokeWidth", "generation", function(gen) {
+                return gen === 4 ? 3 : 2;
+            })
         ),
+
         $(go.Panel, "Vertical",
-            { margin: new go.Margin(5, 8, 5, 8) },
+            { margin: new go.Margin(8, 8, 8, 8), minSize: new go.Size(90, NaN) },
+
+            // Photo placeholder
+            $(go.Picture,
+                {
+                    margin: new go.Margin(0, 0, 5, 0),
+                    width: 52, height: 65,
+                    background: "#f0fdf4",
+                    imageStretch: go.GraphObject.UniformToFill,
+                    source: "/media/members/male_placeholder.jpg",
+                    errorFunction: function(pic, e) {
+                        pic.source = "";
+                    }
+                }
+            ),
+
+            // Name
             $(go.TextBlock,
                 {
-                    maxSize: new go.Size(130, NaN),
+                    maxSize: new go.Size(110, NaN),
                     wrap: go.TextBlock.WrapFit,
                     textAlign: "center",
-                    font: "bold 11px 'Arial', sans-serif",
-                    stroke: "#ffffff"
+                    font: "bold 10pt 'Arial', sans-serif",
+                    stroke: "#111827"
                 },
                 new go.Binding("text", "name")
             ),
+
+            // Generation label
             $(go.TextBlock,
                 {
-                    font: "10px Arial",
-                    stroke: "#d1fae5",
+                    font: "9pt Arial",
+                    stroke: "#374151",
+                    textAlign: "center",
+                    margin: new go.Margin(2, 0, 0, 0)
+                },
+                new go.Binding("text", "generation", function(g) { return "Đời " + g; }),
+                new go.Binding("stroke", "generation", function(gen) {
+                    if (gen === 4)  return "#78350f";
+                    if (gen <= 6)   return "#1e40af";
+                    if (gen === 7)  return "#065f46";
+                    if (gen === 8)  return "#92400e";
+                    if (gen === 9)  return "#991b1b";
+                    return "#6b21a8";
+                })
+            ),
+
+            // Birth year (show only if present)
+            $(go.TextBlock,
+                {
+                    font: "8pt Arial",
+                    stroke: "#6b7280",
                     textAlign: "center",
                     margin: new go.Margin(1, 0, 0, 0)
                 },
-                new go.Binding("text", "generation", function(g) { return "Đời " + g; })
+                new go.Binding("text", "birthYear", function(y) { return y ? "(" + y + ")" : ""; }),
+                new go.Binding("visible", "birthYear", function(y) { return !!y; })
             )
         )
     );

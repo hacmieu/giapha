@@ -5,271 +5,203 @@
 
 {% block extra_css %}
 <style>
-    .tree-container {
-        position: relative;
-        background: #fefbf3;
+    .genealogy-page {
+        display: flex;
+        height: calc(100vh - 115px);
+        gap: 0;
+        background: #f3f4f6;
     }
-
-    #myDiagramDiv {
-        width: 100%;
-        height: 70vh;
-        background-color: #fefbf3;
-        border-top: 1px solid #e7e5e4;
-        border-bottom: 1px solid #e7e5e4;
-    }
-
-    .doi-btn {
-        padding: 0.4rem 0.9rem;
-        border: 2px solid #78350f;
-        border-radius: 9999px;
-        background: white;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        color: #78350f;
-        font-size: 0.8rem;
-    }
-
-    .doi-btn:hover, .doi-btn.active {
-        background: #78350f;
-        color: white;
-    }
-
-    .view-mode-btn {
-        padding: 0.4rem 0.9rem;
-        border: 2px solid #0ea5e9;
-        border-radius: 8px;
-        background: white;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        color: #0ea5e9;
-        font-size: 0.8rem;
-    }
-
-    .view-mode-btn:hover, .view-mode-btn.active {
-        background: #0ea5e9;
-        color: white;
-    }
-
-    .zoom-controls {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
+    .sidebar {
+        width: 270px;
+        min-width: 240px;
+        background: #fff;
+        border-right: 1px solid #e5e7eb;
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-        z-index: 100;
+        overflow-y: auto;
+        padding: 14px;
+        gap: 10px;
     }
-
-    .zoom-btn {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: #78350f;
-        color: white;
-        border: none;
-        font-size: 1.25rem;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .sidebar h3 {
+        margin: 0 0 4px 0;
+        font-size: 15px;
+        color: #1f2937;
+        border-bottom: 2px solid #f59e0b;
+        padding-bottom: 6px;
     }
-
-    .zoom-btn:hover { background: #92400e; }
-
-    .legend {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        background: rgba(255,255,255,0.95);
-        padding: 10px 12px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    .stats-box {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 6px;
+        padding: 8px 10px;
         font-size: 12px;
-        z-index: 10;
-        border: 1px solid #e7e5e4;
     }
-
-    .legend-item {
+    .stats-box div { margin: 2px 0; color: #374151; }
+    .stats-box strong { color: #065f46; }
+    .ctrl-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 3px;
+        display: block;
+    }
+    .ctrl-input, .ctrl-select {
+        width: 100%;
+        padding: 6px 9px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 5px;
+        box-sizing: border-box;
+    }
+    .btn-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .btn {
+        flex: 1;
+        padding: 6px 8px;
+        font-size: 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        min-width: 70px;
+    }
+    .btn-green  { background: #16a34a; color: #fff; }
+    .btn-green:hover  { background: #15803d; }
+    .btn-blue   { background: #2563eb; color: #fff; }
+    .btn-blue:hover   { background: #1d4ed8; }
+    .btn-gray   { background: #6b7280; color: #fff; }
+    .btn-gray:hover   { background: #4b5563; }
+    .info-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 9px;
+        font-size: 12px;
+        flex: 1;
+        overflow-y: auto;
+        min-height: 80px;
+    }
+    .legend-row {
         display: flex;
         align-items: center;
-        margin-bottom: 4px;
-        gap: 8px;
+        gap: 6px;
+        margin: 3px 0;
+        font-size: 11px;
     }
-
-    .legend-box {
-        width: 20px;
-        height: 14px;
+    .legend-dot {
+        width: 14px; height: 14px;
         border-radius: 3px;
+        border: 1px solid #374151;
         flex-shrink: 0;
     }
-
-    #person-info-box {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: white;
-        padding: 14px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        max-width: 280px;
-        min-width: 200px;
-        border-left: 5px solid #78350f;
-        z-index: 100;
-        font-size: 13px;
+    #myDiagramDiv {
+        flex: 1;
+        background: #fefbf3;
+        min-width: 0;
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<div class="genealogy-page">
 
-<!-- Top Control Bar -->
-<div class="bg-white border-b shadow-sm py-4">
-    <div class="container mx-auto px-4">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h3>📜 Phả Đồ Họ Trần Chi 4</h3>
 
-        <!-- Row 1: Search + Tools -->
-        <div class="flex justify-between items-center mb-3 gap-3 flex-wrap">
-            <input type="text"
-                   id="searchInput"
-                   placeholder="🔍 Tìm thành viên theo tên..."
-                   class="flex-1 min-w-0 max-w-md px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+        <div class="stats-box">
+            <div>👥 Tổng người: <strong id="totalPeople">--</strong></div>
+            <div>🔗 Quan hệ: <strong id="totalRelationships">--</strong></div>
+            <div>🏛 Thế hệ: <strong id="generationRange">4-12</strong></div>
+        </div>
+
+        <!-- Chọn gia phả -->
+        <div>
+            <label class="ctrl-label">Chọn Gia Phả:</label>
+            <select id="genealogySelect" class="ctrl-select" onchange="loadGenealogy()">
+                <option value="">-- Chọn --</option>
+                {% for g in genealogies %}
+                <option value="{{ g.id }}" {% if forloop.first %}selected{% endif %}>
+                    {{ g.name }} ({{ g.total_people }} người)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Tìm kiếm -->
+        <div>
+            <label class="ctrl-label">🔍 Tìm Kiếm:</label>
+            <input type="text" id="searchInput" class="ctrl-input"
+                   placeholder="Nhập tên..."
                    oninput="searchPerson(this.value)">
-            <div class="flex gap-2 flex-wrap">
-                <button onclick="setViewMode('tree')" id="btnTree" class="view-mode-btn active">🌳 Cây</button>
-                <button onclick="setViewMode('force')" id="btnForce" class="view-mode-btn">🕸️ Mạng</button>
-                <button onclick="exportAsImage()" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm font-medium">📷 Ảnh</button>
-                <button onclick="downloadJSON()" class="px-3 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition text-sm font-medium">📥 JSON</button>
+        </div>
+
+        <!-- Lọc thế hệ -->
+        <div>
+            <label class="ctrl-label">🏛 Lọc Thế Hệ:</label>
+            <select id="filterGeneration" class="ctrl-select" onchange="filterByGeneration()">
+                <option value="">Tất Cả</option>
+                <option value="4">Đời thứ 4</option>
+                <option value="5">Đời thứ 5</option>
+                <option value="6">Đời thứ 6</option>
+                <option value="7">Đời thứ 7</option>
+                <option value="8">Đời thứ 8</option>
+                <option value="9">Đời thứ 9</option>
+                <option value="10">Đời thứ 10</option>
+                <option value="11">Đời thứ 11</option>
+                <option value="12">Đời thứ 12</option>
+            </select>
+        </div>
+
+        <!-- Chế độ xem -->
+        <div>
+            <label class="ctrl-label">🎨 Chế Độ:</label>
+            <select id="viewMode" class="ctrl-select" onchange="changeViewMode()">
+                <option value="tree">Phả Đồ Thẳng (Tree)</option>
+                <option value="force">Mối Quan Hệ (Force)</option>
+            </select>
+        </div>
+
+        <!-- Nút -->
+        <div class="btn-row">
+            <button class="btn btn-green" onclick="zoomToFit()">🔍 Fit</button>
+            <button class="btn btn-blue"  onclick="exportAsImage()">📷 Ảnh</button>
+            <button class="btn btn-gray"  onclick="downloadJSON()">📥 JSON</button>
+        </div>
+
+        <!-- Thông tin người -->
+        <div class="info-box">
+            <div id="noSelection" style="color:#9ca3af;font-style:italic;">
+                Nhấp vào thành viên để xem thông tin
+            </div>
+            <div id="selectedInfo" style="display:none;">
+                <div id="personInfo"></div>
             </div>
         </div>
 
-        <!-- Row 2: Generation filter buttons -->
-        <p class="text-sm text-gray-500 mb-2 text-center">Chọn Đời để lọc:</p>
-        <div class="flex gap-2 flex-wrap justify-center">
-            <button class="doi-btn active" data-doi="0"  onclick="filterByDoi(0)">Tất cả</button>
-            <button class="doi-btn"        data-doi="4"  onclick="filterByDoi(4)">Đời 4</button>
-            <button class="doi-btn"        data-doi="5"  onclick="filterByDoi(5)">Đời 5</button>
-            <button class="doi-btn"        data-doi="6"  onclick="filterByDoi(6)">Đời 6</button>
-            <button class="doi-btn"        data-doi="7"  onclick="filterByDoi(7)">Đời 7</button>
-            <button class="doi-btn"        data-doi="8"  onclick="filterByDoi(8)">Đời 8</button>
-            <button class="doi-btn"        data-doi="9"  onclick="filterByDoi(9)">Đời 9</button>
-            <button class="doi-btn"        data-doi="10" onclick="filterByDoi(10)">Đời 10</button>
-            <button class="doi-btn"        data-doi="11" onclick="filterByDoi(11)">Đời 11</button>
-            <button class="doi-btn"        data-doi="12" onclick="filterByDoi(12)">Đời 12</button>
+        <!-- Chú thích màu thế hệ -->
+        <div style="border-top:1px solid #e5e7eb;padding-top:8px;">
+            <div class="ctrl-label">Màu theo thế hệ:</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#fef3c7;border:2px solid #78350f;"></div>Đời 4 (Tổ)</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#eff6ff;border:2px solid #1d4ed8;"></div>Đời 5</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#f0f9ff;border:2px solid #0369a1;"></div>Đời 6</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#f0fdf4;border:2px solid #047857;"></div>Đời 7</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#fff7ed;border:2px solid #b45309;"></div>Đời 8</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#fef2f2;border:2px solid #b91c1c;"></div>Đời 9</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#faf5ff;border:2px solid #7e22ce;"></div>Đời 10–12</div>
         </div>
-
-        <!-- Hidden select elements used by genealogy-viewer.js -->
-        <select id="filterGeneration" style="display:none;"></select>
-        <select id="viewMode"         style="display:none;">
-            <option value="tree">tree</option>
-            <option value="force">force</option>
-        </select>
-        <select id="genealogySelect"  style="display:none;">
-            {% for g in genealogies %}
-            <option value="{{ g.id }}" {% if forloop.first %}selected{% endif %}>{{ g.name }}</option>
-            {% endfor %}
-        </select>
     </div>
-</div>
 
-<!-- Diagram Container -->
-<div class="tree-container">
+    <!-- DIAGRAM -->
     <div id="myDiagramDiv">
-        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#9ca3af;font-size:15px;">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:16px;">
             ⏳ Đang tải phả đồ...
         </div>
-    </div>
-
-    <!-- Legend -->
-    <div class="legend">
-        <strong style="display:block;margin-bottom:6px;color:#78350f;">Màu theo thế hệ:</strong>
-        <div class="legend-item"><div class="legend-box" style="background:#7c3aed;"></div>Đời 4</div>
-        <div class="legend-item"><div class="legend-box" style="background:#1d4ed8;"></div>Đời 5</div>
-        <div class="legend-item"><div class="legend-box" style="background:#0369a1;"></div>Đời 6</div>
-        <div class="legend-item"><div class="legend-box" style="background:#047857;"></div>Đời 7</div>
-        <div class="legend-item"><div class="legend-box" style="background:#b45309;"></div>Đời 8</div>
-        <div class="legend-item"><div class="legend-box" style="background:#b91c1c;"></div>Đời 9</div>
-        <div class="legend-item"><div class="legend-box" style="background:#9d174d;"></div>Đời 10</div>
-        <div class="legend-item"><div class="legend-box" style="background:#374151;"></div>Đời 11-12</div>
-    </div>
-
-    <!-- Person Info Box -->
-    <div id="person-info-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <strong style="color:#78350f;font-size:14px;">📋 Thông tin</strong>
-        </div>
-        <div id="noSelection" style="color:#9ca3af;font-style:italic;font-size:12px;">
-            Nhấp vào thành viên để xem
-        </div>
-        <div id="selectedInfo" style="display:none;">
-            <div id="personInfo"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Zoom Controls -->
-<div class="zoom-controls">
-    <button class="zoom-btn" onclick="zoomIn()"    title="Phóng to">+</button>
-    <button class="zoom-btn" onclick="zoomOut()"   title="Thu nhỏ">−</button>
-    <button class="zoom-btn" onclick="zoomToFit()" title="Vừa màn hình" style="font-size:1rem;">⟲</button>
-    <button class="zoom-btn" onclick="exportAsImage()" title="Xuất ảnh PNG" style="font-size:1rem;">📷</button>
-</div>
-
-<!-- Stats bar -->
-<div class="bg-white border-t py-2">
-    <div class="container mx-auto px-4 flex gap-6 text-sm text-gray-600">
-        <span>👥 <strong id="totalPeople">--</strong> người</span>
-        <span>🔗 <strong id="totalRelationships">--</strong> quan hệ cha-con</span>
-        <span>🏛 Đời <strong id="generationRange">4–12</strong></span>
-    </div>
-</div>
-
-<!-- Instructions -->
-<div class="container mx-auto px-4 py-4">
-    <div class="bg-yellow-50 rounded-lg border border-yellow-200 p-4 text-sm">
-        <strong>Hướng dẫn sử dụng:</strong>
-        <ul class="list-disc ml-5 mt-1 space-y-1">
-            <li>Lăn chuột để phóng to / thu nhỏ</li>
-            <li><strong>Click</strong> vào thành viên để xem thông tin chi tiết</li>
-            <li>Chọn nút <strong>Đời N</strong> phía trên để lọc riêng một thế hệ</li>
-            <li>Bấm <strong>⟲</strong> để thu phả đồ vừa màn hình</li>
-            <li>Chuyển sang chế độ <strong>🕸️ Mạng</strong> để xem quan hệ theo lực hút</li>
-        </ul>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
-<script src="{% static 'js/genealogy-viewer.js' %}?v=3"></script>
-{% endblock %}
-
-{% block extra_js %}
+<script src="{% static 'js/genealogy-viewer.js' %}?v=5"></script>
 <script>
-    // ── Filter by Đời (generation) ──────────────────────────
-    function filterByDoi(doi) {
-        document.querySelectorAll('.doi-btn').forEach(function(btn) {
-            btn.classList.toggle('active', parseInt(btn.dataset.doi) === doi);
-        });
-        // Set hidden select value, then call the function from genealogy-viewer.js
-        const sel = document.getElementById('filterGeneration');
-        sel.innerHTML = '<option value="' + (doi === 0 ? '' : doi) + '"></option>';
-        sel.value = doi === 0 ? '' : String(doi);
-        filterByGeneration();
-    }
-
-    // ── Switch view mode (tree / force) ────────────────────
-    function setViewMode(mode) {
-        document.getElementById('viewMode').value = mode;
-        document.getElementById('btnTree').classList.toggle('active', mode === 'tree');
-        document.getElementById('btnForce').classList.toggle('active', mode === 'force');
-        changeViewMode(); // calls function from genealogy-viewer.js
-    }
-
-    // ── Zoom helpers ────────────────────────────────────────
-    function zoomIn()  { if (window.myDiagram) myDiagram.commandHandler.increaseZoom(); }
-    function zoomOut() { if (window.myDiagram) myDiagram.commandHandler.decreaseZoom(); }
-
-    // ── Auto-load first genealogy on page open ──────────────
     document.addEventListener('DOMContentLoaded', function() {
         const sel = document.getElementById('genealogySelect');
         if (sel && sel.value) {

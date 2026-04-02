@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Sắp thứ tự con — {{ parent.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sortable-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        cursor: grab;
+        transition: all 0.15s;
+        user-select: none;
+    }
+    .sortable-item:active { cursor: grabbing; }
+    .sortable-item.dragging {
+        opacity: 0.5;
+        border-color: #78350f;
+        box-shadow: 0 4px 16px rgba(120,53,15,0.2);
+    }
+    .sortable-item .handle {
+        font-size: 18px;
+        color: #9ca3af;
+    }
+    .sortable-item .order-num {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fef3c7;
+        color: #78350f;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 13px;
+    }
+    .sortable-item .name {
+        flex: 1;
+        font-weight: 500;
+    }
+    .sortable-item .badge-gender {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 9999px;
+    }
+    .sortable-item .male { background: #dbeafe; color: #1e40af; }
+    .sortable-item .female { background: #fce7f3; color: #be185d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-6">
+    <nav class="mb-4 text-sm flex items-center gap-2">
+        <a href="{% url 'core:member_detail' parent.pk %}" class="text-[#78350f] hover:underline">{{ parent.name }}</a>
+        <span class="text-gray-300">›</span>
+        <span class="text-gray-600">Sắp thứ tự con</span>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-lg font-bold text-[#78350f] mb-1">↕ Sắp xếp thứ tự con</h2>
+        <p class="text-sm text-gray-500 mb-4">Kéo thả để thay đổi thứ tự. Nhấn "Lưu" khi hoàn tất.</p>
+
+        {% if children %}
+        <form method="post" id="reorderForm">
+            {% csrf_token %}
+            <input type="hidden" name="order" id="orderInput">
+
+            <div id="sortableList">
+                {% for child in children %}
+                <div class="sortable-item" data-pk="{{ child.pk }}" draggable="true">
+                    <span class="handle">☰</span>
+                    <span class="order-num">{{ forloop.counter }}</span>
+                    <span class="name">{{ child.name }}</span>
+                    <span class="badge-gender {% if child.gender == 'male' %}male{% else %}female{% endif %}">
+                        {% if child.gender == 'male' %}Nam{% else %}Nữ{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 py-3 bg-[#78350f] text-white rounded-xl font-bold text-lg hover:bg-[#92400e] transition">
+                    💾 Lưu thứ tự
+                </button>
+                <a href="{% url 'core:member_detail' parent.pk %}" class="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition text-center">
+                    Hủy
+                </a>
+            </div>
+        </form>
+        {% else %}
+        <p class="text-gray-400 text-center py-8">Chưa có con cái.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const list = document.getElementById('sortableList');
+    if (!list) return;
+
+    let draggedItem = null;
+
+    list.querySelectorAll('.sortable-item').forEach(item => {
+        item.addEventListener('dragstart', function(e) {
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        item.addEventListener('dragend', function() {
+            this.classList.remove('dragging');
+            draggedItem = null;
+            updateNumbers();
+        });
+
+        item.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const rect = this.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) {
+                list.insertBefore(draggedItem, this);
+            } else {
+                list.insertBefore(draggedItem, this.nextSibling);
+            }
+        });
+    });
+
+    function updateNumbers() {
+        list.querySelectorAll('.sortable-item').forEach((item, i) => {
+            item.querySelector('.order-num').textContent = i + 1;
+        });
+    }
+
+    document.getElementById('reorderForm').addEventListener('submit', function() {
+        const order = [...list.querySelectorAll('.sortable-item')]
+            .map(el => el.dataset.pk)
+            .join(',');
+        document.getElementById('orderInput').value = order;
+    });
+});
+</script>
+{% endblock %}
