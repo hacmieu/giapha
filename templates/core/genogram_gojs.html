@@ -404,20 +404,6 @@ function init() {
                         }))
                 ),
 
-            // Spouse list
-            $(go.Panel, "Vertical",
-                { margin: new go.Margin(4, 0, 0, 0) },
-                new go.Binding("itemArray", "spouses_data"),
-                {
-                    itemTemplate:
-                        $(go.Panel, "Auto",
-                            { margin: 2 },
-                            $(go.TextBlock,
-                                { font: "italic 8pt sans-serif", stroke: "#be185d" },
-                                new go.Binding("text", "", s => "+ " + s.name))
-                        )
-                }
-            )
         )
     );
 
@@ -427,6 +413,24 @@ function init() {
             { routing: go.Link.AvoidsNodes, curve: go.Link.JumpOver, corner: 8 },
             $(go.Shape, { strokeWidth: 2, stroke: "#78350f" }),
             $(go.Shape, { toArrow: "Standard", scale: 1, fill: "#78350f", stroke: null })
+        );
+
+    // GROUP TEMPLATE - Spouse block (husband + wife(s) side by side)
+    myDiagram.groupTemplate =
+        $(go.Group, "Auto",
+            {
+                layout: $(go.GridLayout, {
+                    wrappingColumn: Infinity,
+                    cellSize: new go.Size(1, 1),
+                    spacing: new go.Size(4, 4),
+                    alignment: go.GridLayout.Position
+                }),
+                selectionAdorned: false,
+            },
+            $(go.Shape, "RoundedRectangle",
+                { fill: "transparent", stroke: "#f472b6", strokeWidth: 1.5, strokeDashArray: [4, 3], parameter1: 10 }
+            ),
+            $(go.Placeholder, { padding: 4 })
         );
 
     // LINK TEMPLATE - Marriage (pink horizontal)
@@ -489,15 +493,47 @@ function loadData(chi = 0) {
             // Actually GraphDataView does NOT return parent-child links in linkDataArray, it only returns Social Links.
             // We need to build tree links from f/m properties as before.
             
+            const nodeKeys = new Set(nodes.map(n => n.key));
+            const nodeMap = {};
+            nodes.forEach(n => { nodeMap[n.key] = n; });
+
+            // Build spouse groups: husband + wife(s) in one group
+            const groupNodes = [];
+            const wifeInGroup = new Set(); // track wives already grouped
             nodes.forEach(node => {
-                if (node.f) {
+                if (node.s !== 'male') return;
+                if (!Array.isArray(node.ux) || node.ux.length === 0) return;
+                // Collect wives that exist in current node set
+                const wivesHere = node.ux.filter(id => nodeKeys.has(id) && !wifeInGroup.has(id));
+                if (wivesHere.length === 0) return;
+                const gKey = 'g_' + node.key;
+                node.group = gKey;
+                wivesHere.forEach(wId => {
+                    const wn = nodeMap[wId];
+                    if (wn) { wn.group = gKey; wifeInGroup.add(wId); }
+                });
+                groupNodes.push({ key: gKey, isGroup: true });
+            });
+            // Add group nodes to array
+            groupNodes.forEach(g => nodes.push(g));
+
+            const linkSet = new Set(); // deduplicate
+            nodes.forEach(node => {
+                if (node.isGroup) return;
+                if (node.f && nodeKeys.has(node.f)) {
+                    // Link to father's group if father is in a group
+                    const fatherNode = nodeMap[node.f];
+                    const fromKey = (fatherNode && fatherNode.group) ? fatherNode.group : node.f;
+                    // If this node is in a group, link to the group
+                    const toKey = node.group ? node.group : node.key;
+                    const linkId = fromKey + '->' + toKey;
+                    if (!linkSet.has(linkId)) {
+                        linkSet.add(linkId);
+                        links.push({ from: fromKey, to: toKey });
+                    }
+                } else if (node.f) {
                     links.push({ from: node.f, to: node.key });
                 }
-                // We could also link mother, but usually patrilineal tree links father. 
-                // If we want both, we'd need a multi-parent layout or check layout capabilities.
-                // LayeredDigraphLayout handles multiple parents well.
-                // However, linking both might clutter. Let's stick to father for now as per original code logic, or maybe correct it if needed.
-                // Original code: if (node.f) links.push(...)
             });
 
             myDiagram.model = new go.GraphLinksModel(nodes, links); // Use 'links' array which includes both API and parent-child links

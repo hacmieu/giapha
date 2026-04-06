@@ -6,7 +6,7 @@
 <style>
     #myDiagramDiv {
         width: 100%;
-        height: 70vh;
+        height: 80vh;
         background: #fefbf3;
         border: 2px solid #e7e5e4;
         border-radius: 12px;
@@ -61,15 +61,20 @@
     .tool-btn:hover { border-color: #78350f; background: #fef3c7; }
     .tool-btn.active { border-color: #78350f; background: #78350f; color: white; }
     .zoom-controls {
-        position: fixed; bottom: 2rem; right: 2rem;
-        display: flex; flex-direction: column; gap: 0.5rem; z-index: 100;
+        position: fixed; bottom: 1.5rem; right: 1.5rem;
+        display: flex; flex-direction: column; gap: 0.4rem; z-index: 100;
     }
     .zoom-btn {
-        width: 44px; height: 44px; border-radius: 50%;
+        width: 40px; height: 40px; border-radius: 50%;
         background: #78350f; color: white; border: none;
-        font-size: 1.5rem; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        font-size: 1.2rem; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.15s;
     }
     .zoom-btn:hover { background: #92400e; }
+    .zoom-btn .zoom-label {
+        font-size: 10px; font-weight: 700;
+    }
     .draft-input {
         width: 100%; padding: 10px 14px;
         border: 2px solid #d6d3d1; border-radius: 10px;
@@ -79,6 +84,26 @@
         outline: none; border-color: #78350f;
         box-shadow: 0 0 0 3px rgba(120,53,15,0.1);
     }
+    .ac-dropdown {
+        display: none; position: absolute; left: 0; right: 0; top: 100%;
+        background: white; border: 2px solid #d6d3d1; border-top: none;
+        border-radius: 0 0 10px 10px; max-height: 200px; overflow-y: auto;
+        z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .ac-dropdown.open { display: block; }
+    .ac-item {
+        padding: 8px 14px; cursor: pointer; font-size: 14px;
+        border-bottom: 1px solid #f0ede8;
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover, .ac-item.active { background: #fef3c7; }
+    .ac-item .ac-priority { color: #78350f; font-weight: 600; }
+    .ac-clear {
+        position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        background: none; border: none; font-size: 16px; cursor: pointer;
+        color: #999; padding: 2px 6px; line-height: 1;
+    }
+    .ac-clear:hover { color: #333; }
     .edit-photo-wrap {
         text-align: center; margin-bottom: 12px;
     }
@@ -118,67 +143,106 @@
         <div class="toolbar">
             {% if can_edit %}
             <button class="tool-btn" onclick="showAddPersonModal()" style="background:#059669;color:white;border-color:#059669">➕ Thêm người</button>
-            <button class="tool-btn" id="edit-btn" onclick="showEditModal(window.selectedKey)" style="display:none">✏️ Sửa</button>
             <button class="tool-btn" id="save-layout-btn" onclick="saveLayout()" style="display:none;background:#7c3aed;color:white;border-color:#7c3aed" title="Lưu vị trí các node">💾 Lưu bố cục</button>
             {% endif %}
             <button class="tool-btn" onclick="doRearrange()" title="Xóa bố cục đã lưu, sắp xếp tự động">🔄 Tự sắp xếp</button>
             <button class="tool-btn" onclick="exportImage()">📷 Xuất ảnh</button>
             <button class="tool-btn" id="dinh-toggle-btn" onclick="toggleDinhOnly()">👨 Chỉ Đinh</button>
-            <button class="tool-btn" onclick="diagram.commandHandler.increaseZoom()">＋</button>
-            <button class="tool-btn" onclick="diagram.commandHandler.decreaseZoom()">－</button>
-            <button class="tool-btn" onclick="diagram.zoomToFit()">⊡ Vừa</button>
-            {% if can_edit %}
-            <button class="tool-btn" id="deselect-btn" onclick="deselectAll()" style="display:none">✕ Bỏ chọn</button>
-            {% endif %}
             <a href="{% url 'draft_detail' draft.draft_code %}" class="tool-btn" style="text-decoration:none">← Quay lại</a>
         </div>
     </div>
 
     <!-- Instruction -->
     <div class="instruction-bar mb-3" id="instruction">
-        💡 Bấm chọn <strong>người thứ nhất</strong>, rồi bấm <strong>người thứ hai</strong> để nối quan hệ.
+        💡 Bấm vào người để xem thông tin. Kéo thả để sắp xếp bố cục.
+    </div>
+
+    <!-- Detail info panel (shown when a person is selected) -->
+    <div id="info-panel" style="display:none;background:#fffbeb;border:2px solid #d6d3d1;border-radius:12px;padding:10px 16px;margin-bottom:12px;font-size:14px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <img id="info-photo" style="width:40px;height:52px;object-fit:cover;border-radius:6px;border:1px solid #d6d3d1" alt="">
+            <div style="flex:1;min-width:150px">
+                <div style="font-weight:700;font-size:15px;color:#1c1917" id="info-name"></div>
+                <div style="color:#78716c;font-size:13px" id="info-dates"></div>
+                <div style="color:#78716c;font-size:13px" id="info-parents"></div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                {% if can_edit %}
+                <button class="tool-btn" id="info-edit-btn" onclick="showEditModal(window.selectedKey)" style="background:#78350f;color:white;border-color:#78350f">✏️ Sửa</button>
+                {% endif %}
+                <button class="tool-btn" onclick="deselectAll()">✕ Bỏ chọn</button>
+            </div>
+        </div>
+        {% if can_edit %}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid #e7e5e4" id="info-quick-actions">
+            <button class="tool-btn" onclick="quickAddRelative('father')" id="qa-father" style="font-size:12px">➕👨 Thêm Bố</button>
+            <button class="tool-btn" onclick="quickAddRelative('mother')" id="qa-mother" style="font-size:12px">➕👩 Thêm Mẹ</button>
+            <button class="tool-btn" onclick="showAddSpouseModal(window.selectedKey)" style="font-size:12px;background:#9f1239;color:white;border-color:#9f1239">💑 Thêm Vợ/Chồng</button>
+            <button class="tool-btn" onclick="quickAddRelative('child')" style="font-size:12px">➕👶 Thêm Con</button>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Legend -->
     <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1">
-        <span class="legend-item"><span class="legend-line" style="background:#059669"></span> Cha → Con</span>
-        <span class="legend-item"><span class="legend-line" style="background:#d946ef"></span> Mẹ → Con</span>
-        <span class="legend-item"><span class="legend-line" style="background:#e11d48;height:0;border-top:2px dashed #e11d48"></span> Vợ ↔ Chồng</span>
-        <span class="legend-item"><span class="legend-line" style="background:#9ca3af;height:0;border-top:2px dashed #9ca3af"></span> 💔 Ly hôn</span>
-        <span class="legend-item"><span class="legend-line" style="background:#6b7280;height:0;border-top:2px dotted #6b7280"></span> 🕯 Góa</span>
+        <span class="legend-item"><span class="legend-line" style="background:#059669"></span> Bố → Con</span>
+        <span class="legend-item"><span class="legend-line" style="background:#D946EF;height:0;border-top:2px dashed #D946EF"></span> Mẹ → Con</span>
+        <span class="legend-item"><span class="legend-line" style="background:#E11D48;height:0;border-top:2px dashed #E11D48"></span> 💑 Kết hôn</span>
+        <span class="legend-item"><span class="legend-line" style="background:#9CA3AF;height:0;border-top:2px dashed #9CA3AF"></span> 💔 Ly hôn</span>
+        <span class="legend-item"><span class="legend-line" style="background:#6B7280;height:0;border-top:2px dotted #6B7280"></span> 🕯 Góa</span>
     </div>
 
     <!-- GoJS Diagram -->
     <div id="myDiagramDiv"></div>
 </div>
 
-<!-- Relationship type modal -->
-<div class="rel-modal" id="rel-modal">
-    <div class="rel-modal-body">
-        <h3 class="font-bold text-lg mb-1">Chọn quan hệ</h3>
-        <p class="text-sm text-gray-500 mb-4" id="modal-desc"></p>
-        <div id="rel-buttons">
-            <button class="rel-btn" data-rel="father">👨 <span class="fn"></span> là <strong>Cha</strong> của <span class="tn"></span></button>
-            <button class="rel-btn" data-rel="mother">👩 <span class="fn"></span> là <strong>Mẹ</strong> của <span class="tn"></span></button>
-            <button class="rel-btn" data-rel="child">👶 <span class="fn"></span> là <strong>Con</strong> của <span class="tn"></span></button>
-            <button class="rel-btn" data-rel="spouse">💑 <span class="fn"></span> và <span class="tn"></span> là <strong>Vợ chồng</strong></button>
-            <button class="rel-btn" data-rel="spouse_divorced">💔 <span class="fn"></span> và <span class="tn"></span> <strong>Đã ly hôn</strong></button>
-            <button class="rel-btn" data-rel="spouse_widowed">🕯 <span class="fn"></span> và <span class="tn"></span> — <strong>Góa</strong> (một người đã mất)</button>
-            <div id="remove-section" style="display:none">
-                <hr class="my-3">
-                <button class="rel-btn danger" data-rel="remove">🗑️ Xóa quan hệ giữa 2 người này</button>
+<!-- Floating zoom controls -->
+<div class="zoom-controls">
+    <button class="zoom-btn" onclick="diagram.commandHandler.increaseZoom()" title="Phóng to">＋</button>
+    <button class="zoom-btn" onclick="diagram.commandHandler.decreaseZoom()" title="Thu nhỏ">－</button>
+    <button class="zoom-btn" onclick="diagram.zoomToFit()" title="Vừa màn hình"><span class="zoom-label">⊡</span></button>
+</div>
+
+<!-- Add spouse modal -->
+<div class="rel-modal" id="add-spouse-modal">
+    <div class="rel-modal-body" style="min-width:360px">
+        <h3 class="font-bold text-lg mb-3">💑 Thêm vợ/chồng cho <span id="add-spouse-for-name"></span></h3>
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">👥 Chọn người kết hôn <span style="color:#dc2626">*</span></label>
+            <div style="position:relative">
+                <input type="text" id="add-spouse-search" class="draft-input" placeholder="Gõ tên để tìm..." autocomplete="off">
+                <input type="hidden" id="add-spouse-id">
+                <div id="add-spouse-dropdown" class="ac-dropdown"></div>
             </div>
         </div>
-        <!-- Step 2: pick other parent (after choosing father/mother/child) -->
-        <div id="rel-step2" style="display:none">
-            <div style="padding:10px;background:#f0fdf4;border-radius:8px;margin-bottom:12px" id="rel-step2-info"></div>
-            <label class="field-label" id="rel-step2-label" style="margin-bottom:4px;display:block"></label>
-            <select id="rel-step2-select" class="draft-input" style="margin-bottom:12px"></select>
-            <button class="rel-btn" id="rel-step2-confirm" style="background:#059669;color:white;font-weight:700">✅ Xác nhận</button>
-            <button class="rel-btn" id="rel-step2-back" style="color:#78716c">← Chọn lại</button>
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">💍 Tình trạng hôn nhân</label>
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:2px solid #e5e7eb;border-radius:8px">
+                    <input type="radio" name="add-spouse-status" value="spouse" checked> 💑 Kết hôn
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:2px solid #e5e7eb;border-radius:8px">
+                    <input type="radio" name="add-spouse-status" value="spouse_divorced"> 💔 Ly hôn
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;border:2px solid #e5e7eb;border-radius:8px">
+                    <input type="radio" name="add-spouse-status" value="spouse_widowed"> 🕯 Góa (một bên mất trước)
+                </label>
+            </div>
         </div>
-        <hr class="my-3">
-        <button class="rel-btn" id="cancel-btn" style="text-align:center;color:#78716c;">Hủy</button>
+        <div id="add-spouse-error" style="display:none;padding:8px;background:#fef2f2;color:#dc2626;border-radius:8px;font-size:13px;margin-bottom:12px"></div>
+        <button id="add-spouse-submit" onclick="submitAddSpouse()" style="width:100%;padding:10px;background:#9f1239;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">💑 Thêm quan hệ</button>
+        <button onclick="closeAddSpouseModal()" style="width:100%;padding:8px;background:none;border:2px solid #e5e7eb;border-radius:10px;font-size:14px;cursor:pointer;color:#78716c">Hủy</button>
+    </div>
+</div>
+
+<!-- Removed: relationship type modal (click-to-connect) — use edit modal instead -->
+
+<!-- Relationship picker modal (appears when clicking 2nd person while 1st is selected) -->
+<div class="rel-modal" id="rel-picker-modal">
+    <div class="rel-modal-body" style="min-width:360px">
+        <h3 class="font-bold text-lg mb-3" id="rel-picker-title">🔗 Chọn quan hệ</h3>
+        <div id="rel-picker-buttons"></div>
+        <button onclick="closeRelPicker()" style="width:100%;padding:8px;background:none;border:2px solid #e5e7eb;border-radius:10px;font-size:14px;cursor:pointer;color:#78716c;margin-top:4px">Hủy</button>
     </div>
 </div>
 
@@ -190,7 +254,9 @@
 <!-- Add person modal -->
 <div class="rel-modal" id="add-modal">
     <div class="rel-modal-body" style="min-width:360px">
-        <h3 class="font-bold text-lg mb-3">➕ Thêm người thân</h3>
+        <h3 class="font-bold text-lg mb-3" id="add-modal-title">➕ Thêm người thân</h3>
+        <input type="hidden" id="add-pending-rel" value="">
+        <input type="hidden" id="add-pending-key" value="">
         <div style="margin-bottom:12px">
             <label style="display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:4px">Họ và tên <span style="color:#dc2626">*</span></label>
             <input type="text" id="add-name" class="draft-input" placeholder="VD: Vũ Văn Bình" autofocus>
@@ -256,17 +322,17 @@
             </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="field-row">
+            <div class="field-row" style="position:relative">
                 <label class="field-label">👨 Bố</label>
-                <select id="edit-father" class="draft-input">
-                    <option value="">— Chưa chọn —</option>
-                </select>
+                <input type="text" id="edit-father-search" class="draft-input" placeholder="Gõ tên để tìm..." autocomplete="off">
+                <input type="hidden" id="edit-father" value="">
+                <div id="edit-father-dropdown" class="ac-dropdown"></div>
             </div>
-            <div class="field-row">
+            <div class="field-row" style="position:relative">
                 <label class="field-label">👩 Mẹ</label>
-                <select id="edit-mother" class="draft-input">
-                    <option value="">— Chưa chọn —</option>
-                </select>
+                <input type="text" id="edit-mother-search" class="draft-input" placeholder="Gõ tên để tìm..." autocomplete="off">
+                <input type="hidden" id="edit-mother" value="">
+                <div id="edit-mother-dropdown" class="ac-dropdown"></div>
             </div>
         </div>
         <div class="field-row">
@@ -283,6 +349,24 @@
                 <option value="uncle_aunt">Chú/Bác/Cô/Dì</option>
                 <option value="other">Khác</option>
             </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field-row">
+                <label class="field-label">Loại thành viên</label>
+                <select id="edit-member-type" class="draft-input">
+                    <option value="blood">Dòng trực hệ</option>
+                    <option value="spouse_in">Dâu / Rể</option>
+                    <option value="child_out">Cháu ngoại</option>
+                    <option value="adopted_in">Nhập tịch</option>
+                    <option value="adopted_child">Con nuôi</option>
+                </select>
+            </div>
+            <div class="field-row">
+                <label class="field-label">Tính Đinh</label>
+                <label style="display:flex;align-items:center;gap:6px;margin-top:4px;cursor:pointer">
+                    <input type="checkbox" id="edit-is-dinh"> Là Đinh (nam giới dòng trực hệ)
+                </label>
+            </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
             <div class="field-row">
@@ -326,10 +410,15 @@ function doRearrange() {
     hasSavedLayout = false;
     diagram.layout = go.GraphObject.make(go.LayeredDigraphLayout, {
         direction: 90,
-        layerSpacing: 50,
-        columnSpacing: 30,
+        layerSpacing: 60,
+        columnSpacing: 40,
         setsPortSpots: false,
         initializeOption: go.LayeredDigraphLayout.InitDepthFirstIn,
+        columnFunction: function(v) {
+            var nd = v.node;
+            if (nd && nd.data && nd.data.ord) return nd.data.ord;
+            return 0;
+        },
     });
     diagram.layoutDiagram(true);
     diagram.zoomToFit();
@@ -341,6 +430,7 @@ function doRearrange() {
 function saveLayout() {
     var positions = {};
     diagram.nodes.each(function(node) {
+        if (node.data.isGroup) return; // Skip group nodes
         var loc = node.location;
         positions[String(node.data.key)] = { x: Math.round(loc.x * 10) / 10, y: Math.round(loc.y * 10) / 10 };
     });
@@ -355,6 +445,7 @@ function saveLayout() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (data.ok) {
+            hasSavedLayout = true; // Saved — preserve positions on next layout event
             if (btn) { btn.style.display = 'none'; btn.textContent = '💾 Lưu bố cục'; btn.disabled = false; }
         } else {
             alert('Lỗi: ' + (data.error || 'Unknown'));
@@ -395,36 +486,25 @@ function saveLayout() {
     });
 
     // ── Selection state ──
-    window.selectedKey = null; // first person clicked
+    window.selectedKey = null;
 
-    function updateInstruction(state, name1, name2) {
+    function updateInstruction(state, name1) {
         var el = document.getElementById('instruction');
-        var btn = document.getElementById('deselect-btn');
-        var editBtn = document.getElementById('edit-btn');
         if (state === 'idle') {
-            el.innerHTML = '💡 Bấm chọn <strong>người thứ nhất</strong>, rồi bấm <strong>người thứ hai</strong> để nối quan hệ.';
+            el.innerHTML = '💡 Bấm vào người để xem thông tin. Kéo thả để sắp xếp bố cục.';
             el.className = 'instruction-bar mb-3';
-            if (btn) btn.style.display = 'none';
-            if (editBtn) editBtn.style.display = 'none';
         } else if (state === 'selected') {
-            el.innerHTML = '✋ Đã chọn <strong>' + escHtml(name1) + '</strong>. Bấm vào người thứ 2 hoặc ✏️ Sửa.';
+            el.innerHTML = '👤 Đã chọn: <strong>' + escHtml(name1 || '') + '</strong> — Bấm người khác để <strong>nối quan hệ</strong>, hoặc bấm Sửa/Thêm vợ chồng.';
             el.className = 'instruction-bar step2 mb-3';
-            if (btn) btn.style.display = '';
-            if (editBtn) editBtn.style.display = '';
         } else if (state === 'saving') {
             el.innerHTML = '⏳ Đang lưu...';
             el.className = 'instruction-bar mb-3';
-            if (editBtn) editBtn.style.display = 'none';
         } else if (state === 'saved') {
-            el.innerHTML = '✅ Đã lưu! Bấm tiếp để nối thêm.';
+            el.innerHTML = '✅ Đã lưu!';
             el.className = 'instruction-bar success mb-3';
-            if (btn) btn.style.display = 'none';
-            if (editBtn) editBtn.style.display = 'none';
         } else if (state === 'error') {
             el.innerHTML = '❌ Lỗi: ' + escHtml(name1 || '');
             el.className = 'instruction-bar mb-3';
-            if (btn) btn.style.display = 'none';
-            if (editBtn) editBtn.style.display = 'none';
         }
     }
 
@@ -432,7 +512,43 @@ function saveLayout() {
         selectedKey = null;
         diagram.clearHighlighteds();
         diagram.clearSelection();
+        document.getElementById('info-panel').style.display = 'none';
         updateInstruction('idle');
+    };
+
+    window.showPersonInfo = function(key) {
+        if (!key) return;
+        var p = personMap[key];
+        if (!p) return;
+        selectedKey = key;
+        diagram.select(diagram.findNodeForKey(key));
+
+        // Fill info panel
+        var imgEl = document.getElementById('info-photo');
+        if (p.photo_url) {
+            imgEl.src = p.photo_url;
+        } else {
+            imgEl.src = p.gender === 'male' ? '/media/members/male_placeholder.jpg' : '/media/members/female_placeholder.jpg';
+        }
+        document.getElementById('info-name').textContent = '#' + p.temp_id + ' ' + p.name;
+
+        var dates = [];
+        if (p.birth_date) dates.push('Sinh: ' + p.birth_date);
+        if (p.death_date) dates.push('Mất: ' + p.death_date);
+        document.getElementById('info-dates').textContent = dates.join(' — ') || '';
+
+        var parents = [];
+        if (p.father_temp_id && personMap[p.father_temp_id]) parents.push('Bố: ' + personMap[p.father_temp_id].name);
+        if (p.mother_temp_id && personMap[p.mother_temp_id]) parents.push('Mẹ: ' + personMap[p.mother_temp_id].name);
+        document.getElementById('info-parents').textContent = parents.join(' — ') || '';
+
+        document.getElementById('info-panel').style.display = '';
+        // Show/hide quick-add buttons based on existing relationships
+        var qaFather = document.getElementById('qa-father');
+        var qaMother = document.getElementById('qa-mother');
+        if (qaFather) qaFather.style.display = p.father_temp_id ? 'none' : '';
+        if (qaMother) qaMother.style.display = p.mother_temp_id ? 'none' : '';
+        updateInstruction('selected', p.name);
     };
 
     function escHtml(s) {
@@ -440,6 +556,42 @@ function saveLayout() {
         d.textContent = s || '';
         return d.innerHTML;
     }
+
+    // ── Relation picker (two-click connect) ──
+    window.showRelPicker = function(keyA, keyB) {
+        var pA = personMap[keyA], pB = personMap[keyB];
+        if (!pA || !pB) return;
+        var nameA = escHtml(pA.name), nameB = escHtml(pB.name);
+        document.getElementById('rel-picker-title').innerHTML = '🔗 Quan hệ giữa <strong>' + nameA + '</strong> và <strong>' + nameB + '</strong>';
+        var btns = '';
+        // A is father of B
+        if (pA.gender === 'male') btns += '<button class="rel-btn" onclick="doConnect(' + keyA + ',' + keyB + ',\'father\')">👨 ' + nameA + ' là <b>Bố</b> của ' + nameB + '</button>';
+        // A is mother of B
+        if (pA.gender === 'female') btns += '<button class="rel-btn" onclick="doConnect(' + keyA + ',' + keyB + ',\'mother\')">👩 ' + nameA + ' là <b>Mẹ</b> của ' + nameB + '</button>';
+        // B is father of A
+        if (pB.gender === 'male') btns += '<button class="rel-btn" onclick="doConnect(' + keyB + ',' + keyA + ',\'father\')">👨 ' + nameB + ' là <b>Bố</b> của ' + nameA + '</button>';
+        // B is mother of A
+        if (pB.gender === 'female') btns += '<button class="rel-btn" onclick="doConnect(' + keyB + ',' + keyA + ',\'mother\')">👩 ' + nameB + ' là <b>Mẹ</b> của ' + nameA + '</button>';
+        // Spouse
+        btns += '<button class="rel-btn" onclick="doConnect(' + keyA + ',' + keyB + ',\'spouse\')">💑 Vợ chồng (Kết hôn)</button>';
+        btns += '<button class="rel-btn" onclick="doConnect(' + keyA + ',' + keyB + ',\'spouse_divorced\')">💔 Vợ chồng (Ly hôn)</button>';
+        btns += '<button class="rel-btn" onclick="doConnect(' + keyA + ',' + keyB + ',\'spouse_widowed\')">🕯 Vợ chồng (Góa)</button>';
+        // Add child of both
+        btns += '<button class="rel-btn" onclick="closeRelPicker(); showAddPersonModal(\'child_couple\',' + keyA + ',' + keyB + ')" style="border-color:#059669;color:#059669">➕👶 Thêm con chung</button>';
+        // Remove existing
+        btns += '<button class="rel-btn danger" onclick="doConnect(' + keyA + ',' + keyB + ',\'remove\')">🗑 Xóa quan hệ giữa 2 người</button>';
+        document.getElementById('rel-picker-buttons').innerHTML = btns;
+        document.getElementById('rel-picker-modal').classList.add('show');
+    };
+
+    window.doConnect = function(fromId, toId, relType) {
+        closeRelPicker();
+        saveRelation(fromId, toId, relType);
+    };
+
+    window.closeRelPicker = function() {
+        document.getElementById('rel-picker-modal').classList.remove('show');
+    };
 
     // ── Diagram ──
     hasSavedLayout = savedLayout && Object.keys(savedLayout).length > 0;
@@ -451,27 +603,46 @@ function saveLayout() {
         // DISABLE link drawing by drag
         'linkingTool.isEnabled': false,
         'relinkingTool.isEnabled': false,
+        // Scrollbars + mouse wheel zoom
+        hasHorizontalScrollbar: true,
+        hasVerticalScrollbar: true,
+        scrollMargin: 200,
+        'toolManager.mouseWheelBehavior': go.ToolManager.WheelZoom,
         initialAutoScale: go.Diagram.Uniform,
+        // Click on background to deselect
+        click: function(e) {
+            deselectAll();
+        },
         layout: hasSavedLayout ? $(go.Layout) : $(go.LayeredDigraphLayout, {
             direction: 90,
-            layerSpacing: 50,
-            columnSpacing: 30,
+            layerSpacing: 60,
+            columnSpacing: 40,
             setsPortSpots: false,
             initializeOption: go.LayeredDigraphLayout.InitDepthFirstIn,
+            columnFunction: function(v) {
+                // Use birth_order (ord) to influence column assignment
+                var nd = v.node;
+                if (nd && nd.data && nd.data.ord) return nd.data.ord;
+                return 0;
+            },
         }),
     });
 
     // ── Node template — portrait card (like genogram) ──
     diagram.nodeTemplate = $(go.Node, 'Auto',
         {
-            cursor: canEdit ? 'pointer' : 'default',
+            cursor: 'pointer',
             click: function(e, node) {
-                if (!canEdit) return;
-                onNodeClick(node.data.key);
+                var clickedKey = node.data.key;
+                // Two-click connect: if another person is already selected, show relation picker
+                if (canEdit && selectedKey && selectedKey !== clickedKey && personMap[selectedKey] && personMap[clickedKey]) {
+                    showRelPicker(selectedKey, clickedKey);
+                    return;
+                }
+                showPersonInfo(clickedKey);
             },
             doubleClick: function(e, node) {
                 if (!canEdit) return;
-                e.handled = true;
                 showEditModal(node.data.key);
             },
             selectionAdornmentTemplate: $(go.Adornment, 'Auto',
@@ -482,7 +653,8 @@ function saveLayout() {
                 $(go.Placeholder)
             ),
         },
-        new go.Binding('isLayoutPositioned', 'spouseOf', function(v) { return !v; }),
+        // Group assignment: wives grouped with their husband
+        new go.Binding('group', 'group'),
         $(go.Shape, 'RoundedRectangle', {
             strokeWidth: 2, parameter1: 8,
         },
@@ -491,8 +663,7 @@ function saveLayout() {
         }),
         new go.Binding('stroke', 's', function(s) {
             return s === 'male' ? '#1e40af' : '#be185d';
-        }),
-        new go.Binding('strokeWidth', 'spouseOf', function(v) { return v ? 1.5 : 2; })),
+        })),
         $(go.Panel, 'Vertical', { margin: 8, defaultAlignment: go.Spot.Center },
             // Photo: portrait 3:4 ratio (60 × 80)
             $(go.Picture, {
@@ -538,6 +709,14 @@ function saveLayout() {
                 margin: new go.Margin(3, 0, 0, 0),
             }, new go.Binding('text', 'rel'),
                new go.Binding('visible', 'rel', function(r) { return !!r; })),
+            // Đinh badge
+            $(go.TextBlock, {
+                font: 'bold 9px sans-serif', stroke: '#1e40af',
+                background: '#dbeafe',
+                textAlign: 'center',
+                margin: new go.Margin(3, 0, 0, 0),
+                text: '⚔ Đinh',
+            }, new go.Binding('visible', 'dinh')),
             // Wives list (shown in Đinh-only mode)
             $(go.TextBlock, {
                 font: 'italic 9px sans-serif', stroke: '#be185d',
@@ -550,8 +729,24 @@ function saveLayout() {
         )
     );
 
+    // ── Group template — husband + wives block (like public genogram viewer) ──
+    diagram.groupTemplate = $(go.Group, 'Auto',
+        {
+            layout: $(go.GridLayout, {
+                wrappingColumn: Infinity,
+                alignment: go.GridLayout.Position,
+                cellSize: new go.Size(1, 1),
+                spacing: new go.Size(10, 5)
+            })
+        },
+        $(go.Shape, 'RoundedRectangle',
+            { parameter1: 10, fill: 'rgba(255,255,255,0.4)', stroke: 'rgba(200,180,160,0.6)', strokeWidth: 1 }
+        ),
+        $(go.Placeholder, { padding: 5 })
+    );
+
     // ── Link templates ──
-    // Father → Child (green)
+    // Father → Child (green solid, this is the ONLY layout link)
     diagram.linkTemplate = $(go.Link,
         {
             routing: go.Link.AvoidsNodes, corner: 8,
@@ -560,7 +755,7 @@ function saveLayout() {
                 if (!canEdit) return;
                 var fk = link.fromNode.data.key;
                 var tk = link.toNode.data.key;
-                if (confirm('Xóa quan hệ: ' + getName(fk) + ' → ' + getName(tk) + ' ?')) {
+                if (confirm('Xóa quan hệ Bố: ' + getName(fk) + ' → ' + getName(tk) + ' ?')) {
                     saveRelation(fk, tk, 'remove');
                 }
             }
@@ -569,72 +764,96 @@ function saveLayout() {
         $(go.Shape, { toArrow: 'Triangle', stroke: '#059669', fill: '#059669', scale: 1.2 })
     );
 
-    // Mother → Child (purple)
+    // Mother → Child (purple, thin, NOT layout-affecting — visual decoration only)
     diagram.linkTemplateMap.add('mother', $(go.Link,
         {
             routing: go.Link.AvoidsNodes, corner: 8,
+            isLayoutPositioned: false,
             cursor: 'pointer',
             click: function(e, link) {
                 if (!canEdit) return;
                 var fk = link.fromNode.data.key;
                 var tk = link.toNode.data.key;
-                if (confirm('Xóa quan hệ: ' + getName(fk) + ' → ' + getName(tk) + ' ?')) {
+                if (confirm('Xóa quan hệ Mẹ: ' + getName(fk) + ' → ' + getName(tk) + ' ?')) {
                     saveRelation(fk, tk, 'remove');
                 }
             }
         },
-        $(go.Shape, { strokeWidth: 2, stroke: '#D946EF' }),
-        $(go.Shape, { toArrow: 'Triangle', stroke: '#D946EF', fill: '#D946EF', scale: 1.2 })
+        $(go.Shape, { strokeWidth: 1.5, stroke: '#D946EF', strokeDashArray: [4, 2] }),
+        $(go.Shape, { toArrow: 'Triangle', stroke: '#D946EF', fill: '#D946EF', scale: 0.9 })
     ));
 
-    // Spouse (red dashed)
-    var spouseClickHandler = function(e, link) {
-        if (!canEdit) return;
-        var fk = link.fromNode.data.key;
-        var tk = link.toNode.data.key;
-        if (confirm('Xóa quan hệ: ' + getName(fk) + ' ↔ ' + getName(tk) + ' ?')) {
-            saveRelation(fk, tk, 'remove');
-        }
-    };
-
-    var WIFE_ORDER_NAMES = { 1: 'Bà Cả', 2: 'Bà Hai', 3: 'Bà Ba', 4: 'Bà Tư' };
-    function wifeLabel(wo) { return WIFE_ORDER_NAMES[wo] || ('Bà ' + wo); }
-
-    // Married spouse (red dashed 💑)
+    // Spouse link (dashed, NOT layout-affecting)
     diagram.linkTemplateMap.add('spouse', $(go.Link,
-        { routing: go.Link.Normal, corner: 0, cursor: 'pointer', click: spouseClickHandler, isLayoutPositioned: false },
+        {
+            routing: go.Link.Normal, corner: 0,
+            isLayoutPositioned: false,
+            cursor: 'pointer',
+            click: function(e, link) {
+                if (!canEdit) return;
+                var fk = link.fromNode.data.key;
+                var tk = link.toNode.data.key;
+                if (confirm('Xóa quan hệ vợ chồng: ' + getName(fk) + ' ↔ ' + getName(tk) + ' ?')) {
+                    saveRelation(fk, tk, 'remove');
+                }
+            }
+        },
         $(go.Shape, { strokeWidth: 2.5, stroke: '#E11D48', strokeDashArray: [6, 4] }),
         $(go.TextBlock, {
             segmentIndex: 0, segmentFraction: 0.5,
-            font: '11px sans-serif', stroke: '#E11D48',
-            background: 'white',
-            margin: 2,
+            font: '10px sans-serif', stroke: '#E11D48',
+            background: 'white', margin: 2,
         }, new go.Binding('text', 'woLabel'))
     ));
 
-    // Divorced spouse (gray dashed 💔)
+    // Divorced spouse (gray dashed)
     diagram.linkTemplateMap.add('divorced', $(go.Link,
-        { routing: go.Link.Normal, corner: 0, cursor: 'pointer', click: spouseClickHandler, isLayoutPositioned: false },
-        $(go.Shape, { strokeWidth: 2.5, stroke: '#9CA3AF', strokeDashArray: [6, 4] }),
+        {
+            routing: go.Link.Normal, corner: 0,
+            isLayoutPositioned: false,
+            cursor: 'pointer',
+            click: function(e, link) {
+                if (!canEdit) return;
+                var fk = link.fromNode.data.key;
+                var tk = link.toNode.data.key;
+                if (confirm('Xóa quan hệ: ' + getName(fk) + ' ↔ ' + getName(tk) + ' ?')) {
+                    saveRelation(fk, tk, 'remove');
+                }
+            }
+        },
+        $(go.Shape, { strokeWidth: 2, stroke: '#9CA3AF', strokeDashArray: [6, 4] }),
         $(go.TextBlock, {
             segmentIndex: 0, segmentFraction: 0.5,
-            font: '11px sans-serif', stroke: '#9CA3AF',
-            background: 'white',
-            margin: 2,
+            font: '10px sans-serif', stroke: '#9CA3AF',
+            background: 'white', margin: 2,
         }, new go.Binding('text', 'woLabel'))
     ));
 
-    // Widowed spouse (dark gray dotted 🕯)
+    // Widowed spouse (dark dotted)
     diagram.linkTemplateMap.add('widowed', $(go.Link,
-        { routing: go.Link.Normal, corner: 0, cursor: 'pointer', click: spouseClickHandler, isLayoutPositioned: false },
+        {
+            routing: go.Link.Normal, corner: 0,
+            isLayoutPositioned: false,
+            cursor: 'pointer',
+            click: function(e, link) {
+                if (!canEdit) return;
+                var fk = link.fromNode.data.key;
+                var tk = link.toNode.data.key;
+                if (confirm('Xóa quan hệ: ' + getName(fk) + ' ↔ ' + getName(tk) + ' ?')) {
+                    saveRelation(fk, tk, 'remove');
+                }
+            }
+        },
         $(go.Shape, { strokeWidth: 2, stroke: '#6B7280', strokeDashArray: [2, 3] }),
         $(go.TextBlock, {
             segmentIndex: 0, segmentFraction: 0.5,
-            font: '11px sans-serif', stroke: '#6B7280',
-            background: 'white',
-            margin: 2,
+            font: '10px sans-serif', stroke: '#6B7280',
+            background: 'white', margin: 2,
         }, new go.Binding('text', 'woLabel'))
     ));
+
+    var WIFE_ORDER_NAMES = { 1: 'Bà Cả', 2: 'Bà Hai', 3: 'Bà Ba', 4: 'Bà Tư' };
+    function wifeLabel(wo) { return WIFE_ORDER_NAMES[wo] || ('Bà ' + wo); }
 
     function getName(key) {
         return personMap[key] ? personMap[key].name : '#' + key;
@@ -650,15 +869,31 @@ function saveLayout() {
         'uncle_aunt': 'Chú/Bác/Cô/Dì', 'other': '',
     };
 
-    // Precompute which females are spouse-only (no parent-child links → use manual layout)
-    var spouseOnlySet = {};
-    spouseRels.forEach(function(r) {
-        var p1 = personMap[r.p1], p2 = personMap[r.p2];
-        if (!p1 || !p2) return;
-        // Only mark as spouseOf if she has NO father/mother (entered tree via marriage only)
-        if (p2.gender === 'female' && !p2.father_temp_id && !p2.mother_temp_id) spouseOnlySet[r.p2] = r.p1;
-        else if (p1.gender === 'female' && !p1.father_temp_id && !p1.mother_temp_id) spouseOnlySet[r.p1] = r.p2;
-    });
+    // Build groups: husband + wife-only nodes grouped into visual blocks
+    function buildGroupData() {
+        var groupSet = {};     // groupKey -> true
+        var personGroup = {}; // personKey -> groupKey
+        spouseRels.forEach(function(r) {
+            var p1 = personMap[r.p1], p2 = personMap[r.p2];
+            if (!p1 || !p2) return;
+            var husbandId = null, wifeId = null;
+            if (p2.gender === 'female' && !p2.father_temp_id && !p2.mother_temp_id) {
+                wifeId = r.p2; husbandId = r.p1;
+            } else if (p1.gender === 'female' && !p1.father_temp_id && !p1.mother_temp_id) {
+                wifeId = r.p1; husbandId = r.p2;
+            }
+            if (!husbandId || !wifeId) return;
+            var groupKey = 'g_' + husbandId;
+            groupSet[groupKey] = true;
+            personGroup[husbandId] = groupKey;
+            personGroup[wifeId] = groupKey;
+        });
+        var groupNodes = Object.keys(groupSet).map(function(gk) {
+            return { key: gk, isGroup: true };
+        });
+        return { groupNodes: groupNodes, personGroup: personGroup, groupSet: groupSet };
+    }
+    var currentGroupData = buildGroupData();
 
     // Sort persons by birth_order so siblings display left→right correctly
     var sortedPersons = personsRaw.slice().sort(function(a, b) {
@@ -668,6 +903,7 @@ function saveLayout() {
         return a.temp_id - b.temp_id;
     });
 
+    // Person nodes
     sortedPersons.forEach(function(p) {
         nodeDataArray.push({
             key: p.temp_id,
@@ -677,94 +913,44 @@ function saveLayout() {
             d: p.death_date || '',
             rel: RELATION_LABELS[p.relation_to_submitter] || '',
             photo: p.photo_url || '',
-            spouseOf: spouseOnlySet[p.temp_id] || null,
             wives: '',
             ord: p.birth_order || 9999,
+            dinh: !!p.is_dinh,
+            mt: p.member_type || 'blood',
+            group: currentGroupData.personGroup[p.temp_id] || undefined,
         });
-        if (p.father_temp_id && personMap[p.father_temp_id]) {
-            linkDataArray.push({ from: p.father_temp_id, to: p.temp_id, category: '' });
-        }
-        if (p.mother_temp_id && personMap[p.mother_temp_id]) {
-            linkDataArray.push({ from: p.mother_temp_id, to: p.temp_id, category: 'mother' });
-        }
     });
 
-    // Add spouse links from spouseRels
-    spouseRels.forEach(function(r) {
-        if (personMap[r.p1] && personMap[r.p2]) {
-            var cat = r.status === 'divorced' ? 'divorced' :
-                      r.status === 'widowed' ? 'widowed' : 'spouse';
-            var emoji = r.status === 'divorced' ? '💔 ' : r.status === 'widowed' ? '🕯 ' : '💑 ';
-            linkDataArray.push({ from: r.p1, to: r.p2, category: cat, woLabel: emoji + wifeLabel(r.wo) });
-        }
+    // Add group nodes
+    currentGroupData.groupNodes.forEach(function(g) {
+        nodeDataArray.push(g);
     });
 
-    diagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
-
-    // ── Position wife nodes after each layout ──
-    function computeSpouseOf() {
-        // Recompute spouseOnly set from current spouseRels
-        var newSpouseOnly = {};
-        spouseRels.forEach(function(r) {
-            var p1 = personMap[r.p1], p2 = personMap[r.p2];
-            if (!p1 || !p2) return;
-            // Only mark as spouseOf if she has NO father/mother (entered tree via marriage only)
-            if (p2.gender === 'female' && !p2.father_temp_id && !p2.mother_temp_id) newSpouseOnly[r.p2] = r.p1;
-            else if (p1.gender === 'female' && !p1.father_temp_id && !p1.mother_temp_id) newSpouseOnly[r.p1] = r.p2;
-        });
-        diagram.startTransaction('spouseOf');
-        diagram.nodes.each(function(node) {
-            var key = node.data.key;
-            var oldVal = node.data.spouseOf;
-            var newVal = newSpouseOnly[key] || null;
-            if (oldVal !== newVal) {
-                diagram.model.setDataProperty(node.data, 'spouseOf', newVal);
+    // Links: father→child for layout, mother→child visual-only, spouse visual-only
+    function buildLinkData() {
+        var links = [];
+        Object.keys(personMap).forEach(function(key) {
+            var p = personMap[key];
+            if (p.father_temp_id && personMap[p.father_temp_id]) {
+                links.push({ from: p.father_temp_id, to: p.temp_id, category: '' });
+            }
+            if (p.mother_temp_id && personMap[p.mother_temp_id]) {
+                links.push({ from: p.mother_temp_id, to: p.temp_id, category: 'mother' });
             }
         });
-        diagram.commitTransaction('spouseOf');
-    }
-
-    function positionWives() {
-        diagram.startTransaction('posWives');
-        // Group wives by husband, sorted by wife_order
-        var wifesByHusband = {};
         spouseRels.forEach(function(r) {
-            var p1 = personMap[r.p1], p2 = personMap[r.p2];
-            if (!p1 || !p2) return;
-            var husbandId = p1.gender === 'male' ? r.p1 : (p2.gender === 'male' ? r.p2 : null);
-            var wifeId    = p1.gender === 'female' ? r.p1 : (p2.gender === 'female' ? r.p2 : null);
-            if (!husbandId || !wifeId) return;
-            if (!wifesByHusband[husbandId]) wifesByHusband[husbandId] = [];
-            wifesByHusband[husbandId].push({ id: wifeId, wo: r.wo || 1 });
+            if (personMap[r.p1] && personMap[r.p2]) {
+                var cat = r.status === 'divorced' ? 'divorced' :
+                          r.status === 'widowed' ? 'widowed' : 'spouse';
+                var emoji = r.status === 'divorced' ? '💔 ' : r.status === 'widowed' ? '🕯 ' : '💑 ';
+                links.push({ from: r.p1, to: r.p2, category: cat, woLabel: emoji + wifeLabel(r.wo) });
+            }
         });
-        var gap = 16;
-        Object.keys(wifesByHusband).forEach(function(hKeyStr) {
-            var hn = diagram.findNodeForKey(parseInt(hKeyStr));
-            if (!hn) return;
-            var hb = hn.actualBounds;
-            // Sort by wife_order
-            var sorted = wifesByHusband[hKeyStr].sort(function(a, b) { return a.wo - b.wo; });
-            var wifeNodes = sorted.map(function(w) {
-                return diagram.findNodeForKey(w.id);
-            }).filter(function(wn) { return wn && wn.data.spouseOf; });
-            if (wifeNodes.length === 0) return;
-            // All wives on the RIGHT, stacked vertically centered on husband
-            var totalH = wifeNodes.reduce(function(s, wn) {
-                return s + wn.actualBounds.height;
-            }, 0) + (wifeNodes.length - 1) * gap;
-            var startY = hb.y + (hb.height - totalH) / 2;
-            var rightX = hb.x + hb.width + gap;
-            wifeNodes.forEach(function(wn) {
-                wn.location = new go.Point(rightX, startY);
-                startY += wn.actualBounds.height + gap;
-            });
-        });
-        diagram.commitTransaction('posWives');
+        return links;
     }
 
-    diagram.addDiagramListener('LayoutCompleted', function() {
-        positionWives();
-    });
+    linkDataArray = buildLinkData();
+    diagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
 
     // Track node dragging → show save-layout button
     diagram.addDiagramListener('SelectionMoved', function() {
@@ -778,206 +964,22 @@ function saveLayout() {
     if (hasSavedLayout) {
         diagram.startTransaction('loadLayout');
         diagram.nodes.each(function(node) {
+            if (node.data.isGroup) return; // Skip group nodes
             var pos = savedLayout[String(node.data.key)];
             if (pos) {
                 node.location = new go.Point(pos.x, pos.y);
             }
         });
         diagram.commitTransaction('loadLayout');
-        positionWives();
     }
 
-    // ── Click-to-connect logic ──
-    function onNodeClick(key) {
-        if (selectedKey === null) {
-            // First click → select
-            selectedKey = key;
-            var node = diagram.findNodeForKey(key);
-            if (node) diagram.select(node);
-            updateInstruction('selected', getName(key));
-        } else if (selectedKey === key) {
-            // Click same → deselect
-            deselectAll();
-        } else {
-            // Second click → show modal
-            diagram.clearSelection();
-            showRelationModal(selectedKey, key);
-            selectedKey = null;
-        }
-    }
-
-    // ── Modal ──
-    var modal = document.getElementById('rel-modal');
-    var pendingFrom = null, pendingTo = null;
-
-    function showRelationModal(fromId, toId) {
-        pendingFrom = fromId;
-        pendingTo = toId;
-        var fn = getName(fromId);
-        var tn = getName(toId);
-
-        document.getElementById('modal-desc').textContent = fn + ' ↔ ' + tn;
-        modal.querySelectorAll('.fn').forEach(function(el) { el.textContent = fn; });
-        modal.querySelectorAll('.tn').forEach(function(el) { el.textContent = tn; });
-
-        // Show remove button if there's an existing relation
-        var hasRel = checkExistingRelation(fromId, toId);
-        document.getElementById('remove-section').style.display = hasRel ? '' : 'none';
-
-        modal.classList.add('show');
-    }
-
-    function checkExistingRelation(a, b) {
-        var da = personMap[a], db = personMap[b];
-        if (!da || !db) return false;
-        // Check parent-child
-        if (db.father_temp_id === a || db.mother_temp_id === a ||
-            da.father_temp_id === b || da.mother_temp_id === b) return true;
-        // Check spouse
-        var lo = Math.min(a, b), hi = Math.max(a, b);
-        for (var i = 0; i < spouseRels.length; i++) {
-            if (spouseRels[i].p1 === lo && spouseRels[i].p2 === hi) return true;
-        }
-        return false;
-    }
-
-    // Modal button handlers
-    var pendingRelType = null;
-    var pendingOtherParentField = null;  // 'father_temp_id' or 'mother_temp_id'
-
-    function showStep2(relType, parentId, childId) {
-        // relType is 'father', 'mother', or 'child'
-        var parentPerson = personMap[parentId];
-        var childPerson = personMap[childId];
-        var otherGender, label, infoText;
-
-        if (relType === 'father' || (relType === 'child' && parentPerson.gender === 'male')) {
-            // Father established, offer to pick mother
-            otherGender = 'female';
-            label = '👩 Chọn Mẹ (nếu biết):';
-            pendingOtherParentField = 'mother_temp_id';
-            infoText = '✅ ' + getName(parentId) + ' là Cha của ' + getName(childId);
-        } else {
-            // Mother established, offer to pick father
-            otherGender = 'male';
-            label = '👨 Chọn Bố (nếu biết):';
-            pendingOtherParentField = 'father_temp_id';
-            infoText = '✅ ' + getName(parentId) + ' là Mẹ của ' + getName(childId);
-        }
-
-        // Build options: spouses of the parent first
-        var spouseIds = getSpousesOf(parentId).filter(function(id) {
-            var p = personMap[id];
-            return p && p.gender === otherGender && id !== childId;
-        });
-        var spouseSet = {};
-        spouseIds.forEach(function(id) { spouseSet[id] = true; });
-
-        var sel = document.getElementById('rel-step2-select');
-        sel.innerHTML = '<option value="">— Bỏ qua —</option>';
-        // Priority: spouses first
-        spouseIds.forEach(function(id) {
-            var o = document.createElement('option');
-            o.value = id;
-            o.textContent = '💑 #' + id + ' ' + getName(id);
-            sel.appendChild(o);
-        });
-        // Then others of that gender
-        personsRaw.forEach(function(p) {
-            if (p.gender !== otherGender || p.temp_id === childId || p.temp_id === parentId || spouseSet[p.temp_id]) return;
-            var o = document.createElement('option');
-            o.value = p.temp_id;
-            o.textContent = '#' + p.temp_id + ' ' + p.name;
-            sel.appendChild(o);
-        });
-
-        // Auto-select if child already has that parent
-        var existing = childPerson[pendingOtherParentField];
-        if (existing) sel.value = String(existing);
-
-        document.getElementById('rel-step2-info').innerHTML = infoText;
-        document.getElementById('rel-step2-label').textContent = label;
-        document.getElementById('rel-buttons').style.display = 'none';
-        document.getElementById('rel-step2').style.display = '';
-    }
-
-    modal.querySelectorAll('[data-rel]').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var rel = btn.dataset.rel;
-            // For spouse/remove — just do it immediately
-            if (rel === 'spouse' || rel === 'spouse_divorced' || rel === 'spouse_widowed' || rel === 'remove') {
-                modal.classList.remove('show');
-                resetModalStep();
-                if (pendingFrom !== null && pendingTo !== null) {
-                    saveRelation(pendingFrom, pendingTo, rel);
-                }
-                return;
-            }
-            // For father/mother/child — show step 2 to pick other parent
-            pendingRelType = rel;
-            var parentId, childId;
-            if (rel === 'father') {
-                parentId = pendingFrom; childId = pendingTo;
-            } else if (rel === 'mother') {
-                parentId = pendingFrom; childId = pendingTo;
-            } else if (rel === 'child') {
-                parentId = pendingTo; childId = pendingFrom;
-            }
-            showStep2(rel, parentId, childId);
-        });
-    });
-
-    document.getElementById('rel-step2-confirm').addEventListener('click', function() {
-        var otherVal = parseInt(document.getElementById('rel-step2-select').value) || null;
-        modal.classList.remove('show');
-        resetModalStep();
-        if (pendingFrom !== null && pendingTo !== null) {
-            saveRelation(pendingFrom, pendingTo, pendingRelType);
-            // Also set the other parent if selected
-            if (otherVal && pendingOtherParentField) {
-                var childId = (pendingRelType === 'child') ? pendingFrom : pendingTo;
-                var childPerson = personMap[childId];
-                if (childPerson) {
-                    var currentOther = childPerson[pendingOtherParentField];
-                    if (currentOther !== otherVal) {
-                        // Save the other parent relation
-                        var otherRelType = pendingOtherParentField === 'father_temp_id' ? 'father' : 'mother';
-                        saveRelation(otherVal, childId, otherRelType);
-                    }
-                }
-            }
-        }
-    });
-
-    document.getElementById('rel-step2-back').addEventListener('click', function() {
-        resetModalStep();
-    });
-
-    function resetModalStep() {
-        document.getElementById('rel-buttons').style.display = '';
-        document.getElementById('rel-step2').style.display = 'none';
-        pendingRelType = null;
-        pendingOtherParentField = null;
-    }
-
-    document.getElementById('cancel-btn').addEventListener('click', function() {
-        modal.classList.remove('show');
-        resetModalStep();
-        updateInstruction('idle');
-    });
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            modal.classList.remove('show');
-            resetModalStep();
-            updateInstruction('idle');
-        }
-    });
+    // ── Escape key handler ──
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            modal.classList.remove('show');
             document.getElementById('edit-modal').classList.remove('show');
             document.getElementById('add-modal').classList.remove('show');
-            deselectAll();
+            document.getElementById('add-spouse-modal').classList.remove('show');
+            document.getElementById('rel-picker-modal').classList.remove('show');
         }
     });
 
@@ -1003,6 +1005,23 @@ function saveLayout() {
         .then(function(data) {
             if (data.ok) {
                 updateLocalData(fromId, toId, relType);
+                // Sync is_dinh/member_type updates from server
+                if (data.persons) {
+                    Object.keys(data.persons).forEach(function(tid) {
+                        var upd = data.persons[tid];
+                        var pm = personMap[parseInt(tid)];
+                        if (pm) {
+                            pm.is_dinh = upd.is_dinh;
+                            pm.member_type = upd.member_type;
+                            // Also update diagram node data
+                            var nd = diagram.model.findNodeDataForKey(parseInt(tid));
+                            if (nd) {
+                                diagram.model.setDataProperty(nd, 'dinh', !!upd.is_dinh);
+                                diagram.model.setDataProperty(nd, 'mt', upd.member_type || 'blood');
+                            }
+                        }
+                    });
+                }
                 rebuildLinks();
                 updateInstruction('saved');
             } else {
@@ -1050,50 +1069,90 @@ function saveLayout() {
     }
 
     function rebuildLinks() {
-        var links = [];
-        Object.keys(personMap).forEach(function(key) {
-            var p = personMap[key];
-            if (p.father_temp_id && personMap[p.father_temp_id]) {
-                links.push({ from: p.father_temp_id, to: p.temp_id, category: '' });
-            }
-            if (p.mother_temp_id && personMap[p.mother_temp_id]) {
-                links.push({ from: p.mother_temp_id, to: p.temp_id, category: 'mother' });
-            }
-        });
-        // Spouse links from spouseRels
-        spouseRels.forEach(function(r) {
-            if (personMap[r.p1] && personMap[r.p2]) {
-                var sc = r.status === 'divorced' ? 'divorced' :
-                         r.status === 'widowed' ? 'widowed' : 'spouse';
-                var emoji = r.status === 'divorced' ? '💔 ' : r.status === 'widowed' ? '🕯 ' : '💑 ';
-                links.push({ from: r.p1, to: r.p2, category: sc, woLabel: emoji + wifeLabel(r.wo) });
-            }
-        });
+        // Recompute groups
+        currentGroupData = buildGroupData();
         diagram.startTransaction('rebuild');
-        diagram.model.linkDataArray = links;
+
+        // Remove old group nodes that no longer exist
+        var existingGroups = [];
+        diagram.nodes.each(function(node) {
+            if (node.data.isGroup) existingGroups.push(node.data);
+        });
+        existingGroups.forEach(function(gd) {
+            if (!currentGroupData.groupSet[gd.key]) {
+                diagram.model.removeNodeData(gd);
+            }
+        });
+
+        // Add new group nodes
+        currentGroupData.groupNodes.forEach(function(g) {
+            if (!diagram.model.findNodeDataForKey(g.key)) {
+                diagram.model.addNodeData(g);
+            }
+        });
+
+        // Update group property on person nodes
+        diagram.nodes.each(function(node) {
+            if (node.data.isGroup) return;
+            var key = node.data.key;
+            var newGroup = currentGroupData.personGroup[key] || '';
+            var oldGroup = node.data.group || '';
+            if (oldGroup !== newGroup) {
+                diagram.model.setDataProperty(node.data, 'group', newGroup || undefined);
+            }
+        });
+
+        diagram.model.linkDataArray = buildLinkData();
         diagram.commitTransaction('rebuild');
-        computeSpouseOf();
-        // Only auto-layout if no saved layout exists
         if (!hasSavedLayout) {
             diagram.layoutDiagram(true);
         } else {
-            // Mark dirty since relationships changed and user may want to rearrange
             var btn = document.getElementById('save-layout-btn');
             if (btn) btn.style.display = '';
         }
     }
 
     // ── Quick add person ──
-    window.showAddPersonModal = function() {
-        deselectAll();
+    window.showAddPersonModal = function(pendingRel, pendingKey, pendingKey2) {
         document.getElementById('add-name').value = '';
         document.getElementById('add-birth').value = '';
         document.getElementById('add-death').value = '';
-        document.querySelector('input[name="add-gender"][value="male"]').checked = true;
         document.getElementById('add-error').style.display = 'none';
         document.getElementById('add-submit-btn').disabled = false;
+        document.getElementById('add-pending-rel').value = pendingRel || '';
+        document.getElementById('add-pending-key').value = pendingKey || '';
+
+        // Set title and default gender based on relationship type
+        var title = '➕ Thêm người thân';
+        var defaultGender = 'male';
+        if (pendingRel === 'father') {
+            title = '➕👨 Thêm Bố cho ' + (personMap[pendingKey] ? personMap[pendingKey].name : '');
+            defaultGender = 'male';
+        } else if (pendingRel === 'mother') {
+            title = '➕👩 Thêm Mẹ cho ' + (personMap[pendingKey] ? personMap[pendingKey].name : '');
+            defaultGender = 'female';
+        } else if (pendingRel === 'child') {
+            title = '➕👶 Thêm Con cho ' + (personMap[pendingKey] ? personMap[pendingKey].name : '');
+            defaultGender = 'male';
+        } else if (pendingRel === 'child_couple') {
+            var n1 = personMap[pendingKey] ? personMap[pendingKey].name : '';
+            var n2 = personMap[pendingKey2] ? personMap[pendingKey2].name : '';
+            title = '➕👶 Thêm Con chung của ' + n1 + ' & ' + n2;
+            defaultGender = 'male';
+            // Store second parent key in a data attribute
+            document.getElementById('add-pending-rel').dataset.key2 = pendingKey2 || '';
+        }
+        document.getElementById('add-modal-title').textContent = title;
+        document.querySelector('input[name="add-gender"][value="' + defaultGender + '"]').checked = true;
+
         document.getElementById('add-modal').classList.add('show');
         setTimeout(function() { document.getElementById('add-name').focus(); }, 100);
+    };
+
+    // Quick-add from info panel: add father/mother/child for currently selected person
+    window.quickAddRelative = function(relType) {
+        if (!selectedKey) return;
+        showAddPersonModal(relType, selectedKey);
     };
 
     window.closeAddModal = function() {
@@ -1144,6 +1203,7 @@ function saveLayout() {
                 var p = data.person;
                 // Update local data
                 personMap[p.temp_id] = p;
+                personsRaw.push(p);
                 // Add node to diagram
                 diagram.startTransaction('addNode');
                 diagram.model.addNodeData({
@@ -1154,20 +1214,51 @@ function saveLayout() {
                     d: p.death_date || '',
                     rel: '',
                     photo: '',
-                    spouseOf: null,
                     wives: '',
                 });
                 diagram.commitTransaction('addNode');
-                diagram.layoutDiagram(true);
+
+                // Auto-create relationship if pending
+                var pendingRel = document.getElementById('add-pending-rel').value;
+                var pendingKey = parseInt(document.getElementById('add-pending-key').value);
+                var pendingKey2Str = document.getElementById('add-pending-rel').dataset.key2;
+                var pendingKey2 = pendingKey2Str ? parseInt(pendingKey2Str) : null;
 
                 closeAddModal();
-                updateInstruction('saved');
 
-                // Auto-select the new person for immediate relation linking
-                selectedKey = p.temp_id;
-                var node = diagram.findNodeForKey(p.temp_id);
-                if (node) diagram.select(node);
-                updateInstruction('selected', p.name);
+                if (pendingRel && pendingKey) {
+                    if (pendingRel === 'father') {
+                        // New person is father of pendingKey
+                        saveRelation(p.temp_id, pendingKey, 'father');
+                    } else if (pendingRel === 'mother') {
+                        // New person is mother of pendingKey
+                        saveRelation(p.temp_id, pendingKey, 'mother');
+                    } else if (pendingRel === 'child') {
+                        // New person is child of pendingKey (pendingKey is parent)
+                        var parent = personMap[pendingKey];
+                        if (parent && parent.gender === 'male') {
+                            saveRelation(pendingKey, p.temp_id, 'father');
+                        } else {
+                            saveRelation(pendingKey, p.temp_id, 'mother');
+                        }
+                    } else if (pendingRel === 'child_couple' && pendingKey2) {
+                        // New person is child of both pendingKey and pendingKey2
+                        var par1 = personMap[pendingKey], par2 = personMap[pendingKey2];
+                        var fatherId = null, motherId = null;
+                        if (par1 && par1.gender === 'male') fatherId = pendingKey;
+                        else motherId = pendingKey;
+                        if (par2 && par2.gender === 'male') fatherId = pendingKey2;
+                        else motherId = pendingKey2;
+                        if (fatherId) saveRelation(fatherId, p.temp_id, 'father');
+                        // Small delay to avoid race condition on sequential saves
+                        if (motherId) setTimeout(function() { saveRelation(motherId, p.temp_id, 'mother'); }, 300);
+                    }
+                } else {
+                    diagram.layoutDiagram(true);
+                }
+
+                updateInstruction('saved');
+                showPersonInfo(p.temp_id);
             } else {
                 errEl.textContent = data.error || 'Lỗi không xác định';
                 errEl.style.display = '';
@@ -1220,41 +1311,213 @@ function saveLayout() {
     }
 
     function fillSelect(selectEl, options, selectedVal) {
-        selectEl.innerHTML = '';
-        options.forEach(function(opt) {
-            var o = document.createElement('option');
-            o.value = opt.id;
-            o.textContent = opt.priority ? '💑 ' + opt.name : opt.name;
-            if (String(opt.id) === String(selectedVal)) o.selected = true;
-            selectEl.appendChild(o);
-        });
+        // selectEl is now a hidden input; we populate the autocomplete dropdown
+        // This function is replaced by fillAutocomplete below
     }
 
-    function populateParentSelects(editKey, fatherId, motherId) {
-        var fatherSel = document.getElementById('edit-father');
-        var motherSel = document.getElementById('edit-mother');
+    // ── Autocomplete helpers ──
+    function setupAutocomplete(inputId, hiddenId, dropdownId) {
+        var searchInput = document.getElementById(inputId);
+        var hiddenInput = document.getElementById(hiddenId);
+        var dropdown = document.getElementById(dropdownId);
+        var allOptions = []; // [{id, name, priority}]
+        var activeIdx = -1;
 
+        function renderDropdown(filter) {
+            dropdown.innerHTML = '';
+            activeIdx = -1;
+            var q = (filter || '').toLowerCase();
+            var filtered = allOptions.filter(function(opt) {
+                if (!opt.id) return !q; // "— Chưa chọn —" only when empty
+                return opt.name.toLowerCase().indexOf(q) !== -1;
+            });
+            if (filtered.length === 0) {
+                dropdown.classList.remove('open');
+                return;
+            }
+            filtered.forEach(function(opt, idx) {
+                var div = document.createElement('div');
+                div.className = 'ac-item';
+                div.dataset.id = opt.id;
+                div.dataset.name = opt.name;
+                div.dataset.idx = idx;
+                div.textContent = opt.priority ? '💑 ' + opt.name : opt.name;
+                if (opt.priority) div.classList.add('ac-priority');
+                div.addEventListener('mousedown', function(e) {
+                    e.preventDefault(); // prevent blur
+                    selectOption(opt);
+                });
+                dropdown.appendChild(div);
+            });
+            dropdown.classList.add('open');
+        }
+
+        function selectOption(opt) {
+            hiddenInput.value = opt.id;
+            searchInput.value = opt.id ? opt.name : '';
+            dropdown.classList.remove('open');
+            // Trigger change event for cross-update
+            hiddenInput.dispatchEvent(new Event('change'));
+        }
+
+        searchInput.addEventListener('focus', function() {
+            renderDropdown(searchInput.value);
+        });
+        searchInput.addEventListener('input', function() {
+            hiddenInput.value = '';
+            renderDropdown(searchInput.value);
+        });
+        searchInput.addEventListener('blur', function() {
+            setTimeout(function() { dropdown.classList.remove('open'); }, 150);
+        });
+        searchInput.addEventListener('keydown', function(e) {
+            var items = dropdown.querySelectorAll('.ac-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIdx = Math.min(activeIdx + 1, items.length - 1);
+                items.forEach(function(it, i) { it.classList.toggle('active', i === activeIdx); });
+                if (items[activeIdx]) items[activeIdx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIdx = Math.max(activeIdx - 1, 0);
+                items.forEach(function(it, i) { it.classList.toggle('active', i === activeIdx); });
+                if (items[activeIdx]) items[activeIdx].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (activeIdx >= 0 && items[activeIdx]) {
+                    var id = items[activeIdx].dataset.id;
+                    var opt = allOptions.find(function(o) { return String(o.id) === id; });
+                    if (opt) selectOption(opt);
+                }
+            } else if (e.key === 'Escape') {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        return {
+            setOptions: function(opts, selectedVal) {
+                allOptions = opts;
+                var selected = opts.find(function(o) { return String(o.id) === String(selectedVal); });
+                hiddenInput.value = selectedVal || '';
+                searchInput.value = selected ? selected.name : '';
+            },
+            getHidden: hiddenInput
+        };
+    }
+
+    var fatherAC = setupAutocomplete('edit-father-search', 'edit-father', 'edit-father-dropdown');
+    var motherAC = setupAutocomplete('edit-mother-search', 'edit-mother', 'edit-mother-dropdown');
+
+    // ── Add spouse modal ──
+    var addSpouseForKey = null;
+    var addSpouseAC = setupAutocomplete('add-spouse-search', 'add-spouse-id', 'add-spouse-dropdown');
+
+    window.showAddSpouseModal = function(key) {
+        if (!key) return;
+        var p = personMap[key];
+        if (!p) return;
+        addSpouseForKey = key;
+        document.getElementById('add-spouse-for-name').textContent = p.name;
+        document.getElementById('add-spouse-search').value = '';
+        document.getElementById('add-spouse-id').value = '';
+        document.getElementById('add-spouse-error').style.display = 'none';
+        document.getElementById('add-spouse-submit').disabled = false;
+        document.querySelector('input[name="add-spouse-status"][value="spouse"]').checked = true;
+
+        // Show all persons except self and already-married spouses
+        var existing = getSpousesOf(key);
+        var existingSet = {};
+        existing.forEach(function(id) { existingSet[id] = true; });
+        var opts = [{ id: '', name: '— Chọn người —', priority: false }];
+        personsRaw.forEach(function(candidate) {
+            if (candidate.temp_id === key) return;
+            if (existingSet[candidate.temp_id]) return; // already spouse
+            opts.push({ id: candidate.temp_id, name: '#' + candidate.temp_id + ' ' + candidate.name, priority: false });
+        });
+        addSpouseAC.setOptions(opts, '');
+        document.getElementById('add-spouse-modal').classList.add('show');
+        setTimeout(function() { document.getElementById('add-spouse-search').focus(); }, 100);
+    };
+
+    window.closeAddSpouseModal = function() {
+        document.getElementById('add-spouse-modal').classList.remove('show');
+    };
+
+    document.getElementById('add-spouse-modal').addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeAddSpouseModal();
+    });
+    document.getElementById('add-spouse-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeAddSpouseModal();
+    });
+
+    window.submitAddSpouse = function() {
+        var spouseId = parseInt(document.getElementById('add-spouse-id').value);
+        var status = document.querySelector('input[name="add-spouse-status"]:checked').value;
+        var errEl = document.getElementById('add-spouse-error');
+        var btn = document.getElementById('add-spouse-submit');
+
+        if (!spouseId || !addSpouseForKey) {
+            errEl.textContent = 'Vui lòng chọn người kết hôn.';
+            errEl.style.display = '';
+            return;
+        }
+
+        errEl.style.display = 'none';
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang lưu...';
+
+        var fd = new FormData();
+        fd.append('from_id', addSpouseForKey);
+        fd.append('to_id', spouseId);
+        fd.append('rel_type', status);
+        fd.append('csrfmiddlewaretoken', CSRF);
+
+        fetch(SAVE_URL, { method: 'POST', body: fd })
+        .then(function(r) {
+            if (!r.ok) return r.text().then(function(t) { throw new Error('Server ' + r.status + ': ' + t.substring(0, 100)); });
+            return r.json();
+        })
+        .then(function(data) {
+            if (data.ok) {
+                updateLocalData(addSpouseForKey, spouseId, status);
+                rebuildLinks();
+                updateInstruction('saved');
+                closeAddSpouseModal();
+            } else {
+                errEl.textContent = data.error || 'Lỗi không xác định';
+                errEl.style.display = '';
+            }
+        })
+        .catch(function(err) {
+            errEl.textContent = err.message || 'Lỗi kết nối';
+            errEl.style.display = '';
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.textContent = '💑 Thêm quan hệ';
+        });
+    };
+
+    function populateParentSelects(editKey, fatherId, motherId) {
         // When father is selected, prioritize his wives in mother dropdown
         function updateMotherList() {
-            var selectedFather = parseInt(fatherSel.value) || null;
+            var selectedFather = parseInt(fatherAC.getHidden.value) || null;
             var wifeIds = selectedFather ? getSpousesOf(selectedFather).filter(function(id) {
                 var p = personMap[id]; return p && p.gender === 'female';
             }) : [];
-            var opts = buildParentOptions('female', editKey, wifeIds);
-            fillSelect(motherSel, opts, motherId);
+            motherAC.setOptions(buildParentOptions('female', editKey, wifeIds), motherId);
         }
 
         // When mother is selected, prioritize her husbands in father dropdown
         function updateFatherList() {
-            var selectedMother = parseInt(motherSel.value) || null;
+            var selectedMother = parseInt(motherAC.getHidden.value) || null;
             var husbandIds = selectedMother ? getSpousesOf(selectedMother).filter(function(id) {
                 var p = personMap[id]; return p && p.gender === 'male';
             }) : [];
-            var opts = buildParentOptions('male', editKey, husbandIds);
-            fillSelect(fatherSel, opts, fatherId);
+            fatherAC.setOptions(buildParentOptions('male', editKey, husbandIds), fatherId);
         }
 
-        // Initial population: if we already have a father, prioritize his wives for mother
+        // Initial population
         var initWifeIds = fatherId ? getSpousesOf(fatherId).filter(function(id) {
             var p = personMap[id]; return p && p.gender === 'female';
         }) : [];
@@ -1262,16 +1525,16 @@ function saveLayout() {
             var p = personMap[id]; return p && p.gender === 'male';
         }) : [];
 
-        fillSelect(fatherSel, buildParentOptions('male', editKey, initHusbandIds), fatherId);
-        fillSelect(motherSel, buildParentOptions('female', editKey, initWifeIds), motherId);
+        fatherAC.setOptions(buildParentOptions('male', editKey, initHusbandIds), fatherId);
+        motherAC.setOptions(buildParentOptions('female', editKey, initWifeIds), motherId);
 
-        // Remove old listeners to avoid stacking
-        fatherSel.onchange = function() {
-            fatherId = parseInt(fatherSel.value) || null;
+        // Cross-update listeners
+        fatherAC.getHidden.onchange = function() {
+            fatherId = parseInt(fatherAC.getHidden.value) || null;
             updateMotherList();
         };
-        motherSel.onchange = function() {
-            motherId = parseInt(motherSel.value) || null;
+        motherAC.getHidden.onchange = function() {
+            motherId = parseInt(motherAC.getHidden.value) || null;
             updateFatherList();
         };
     }
@@ -1292,6 +1555,8 @@ function saveLayout() {
         document.getElementById('edit-birth-order').value = p.birth_order || '';
         document.getElementById('edit-chi').value = p.chi_number || '';
         document.getElementById('edit-gen').value = p.generation || '';
+        document.getElementById('edit-member-type').value = p.member_type || 'blood';
+        document.getElementById('edit-is-dinh').checked = !!p.is_dinh;
         document.getElementById('edit-pk').value = p.pk;
         document.getElementById('edit-key').value = key;
         document.getElementById('edit-photo-file').value = '';
@@ -1374,6 +1639,8 @@ function saveLayout() {
         fd.append('birth_order', document.getElementById('edit-birth-order').value.trim());
         fd.append('chi_number', document.getElementById('edit-chi').value.trim());
         fd.append('generation', document.getElementById('edit-gen').value.trim());
+        fd.append('member_type', document.getElementById('edit-member-type').value);
+        fd.append('is_dinh', document.getElementById('edit-is-dinh').checked ? '1' : '0');
         fd.append('father_temp_id', document.getElementById('edit-father').value);
         fd.append('mother_temp_id', document.getElementById('edit-mother').value);
         fd.append('csrfmiddlewaretoken', CSRF);
@@ -1406,6 +1673,8 @@ function saveLayout() {
                     diagram.model.setDataProperty(nodeData, 'd', p.death_date || '');
                     diagram.model.setDataProperty(nodeData, 'rel', RELATION_LABELS[p.relation_to_submitter] || '');
                     diagram.model.setDataProperty(nodeData, 'photo', p.photo_url || '');
+                    diagram.model.setDataProperty(nodeData, 'dinh', !!p.is_dinh);
+                    diagram.model.setDataProperty(nodeData, 'mt', p.member_type || 'blood');
                 }
                 // Update parent links if changed
                 var newFather = p.father_temp_id;
@@ -1437,9 +1706,9 @@ function saveLayout() {
                     }
                 }
                 diagram.commitTransaction('editNode');
-                // Recompute spouse positioning if parent links changed
+                // Rebuild links if parent assignments changed (re-routes through junctions as needed)
                 if (oldFather !== newFather || oldMother !== newMother) {
-                    computeSpouseOf();
+                    rebuildLinks();
                 }
 
                 closeEditModal();
@@ -1492,9 +1761,9 @@ function saveLayout() {
             btn.textContent = '👨 Chỉ Đinh';
         }
         diagram.startTransaction('toggleDinh');
-        // Build wives maps from spouseRels
-        var wivesMap = {}; // husbandId → [wifeName, ...]
         if (dinhOnly) {
+            // Build wives text for each male node
+            var wivesMap = {};
             spouseRels.forEach(function(r) {
                 var p1 = personMap[r.p1], p2 = personMap[r.p2];
                 if (!p1 || !p2) return;
@@ -1506,25 +1775,17 @@ function saveLayout() {
                     wivesMap[hId].push({ text: prefix + wifeLabel(r.wo) + ': ' + wName, wo: r.wo });
                 }
             });
-        }
-        diagram.nodes.each(function(node) {
-            var d = node.data;
-            if (dinhOnly) {
-                node.visible = d.s === 'male';
-                // Embed wife names into male node
-                if (d.s === 'male') {
+            diagram.nodes.each(function(node) {
+                var d = node.data;
+                if (d.isGroup) { node.visible = false; return; }
+                node.visible = !!d.dinh;
+                if (d.dinh) {
                     var wList = wivesMap[d.key] || [];
                     wList.sort(function(a, b) { return a.wo - b.wo; });
-                    var wives = wList.map(function(w) { return w.text; }).join('\n');
-                    diagram.model.setDataProperty(d, 'wives', wives);
+                    diagram.model.setDataProperty(d, 'wives', wList.map(function(w) { return w.text; }).join('\n'));
                 }
-            } else {
-                node.visible = true;
-                diagram.model.setDataProperty(d, 'wives', '');
-            }
-        });
-        diagram.links.each(function(link) {
-            if (dinhOnly) {
+            });
+            diagram.links.each(function(link) {
                 var cat = link.data.category;
                 if (cat === 'spouse' || cat === 'divorced' || cat === 'widowed' || cat === 'mother') {
                     link.visible = false;
@@ -1532,10 +1793,14 @@ function saveLayout() {
                     link.visible = link.fromNode && link.toNode &&
                                    link.fromNode.visible && link.toNode.visible;
                 }
-            } else {
-                link.visible = true;
-            }
-        });
+            });
+        } else {
+            diagram.nodes.each(function(node) {
+                node.visible = true;
+                if (node.data.wives) diagram.model.setDataProperty(node.data, 'wives', '');
+            });
+            diagram.links.each(function(link) { link.visible = true; });
+        }
         diagram.commitTransaction('toggleDinh');
         diagram.layoutDiagram(true);
     };

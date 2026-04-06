@@ -572,6 +572,13 @@ class DraftPerson(models.Model):
     death_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất')
     notes = models.TextField(blank=True, verbose_name='Ghi chú')
     photo = models.ImageField(upload_to='drafts/', null=True, blank=True, verbose_name='Ảnh')
+    is_dinh = models.BooleanField(default=False, verbose_name='Tính Đinh',
+                                   help_text='Nam giới thuộc dòng trực hệ = Đinh')
+    member_type = models.CharField(
+        max_length=20, choices=FamilyMember.MEMBER_TYPE_CHOICES,
+        default='blood', verbose_name='Loại thành viên',
+        help_text='Dòng trực hệ / Dâu-Rể / Con nuôi / Cháu ngoại / Nhập tịch'
+    )
 
     # Quan hệ
     relation_to_submitter = models.CharField(

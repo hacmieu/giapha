@@ -141,8 +141,12 @@ class GraphDataView(APIView):
         ).select_related('father', 'mother', 'chi').prefetch_related('spouses')
         
         if not full_view:
-            # Đinh-only mode: chỉ hiển thị is_dinh=True
-            members = members.filter(is_dinh=True)
+            # Đinh-only mode: Đinh + con gái của Đinh + vợ của Đinh
+            members = members.filter(
+                Q(is_dinh=True) |
+                Q(gender='female', father__is_dinh=True) |
+                Q(gender='female', spouses__is_dinh=True)
+            ).distinct()
         
         if chi_filter:
             # Inclusive filtering: Include people in the chi, AND their children/spouses 

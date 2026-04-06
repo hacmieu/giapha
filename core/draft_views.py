@@ -510,6 +510,8 @@ class DraftRelationshipBuilderView(TemplateView):
                 'birth_order': p.birth_order,
                 'chi_number': p.chi_number,
                 'generation': p.generation,
+                'is_dinh': p.is_dinh,
+                'member_type': p.member_type,
             })
         ctx['persons'] = persons
         # Spouse relations as separate list
@@ -567,6 +569,13 @@ def draft_quick_add_person(request, draft_code):
             'father_temp_id': None,
             'mother_temp_id': None,
             'relation_to_submitter': 'other',
+            'photo_url': '',
+            'notes': '',
+            'birth_order': None,
+            'chi_number': None,
+            'generation': None,
+            'is_dinh': person.is_dinh,
+            'member_type': person.member_type,
         }
     })
 
@@ -593,6 +602,14 @@ def draft_edit_person_ajax(request, draft_code, person_pk):
     for fld in ('birth_order', 'chi_number', 'generation'):
         val = request.POST.get(fld, '').strip()
         setattr(person, fld, int(val) if val else None)
+
+    # Handle is_dinh and member_type
+    is_dinh_val = request.POST.get('is_dinh', '').strip()
+    if is_dinh_val != '':
+        person.is_dinh = is_dinh_val in ('true', '1', 'on')
+    member_type_val = request.POST.get('member_type', '').strip()
+    if member_type_val and member_type_val in dict(FamilyMember.MEMBER_TYPE_CHOICES):
+        person.member_type = member_type_val
 
     # Handle father/mother changes
     for parent_field in ('father_temp_id', 'mother_temp_id'):
@@ -633,6 +650,8 @@ def draft_edit_person_ajax(request, draft_code, person_pk):
             'birth_order': person.birth_order,
             'chi_number': person.chi_number,
             'generation': person.generation,
+            'is_dinh': person.is_dinh,
+            'member_type': person.member_type,
         }
     })
 
@@ -693,7 +712,10 @@ def draft_save_relation(request, draft_code):
     if rel_type == 'father':
         # "from" là cha của "to"
         person_to.father_temp_id = from_id
-        person_to.save(update_fields=['father_temp_id', 'updated_at'])
+        # Auto-compute is_dinh: male child of Đinh father → is Đinh
+        if person_to.gender == 'male' and person_from.is_dinh and person_to.member_type in ('blood', 'adopted_in', 'adopted_child'):
+            person_to.is_dinh = True
+        person_to.save(update_fields=['father_temp_id', 'is_dinh', 'updated_at'])
     elif rel_type == 'mother':
         # "from" là mẹ của "to"
         person_to.mother_temp_id = from_id
@@ -723,9 +745,12 @@ def draft_save_relation(request, draft_code):
         # "from" là con của "to" → to là cha/mẹ
         if person_to.gender == 'male':
             person_from.father_temp_id = to_id
+            # Auto-compute is_dinh
+            if person_from.gender == 'male' and person_to.is_dinh and person_from.member_type in ('blood', 'adopted_in', 'adopted_child'):
+                person_from.is_dinh = True
         else:
             person_from.mother_temp_id = to_id
-        person_from.save(update_fields=['father_temp_id', 'mother_temp_id', 'updated_at'])
+        person_from.save(update_fields=['father_temp_id', 'mother_temp_id', 'is_dinh', 'updated_at'])
     elif rel_type == 'remove':
         # Xóa quan hệ between from and to
         changed = False
@@ -754,7 +779,17 @@ def draft_save_relation(request, draft_code):
     else:
         return JsonResponse({'error': f'Unknown rel_type: {rel_type}'}, status=400)
 
-    return JsonResponse({'ok': True})
+    # Return updated persons so frontend can sync is_dinh changes
+    def _person_json(p):
+        p.refresh_from_db()
+        return {
+            'temp_id': p.temp_id, 'is_dinh': p.is_dinh, 'member_type': p.member_type,
+            'father_temp_id': p.father_temp_id, 'mother_temp_id': p.mother_temp_id,
+        }
+    return JsonResponse({
+        'ok': True,
+        'persons': {str(person_from.temp_id): _person_json(person_from), str(person_to.temp_id): _person_json(person_to)},
+    })
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -897,7 +932,8 @@ def admin_draft_approve(request, draft_code):
             death_date=p.death_date or '',
             birth_order=p.birth_order,
             notes=p.notes,
-            member_type='blood',
+            member_type=p.member_type or 'blood',
+            is_dinh=p.is_dinh,
             created_by=request.user,
         )
         if father:
