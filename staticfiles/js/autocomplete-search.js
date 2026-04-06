@@ -88,6 +88,9 @@
 
         input.setAttribute('autocomplete', 'off');
 
+        // Show clear button if input already has value (pre-filled)
+        if (input.value.trim()) clearBtn.style.display = 'block';
+
         function showDropdown() { dropdown.style.display = 'block'; }
         function hideDropdown() { dropdown.style.display = 'none'; selectedIdx = -1; }
 

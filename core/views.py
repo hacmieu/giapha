@@ -6,6 +6,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.http import JsonResponse
 
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
 from .models import Family, Chi, FamilyMember, SpouseRelation
 from .forms import MemberBasicForm, MemberFamilyForm, SpouseRelationForm, AddChildForm
 
@@ -157,9 +160,15 @@ class MemberUpdateView(LoginRequiredMixin, EditorRequiredMixin, UpdateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = f'Sửa: {self.object.name}'
+        member = self.object
+        context['title'] = f'Sửa: {member.name}'
         context['is_create'] = False
-        context['family_form'] = MemberFamilyForm(instance=self.object)
+        context['family_form'] = MemberFamilyForm(instance=member)
+        # Spouse & children for edit form
+        context['wife_relations'] = SpouseRelation.objects.filter(
+            husband=member
+        ).select_related('wife').order_by('wife_order')
+        context['children'] = member.children
         return context
     
     def form_valid(self, form):
@@ -249,6 +258,116 @@ class ReorderChildrenView(LoginRequiredMixin, EditorRequiredMixin, TemplateView)
                 FamilyMember.objects.filter(pk=int(child_pk)).update(birth_order=i)
             messages.success(request, 'Đã cập nhật thứ tự con')
         return redirect('core:member_detail', pk=parent.pk)
+
+
+@login_required
+@require_POST
+def ajax_add_spouse(request, pk):
+    """AJAX: Thêm vợ cho thành viên"""
+    husband = get_object_or_404(FamilyMember, pk=pk)
+    wife_id = request.POST.get('wife_id')
+    if not wife_id:
+        return JsonResponse({'error': 'Chưa chọn vợ'}, status=400)
+    wife = get_object_or_404(FamilyMember, pk=int(wife_id))
+    wife_order = int(request.POST.get('wife_order', 1) or 1)
+    status = request.POST.get('status', 'married')
+    marriage_date = request.POST.get('marriage_date', '')
+    notes = request.POST.get('notes', '')
+
+    relation, created = SpouseRelation.objects.get_or_create(
+        husband=husband, wife=wife,
+        defaults={
+            'wife_order': wife_order,
+            'status': status,
+            'marriage_date': marriage_date or None,
+            'notes': notes,
+        }
+    )
+    if not created:
+        return JsonResponse({'error': f'{wife.name} đã là vợ rồi'}, status=400)
+    husband.spouses.add(wife)
+    return JsonResponse({
+        'id': relation.pk,
+        'wife_id': wife.pk,
+        'wife_name': wife.name,
+        'wife_order': relation.wife_order,
+        'status': relation.status,
+        'status_display': relation.get_status_display(),
+        'marriage_date': relation.marriage_date or '',
+    })
+
+
+@login_required
+@require_POST
+def ajax_remove_spouse(request, pk, relation_id):
+    """AJAX: Xóa quan hệ vợ"""
+    relation = get_object_or_404(SpouseRelation, pk=relation_id, husband_id=pk)
+    wife = relation.wife
+    relation.delete()
+    husband = get_object_or_404(FamilyMember, pk=pk)
+    if not SpouseRelation.objects.filter(husband=husband, wife=wife).exists():
+        husband.spouses.remove(wife)
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def ajax_add_child(request, pk):
+    """AJAX: Thêm con cho thành viên"""
+    parent = get_object_or_404(FamilyMember, pk=pk)
+    child_id = request.POST.get('child_id')
+    name = request.POST.get('name', '').strip()
+    gender = request.POST.get('gender', '')
+
+    if child_id:
+        # Link an existing member as child
+        child = get_object_or_404(FamilyMember, pk=int(child_id))
+        if parent.gender == 'male':
+            child.father = parent
+        else:
+            child.mother = parent
+        child.save()
+    elif name and gender:
+        # Create a new child
+        child = FamilyMember(
+            name=name,
+            gender=gender,
+            chi=parent.chi if parent.gender == 'male' else None,
+            generation=(parent.generation or 0) + 1,
+            member_type='blood',
+            created_by=request.user,
+        )
+        if parent.gender == 'male':
+            child.father = parent
+        else:
+            child.mother = parent
+        child.save()
+    else:
+        return JsonResponse({'error': 'Chưa chọn hoặc nhập tên con'}, status=400)
+
+    return JsonResponse({
+        'id': child.pk,
+        'name': child.name,
+        'gender': child.gender,
+        'birth_order': child.birth_order,
+        'person_code': child.person_code or '',
+    })
+
+
+@login_required
+@require_POST
+def ajax_remove_child(request, pk, child_id):
+    """AJAX: Gỡ con (chỉ bỏ quan hệ cha/mẹ, không xóa thành viên)"""
+    parent = get_object_or_404(FamilyMember, pk=pk)
+    child = get_object_or_404(FamilyMember, pk=child_id)
+    if parent.gender == 'male' and child.father_id == pk:
+        child.father = None
+    elif parent.gender == 'female' and child.mother_id == pk:
+        child.mother = None
+    else:
+        return JsonResponse({'error': 'Không phải con của thành viên này'}, status=400)
+    child.save()
+    return JsonResponse({'ok': True})
 
 
 def api_members_by_generation(request):

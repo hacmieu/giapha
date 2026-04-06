@@ -91,14 +91,14 @@
                         {% if member.generation %} · Đời {{ member.generation }}{% endif %}
                     </p>
                 </div>
-                <div class="text-5xl relative">
+                <div class="text-5xl relative inline-block">
                     {% if member.photo %}
                     <img src="{{ member.photo.url }}" class="w-16 h-16 rounded-full object-cover border-2 border-white">
                     {% else %}
                     {% if member.gender == 'male' %}👨{% else %}👩{% endif %}
                     {% endif %}
                     {% if member.is_deceased or member.death_date %}
-                    <div class="mourning-band rounded-full" style="width:64px;height:64px;"></div>
+                    <div class="mourning-band" style="width:64px;height:64px;"></div>
                     {% endif %}
                 </div>
             </div>

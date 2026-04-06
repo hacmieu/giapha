@@ -219,6 +219,156 @@
             </div>
         </div>
 
+        {% if not is_create %}
+        <!-- ═══ BƯỚC 3: Vợ / Chồng ═══ -->
+        {% if form.instance.gender == 'male' %}
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="step-header bg-[#fce7f3] text-[#9d174d]">
+                <div class="step-num bg-[#db2777]">3</div>
+                Vợ (Thêm / Quản lý)
+            </div>
+
+            <!-- Danh sách vợ hiện tại -->
+            <div id="wife-list" class="space-y-2 mb-4">
+                {% for wr in wife_relations %}
+                <div class="flex items-center gap-3 p-3 bg-pink-50 rounded-lg border border-pink-200" data-relation-id="{{ wr.pk }}">
+                    <span class="text-lg">
+                        {% if wr.status == 'divorced' %}💔{% elif wr.status == 'widowed' %}🕯{% else %}💑{% endif %}
+                    </span>
+                    <div class="flex-1">
+                        <a href="{% url 'core:member_detail' wr.wife.pk %}" class="font-semibold text-pink-800 hover:underline">{{ wr.wife.name }}</a>
+                        <span class="text-sm text-pink-600">
+                            (Bà {{ wr.wife_order }}{% if wr.status != 'married' %} · {{ wr.get_status_display }}{% endif %}{% if wr.marriage_date %} · {{ wr.marriage_date }}{% endif %})
+                        </span>
+                    </div>
+                    <button type="button" onclick="removeSpouse({{ wr.pk }}, '{{ wr.wife.name|escapejs }}')"
+                            class="text-red-400 hover:text-red-600 text-sm px-2 py-1 rounded hover:bg-red-50 transition"
+                            title="Gỡ khỏi danh sách vợ">✕</button>
+                </div>
+                {% empty %}
+                <p id="no-wife-msg" class="text-sm text-gray-400 italic">Chưa có thông tin vợ</p>
+                {% endfor %}
+            </div>
+
+            <!-- Form thêm vợ -->
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-sm font-semibold text-gray-700 mb-3">➕ Thêm vợ mới</p>
+                <div class="grid md:grid-cols-2 gap-3">
+                    <div class="md:col-span-2">
+                        <label class="form-label">Tìm vợ</label>
+                        <input type="hidden" id="new-wife-id">
+                        <input type="text" id="wife-search" class="form-input" autocomplete="off"
+                               placeholder="Gõ tên hoặc click để tìm...">
+                    </div>
+                    <div>
+                        <label class="form-label">Bà thứ</label>
+                        <input type="number" id="new-wife-order" class="form-input" value="{{ wife_relations.count|default:0|add:1 }}" min="1">
+                    </div>
+                    <div>
+                        <label class="form-label">Tình trạng</label>
+                        <select id="new-wife-status" class="form-input">
+                            <option value="married">Đang kết hôn</option>
+                            <option value="divorced">Đã ly hôn</option>
+                            <option value="widowed">Đã mất</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Năm cưới</label>
+                        <input type="text" id="new-wife-marriage" class="form-input" placeholder="VD: 1985">
+                    </div>
+                    <div>
+                        <label class="form-label">Ghi chú</label>
+                        <input type="text" id="new-wife-notes" class="form-input" placeholder="Ghi chú">
+                    </div>
+                </div>
+                <button type="button" id="btn-add-wife" class="mt-3 px-4 py-2 bg-pink-600 text-white rounded-lg font-semibold hover:bg-pink-700 transition text-sm">
+                    💍 Thêm vợ
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ═══ BƯỚC 4: Con cái ═══ -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="step-header bg-[#d1fae5] text-[#065f46]">
+                <div class="step-num bg-[#059669]">{% if form.instance.gender == 'male' %}4{% else %}3{% endif %}</div>
+                Con cái (Thêm / Quản lý)
+            </div>
+
+            <!-- Danh sách con hiện tại -->
+            <div id="child-list" class="space-y-2 mb-4">
+                {% for child in children %}
+                <div class="flex items-center gap-3 p-3 rounded-lg border
+                    {% if child.gender == 'male' %}bg-blue-50 border-blue-200{% else %}bg-pink-50 border-pink-200{% endif %}"
+                    data-child-id="{{ child.pk }}">
+                    <span class="text-lg">{% if child.gender == 'male' %}👦{% else %}👧{% endif %}</span>
+                    <div class="flex-1">
+                        <a href="{% url 'core:member_detail' child.pk %}" class="font-semibold hover:underline
+                            {% if child.gender == 'male' %}text-blue-800{% else %}text-pink-800{% endif %}">
+                            {% if child.birth_order %}<span class="text-xs opacity-60">{{ child.birth_order }}.</span>{% endif %}
+                            {{ child.name }}
+                        </a>
+                        {% if child.person_code %}
+                        <span class="text-xs text-gray-500 ml-1">({{ child.person_code }})</span>
+                        {% endif %}
+                    </div>
+                    <button type="button" onclick="removeChild({{ child.pk }}, '{{ child.name|escapejs }}')"
+                            class="text-red-400 hover:text-red-600 text-sm px-2 py-1 rounded hover:bg-red-50 transition"
+                            title="Gỡ khỏi danh sách con">✕</button>
+                </div>
+                {% empty %}
+                <p id="no-child-msg" class="text-sm text-gray-400 italic">Chưa có thông tin con</p>
+                {% endfor %}
+            </div>
+
+            <!-- Form thêm con -->
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-sm font-semibold text-gray-700 mb-3">➕ Thêm con</p>
+
+                <!-- Tab: Chọn người đã có / Tạo mới -->
+                <div class="flex gap-2 mb-3">
+                    <button type="button" id="tab-child-search" onclick="switchChildTab('search')"
+                            class="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-300">
+                        🔍 Tìm người đã có
+                    </button>
+                    <button type="button" id="tab-child-new" onclick="switchChildTab('new')"
+                            class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                        ✏️ Tạo mới
+                    </button>
+                </div>
+
+                <!-- Search existing -->
+                <div id="child-tab-search">
+                    <input type="hidden" id="new-child-id">
+                    <input type="text" id="child-search" class="form-input" autocomplete="off"
+                           placeholder="Gõ tên hoặc click để tìm...">
+                </div>
+
+                <!-- Create new -->
+                <div id="child-tab-new" class="hidden">
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="form-label">Họ và tên <span class="required">*</span></label>
+                            <input type="text" id="new-child-name" class="form-input" placeholder="Họ và tên con">
+                        </div>
+                        <div>
+                            <label class="form-label">Giới tính <span class="required">*</span></label>
+                            <select id="new-child-gender" class="form-input">
+                                <option value="">-- Chọn --</option>
+                                <option value="male">Nam</option>
+                                <option value="female">Nữ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="btn-add-child" class="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition text-sm">
+                    👶 Thêm con
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- ═══ NÚT LƯU ═══ -->
         <div class="flex gap-3">
             <button type="submit" class="flex-1 py-3 px-6 bg-[#78350f] text-white rounded-xl font-bold text-lg hover:bg-[#92400e] transition shadow-lg">
@@ -493,6 +643,197 @@ document.addEventListener('DOMContentLoaded', function() {
     if (fatherInput.value) {
         showMotherSuggestions(fatherInput.value, fatherSearch.value);
     }
+
+    // ═══ SPOUSE & CHILD MANAGEMENT (Edit mode only) ═══
+    {% if not is_create %}
+    var memberId = {{ form.instance.pk }};
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    function ajaxPost(url, data) {
+        var fd = new FormData();
+        for (var k in data) { if (data[k] !== undefined && data[k] !== null) fd.append(k, data[k]); }
+        return fetch(url, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+            body: fd
+        }).then(function(r) {
+            return r.json().then(function(d) {
+                if (!r.ok) throw new Error(d.error || 'Lỗi');
+                return d;
+            });
+        });
+    }
+
+    {% if form.instance.gender == 'male' %}
+    // ─── Wife autocomplete ───
+    var newWifeId = document.getElementById('new-wife-id');
+    var wifeSearch = document.getElementById('wife-search');
+
+    autocompleteInit(wifeSearch, {
+        fetchUrl: '/api/members/?gender=female',
+        displayField: 'name',
+        valueField: 'id',
+        minChars: 0,
+        maxResults: 15,
+        iconFn: function(item) { return item.is_deceased ? '🕯' : '👩'; },
+        infoFn: function(item) {
+            var parts = [];
+            if (item.chi_number) parts.push('Chi ' + item.chi_number);
+            if (item.generation) parts.push('Đời ' + item.generation);
+            return parts.join(' • ');
+        },
+        onSelect: function(item) { newWifeId.value = item.id; },
+        onClear: function() { newWifeId.value = ''; }
+    });
+
+    // Add wife via AJAX
+    document.getElementById('btn-add-wife').addEventListener('click', function() {
+        var wifeId = newWifeId.value;
+        if (!wifeId) { alert('Vui lòng chọn vợ trước'); return; }
+        var btn = this;
+        btn.disabled = true;
+        ajaxPost('/member/' + memberId + '/ajax-add-spouse/', {
+            wife_id: wifeId,
+            wife_order: document.getElementById('new-wife-order').value,
+            status: document.getElementById('new-wife-status').value,
+            marriage_date: document.getElementById('new-wife-marriage').value,
+            notes: document.getElementById('new-wife-notes').value
+        }).then(function(data) {
+            // Add to list
+            var statusIcons = {married: '💑', divorced: '💔', widowed: '🕯'};
+            var icon = statusIcons[data.status] || '💑';
+            var noMsg = document.getElementById('no-wife-msg');
+            if (noMsg) noMsg.remove();
+            var div = document.createElement('div');
+            div.className = 'flex items-center gap-3 p-3 bg-pink-50 rounded-lg border border-pink-200';
+            div.setAttribute('data-relation-id', data.id);
+            div.innerHTML = '<span class="text-lg">' + icon + '</span>' +
+                '<div class="flex-1"><span class="font-semibold text-pink-800">' + data.wife_name + '</span>' +
+                ' <span class="text-sm text-pink-600">(Bà ' + data.wife_order +
+                (data.status !== 'married' ? ' · ' + data.status_display : '') +
+                (data.marriage_date ? ' · ' + data.marriage_date : '') + ')</span></div>' +
+                '<button type="button" onclick="removeSpouse(' + data.id + ',\'' + data.wife_name.replace(/'/g, "\\'") + '\')" ' +
+                'class="text-red-400 hover:text-red-600 text-sm px-2 py-1 rounded hover:bg-red-50 transition" title="Gỡ">✕</button>';
+            document.getElementById('wife-list').appendChild(div);
+            // Reset form
+            newWifeId.value = '';
+            wifeSearch.value = '';
+            document.getElementById('new-wife-marriage').value = '';
+            document.getElementById('new-wife-notes').value = '';
+            var orderInput = document.getElementById('new-wife-order');
+            orderInput.value = parseInt(orderInput.value) + 1;
+        }).catch(function(err) {
+            alert(err.message);
+        }).finally(function() {
+            btn.disabled = false;
+        });
+    });
+    {% endif %}
+
+    // Remove spouse
+    window.removeSpouse = function(relationId, name) {
+        if (!confirm('Gỡ ' + name + ' khỏi danh sách vợ?')) return;
+        ajaxPost('/member/' + memberId + '/ajax-remove-spouse/' + relationId + '/', {})
+            .then(function() {
+                var el = document.querySelector('[data-relation-id="' + relationId + '"]');
+                if (el) el.remove();
+            }).catch(function(err) { alert(err.message); });
+    };
+
+    // ─── Child management ───
+    var childTabMode = 'search';
+    window.switchChildTab = function(mode) {
+        childTabMode = mode;
+        document.getElementById('child-tab-search').classList.toggle('hidden', mode !== 'search');
+        document.getElementById('child-tab-new').classList.toggle('hidden', mode !== 'new');
+        document.getElementById('tab-child-search').className = mode === 'search'
+            ? 'px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-300'
+            : 'px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border border-gray-200';
+        document.getElementById('tab-child-new').className = mode === 'new'
+            ? 'px-3 py-1.5 rounded-lg text-sm font-medium bg-green-100 text-green-800 border border-green-300'
+            : 'px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border border-gray-200';
+    };
+
+    var newChildId = document.getElementById('new-child-id');
+    var childSearch = document.getElementById('child-search');
+
+    autocompleteInit(childSearch, {
+        fetchUrl: '/api/members/',
+        displayField: 'name',
+        valueField: 'id',
+        minChars: 0,
+        maxResults: 15,
+        iconFn: function(item) {
+            if (item.is_deceased) return '🕯';
+            return item.gender === 'male' ? '👦' : '👧';
+        },
+        infoFn: function(item) {
+            var parts = [];
+            if (item.chi_number) parts.push('Chi ' + item.chi_number);
+            if (item.generation) parts.push('Đời ' + item.generation);
+            if (item.person_code) parts.push(item.person_code);
+            return parts.join(' • ');
+        },
+        onSelect: function(item) { newChildId.value = item.id; },
+        onClear: function() { newChildId.value = ''; }
+    });
+
+    // Add child via AJAX
+    document.getElementById('btn-add-child').addEventListener('click', function() {
+        var btn = this;
+        var postData = {};
+        if (childTabMode === 'search') {
+            if (!newChildId.value) { alert('Vui lòng chọn người'); return; }
+            postData.child_id = newChildId.value;
+        } else {
+            var childName = document.getElementById('new-child-name').value.trim();
+            var childGender = document.getElementById('new-child-gender').value;
+            if (!childName || !childGender) { alert('Vui lòng nhập tên và giới tính'); return; }
+            postData.name = childName;
+            postData.gender = childGender;
+        }
+        btn.disabled = true;
+        ajaxPost('/member/' + memberId + '/ajax-add-child/', postData)
+            .then(function(data) {
+                var noMsg = document.getElementById('no-child-msg');
+                if (noMsg) noMsg.remove();
+                var isMale = data.gender === 'male';
+                var div = document.createElement('div');
+                div.className = 'flex items-center gap-3 p-3 rounded-lg border ' +
+                    (isMale ? 'bg-blue-50 border-blue-200' : 'bg-pink-50 border-pink-200');
+                div.setAttribute('data-child-id', data.id);
+                div.innerHTML = '<span class="text-lg">' + (isMale ? '👦' : '👧') + '</span>' +
+                    '<div class="flex-1"><span class="font-semibold ' +
+                    (isMale ? 'text-blue-800' : 'text-pink-800') + '">' +
+                    (data.birth_order ? '<span class="text-xs opacity-60">' + data.birth_order + '.</span> ' : '') +
+                    data.name + '</span>' +
+                    (data.person_code ? ' <span class="text-xs text-gray-500">(' + data.person_code + ')</span>' : '') +
+                    '</div>' +
+                    '<button type="button" onclick="removeChild(' + data.id + ',\'' + data.name.replace(/'/g, "\\'") + '\')" ' +
+                    'class="text-red-400 hover:text-red-600 text-sm px-2 py-1 rounded hover:bg-red-50 transition" title="Gỡ">✕</button>';
+                document.getElementById('child-list').appendChild(div);
+                // Reset
+                newChildId.value = '';
+                childSearch.value = '';
+                document.getElementById('new-child-name').value = '';
+                document.getElementById('new-child-gender').value = '';
+            }).catch(function(err) {
+                alert(err.message);
+            }).finally(function() {
+                btn.disabled = false;
+            });
+    });
+
+    // Remove child
+    window.removeChild = function(childId, name) {
+        if (!confirm('Gỡ ' + name + ' khỏi danh sách con?\n(Không xóa thành viên, chỉ bỏ quan hệ cha/mẹ)')) return;
+        ajaxPost('/member/' + memberId + '/ajax-remove-child/' + childId + '/', {})
+            .then(function() {
+                var el = document.querySelector('[data-child-id="' + childId + '"]');
+                if (el) el.remove();
+            }).catch(function(err) { alert(err.message); });
+    };
+    {% endif %}
 });
 </script>
 {% endblock %}

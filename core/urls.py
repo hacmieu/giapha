@@ -17,6 +17,12 @@ urlpatterns = [
     path('member/<int:pk>/add-spouse/', views.AddSpouseView.as_view(), name='add_spouse'),
     path('member/<int:pk>/reorder-children/', views.ReorderChildrenView.as_view(), name='reorder_children'),
     
+    # AJAX endpoints for edit form
+    path('member/<int:pk>/ajax-add-spouse/', views.ajax_add_spouse, name='ajax_add_spouse'),
+    path('member/<int:pk>/ajax-remove-spouse/<int:relation_id>/', views.ajax_remove_spouse, name='ajax_remove_spouse'),
+    path('member/<int:pk>/ajax-add-child/', views.ajax_add_child, name='ajax_add_child'),
+    path('member/<int:pk>/ajax-remove-child/<int:child_id>/', views.ajax_remove_child, name='ajax_remove_child'),
+    
     # API
     path('api/members-filter/', views.api_members_by_generation, name='api_members_filter'),
     
