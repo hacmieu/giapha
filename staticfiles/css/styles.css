@@ -291,3 +291,35 @@ nav.scrolled ul {
         height: 220px;
     }
 }
+
+/* Mourning band - diagonal black stripe for deceased members */
+.mourning-band {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.mourning-band::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    width: 6px;
+    height: 200%;
+    background: rgba(0,0,0,0.65);
+    transform: rotate(45deg);
+    transform-origin: center center;
+}
+
+/* Small mourning dot for emoji avatars */
+.mourning-dot {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    border: 1px solid white;
+}

@@ -209,6 +209,7 @@ function loadGenealogyById(genealogyId) {
             });
 
             updateStats(data.metadata);
+            initSearchAutocomplete();
 
             // Zoom vừa vặn sau khi layout xong
             myDiagram.addDiagramListener("InitialLayoutCompleted", function() {
@@ -269,8 +270,40 @@ function updateStats(meta) {
 }
 
 // ──────────────────────────────────────────────
-// Tìm kiếm
+// Tìm kiếm (autocomplete)
 // ──────────────────────────────────────────────
+var _searchAC = null;
+function initSearchAutocomplete() {
+    var input = document.getElementById('searchInput');
+    if (!input || !genealogyData || typeof autocompleteInit === 'undefined') return;
+    if (_searchAC) _searchAC.destroy();
+    var acData = genealogyData.nodeDataArray.map(function(n) {
+        return { id: n.key, name: n.name, gender: n.gender, generation: n.generation };
+    });
+    _searchAC = autocompleteInit(input, {
+        data: acData,
+        displayField: 'name',
+        valueField: 'id',
+        maxResults: 15,
+        iconFn: function(item) { return item.gender === 'male' ? '👨' : '👩'; },
+        infoFn: function(item) {
+            return item.generation ? 'Đời ' + item.generation : '';
+        },
+        onSelect: function(item) {
+            var match = genealogyData.nodeDataArray.find(function(n) { return n.key === item.id; });
+            if (match && myDiagram) {
+                var node = myDiagram.findNodeForKey(match.key);
+                if (node) {
+                    myDiagram.select(node);
+                    myDiagram.commandHandler.scrollToPart(node);
+                    showPersonInfo(match);
+                }
+            }
+        }
+    });
+}
+
+// Legacy compatibility
 function searchPerson(query) {
     if (!genealogyData || !myDiagram || !query.trim()) return;
     const q = query.toLowerCase();

@@ -90,7 +90,9 @@ class FamilyMember(models.Model):
     # Additional info
     birth_order = models.PositiveIntegerField(null=True, blank=True, verbose_name='Con thứ')
     birth_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày sinh')
-    death_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất')
+    death_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất (dương lịch)')
+    death_date_lunar = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất (âm lịch)')
+    is_deceased = models.BooleanField(default=False, verbose_name='Đã mất')
     notes = models.TextField(blank=True, verbose_name='Ghi chú')
     photo = models.ImageField(upload_to='members/', null=True, blank=True, verbose_name='Ảnh')
     
@@ -569,7 +571,9 @@ class DraftPerson(models.Model):
     name = models.CharField(max_length=100, verbose_name='Họ và tên')
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, verbose_name='Giới tính')
     birth_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày sinh')
-    death_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất')
+    death_date = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất (dương lịch)')
+    death_date_lunar = models.CharField(max_length=50, blank=True, verbose_name='Ngày mất (âm lịch)')
+    is_deceased = models.BooleanField(default=False, verbose_name='Đã mất')
     notes = models.TextField(blank=True, verbose_name='Ghi chú')
     photo = models.ImageField(upload_to='drafts/', null=True, blank=True, verbose_name='Ảnh')
     is_dinh = models.BooleanField(default=False, verbose_name='Tính Đinh',

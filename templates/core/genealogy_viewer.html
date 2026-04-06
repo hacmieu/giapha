@@ -131,8 +131,8 @@
         <div>
             <label class="ctrl-label">🔍 Tìm Kiếm:</label>
             <input type="text" id="searchInput" class="ctrl-input"
-                   placeholder="Nhập tên..."
-                   oninput="searchPerson(this.value)">
+                   autocomplete="off"
+                   placeholder="Nhập tên...">
         </div>
 
         <!-- Lọc thế hệ -->
@@ -200,6 +200,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
+<script src="{% static 'js/autocomplete-search.js' %}"></script>
 <script src="{% static 'js/genealogy-viewer.js' %}?v=5"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {

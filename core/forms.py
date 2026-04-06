@@ -7,7 +7,8 @@ class MemberBasicForm(forms.ModelForm):
     class Meta:
         model = FamilyMember
         fields = ['name', 'gender', 'chi', 'generation', 'member_type',
-                  'birth_order', 'birth_date', 'death_date', 'notes', 'photo']
+                  'birth_order', 'birth_date', 'is_deceased', 'death_date', 'death_date_lunar',
+                  'notes', 'photo']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-input', 'placeholder': 'VD: Vũ Văn An',
@@ -25,8 +26,16 @@ class MemberBasicForm(forms.ModelForm):
             'birth_date': forms.TextInput(attrs={
                 'class': 'form-input', 'placeholder': 'VD: 15/03/1985',
             }),
+            'is_deceased': forms.CheckboxInput(attrs={
+                'class': 'form-checkbox', 'id': 'id_is_deceased',
+            }),
             'death_date': forms.TextInput(attrs={
-                'class': 'form-input', 'placeholder': 'Để trống nếu còn sống',
+                'class': 'form-input', 'placeholder': 'VD: 20/01/2020',
+                'id': 'id_death_date',
+            }),
+            'death_date_lunar': forms.TextInput(attrs={
+                'class': 'form-input', 'placeholder': 'VD: 15/08 (ngày/tháng âm lịch)',
+                'id': 'id_death_date_lunar',
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-input', 'rows': 3,
@@ -43,52 +52,34 @@ class MemberBasicForm(forms.ModelForm):
 
 
 class MemberFamilyForm(forms.ModelForm):
-    """Bước 2: Quan hệ gia đình (Cha / Mẹ)"""
+    """Bước 2: Quan hệ gia đình (Cha / Mẹ) — hidden inputs, autocomplete on frontend"""
     class Meta:
         model = FamilyMember
         fields = ['father', 'mother']
         widgets = {
-            'father': forms.Select(attrs={'class': 'form-input'}),
-            'mother': forms.Select(attrs={'class': 'form-input'}),
+            'father': forms.HiddenInput(attrs={'id': 'id_father'}),
+            'mother': forms.HiddenInput(attrs={'id': 'id_mother'}),
         }
 
     def __init__(self, *args, **kwargs):
-        instance = kwargs.get('instance')
         super().__init__(*args, **kwargs)
-
-        # Cha: chỉ hiện nam, đời trên
-        father_qs = FamilyMember.objects.filter(gender='male').select_related('chi')
-        if instance and instance.generation:
-            father_qs = father_qs.filter(generation=instance.generation - 1)
-        self.fields['father'].queryset = father_qs.order_by('chi__number', 'birth_order', 'name')
-        self.fields['father'].empty_label = '-- Chọn Cha --'
-        self.fields['father'].label_from_instance = lambda obj: (
-            f"{obj.person_code or '?'} — {obj.name}"
-            + (f" (Chi {obj.chi.number})" if obj.chi else "")
-        )
-
-        # Mẹ: chỉ hiện nữ, cùng đời hoặc đời trên
-        mother_qs = FamilyMember.objects.filter(gender='female').select_related('chi')
-        if instance and instance.generation:
-            mother_qs = mother_qs.filter(generation__in=[instance.generation - 1, instance.generation])
-        self.fields['mother'].queryset = mother_qs.order_by('chi__number', 'birth_order', 'name')
-        self.fields['mother'].empty_label = '-- Chọn Mẹ --'
-        self.fields['mother'].label_from_instance = lambda obj: (
-            f"{obj.person_code or '?'} — {obj.name}"
-            + (f" (Chi {obj.chi.number})" if obj.chi else "")
-        )
+        self.fields['father'].queryset = FamilyMember.objects.all()
+        self.fields['father'].required = False
+        self.fields['mother'].queryset = FamilyMember.objects.all()
+        self.fields['mother'].required = False
 
 
 class SpouseRelationForm(forms.ModelForm):
     """Form thêm vợ/chồng"""
     class Meta:
         model = SpouseRelation
-        fields = ['wife', 'wife_order', 'marriage_date', 'notes']
+        fields = ['wife', 'wife_order', 'status', 'marriage_date', 'notes']
         widgets = {
             'wife': forms.Select(attrs={'class': 'form-input'}),
             'wife_order': forms.NumberInput(attrs={
                 'class': 'form-input', 'min': 1, 'value': 1,
             }),
+            'status': forms.Select(attrs={'class': 'form-input'}),
             'marriage_date': forms.TextInput(attrs={
                 'class': 'form-input', 'placeholder': 'VD: 1985',
             }),

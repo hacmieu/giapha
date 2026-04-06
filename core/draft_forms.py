@@ -52,7 +52,8 @@ class DraftPersonForm(forms.ModelForm):
         model = DraftPerson
         fields = [
             'name', 'gender', 'relation_to_submitter',
-            'birth_date', 'death_date', 'birth_order',
+            'birth_date', 'death_date', 'death_date_lunar', 'is_deceased',
+            'birth_order',
             'chi_number', 'generation',
             'father_temp_id', 'mother_temp_id',
             'notes', 'photo',
@@ -70,6 +71,10 @@ class DraftPersonForm(forms.ModelForm):
             'death_date': forms.TextInput(attrs={
                 'class': 'draft-input', 'placeholder': 'Để trống nếu còn sống',
             }),
+            'death_date_lunar': forms.TextInput(attrs={
+                'class': 'draft-input', 'placeholder': 'VD: 26/12 hoặc 26/12/2019',
+            }),
+            'is_deceased': forms.CheckboxInput(attrs={'class': 'mr-2'}),
             'birth_order': forms.NumberInput(attrs={
                 'class': 'draft-input', 'placeholder': 'VD: 10, 20, 30... (bước 10)', 'min': 1,
             }),
@@ -95,7 +100,9 @@ class DraftPersonForm(forms.ModelForm):
             'gender': 'Giới tính',
             'relation_to_submitter': 'Quan hệ với bạn',
             'birth_date': 'Năm sinh (nếu nhớ)',
-            'death_date': 'Năm mất (nếu nhớ)',
+            'death_date': 'Năm mất dương lịch (nếu nhớ)',
+            'death_date_lunar': 'Ngày giỗ âm lịch (nếu nhớ)',
+            'is_deceased': 'Đã mất',
             'birth_order': 'Thứ tự sắp xếp (bước 10)',
             'chi_number': 'Chi số (nếu biết)',
             'generation': 'Đời thứ (nếu biết)',

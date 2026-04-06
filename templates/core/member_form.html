@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -138,9 +139,29 @@
                     {{ form.birth_date }}
                 </div>
 
-                <div>
-                    <label class="form-label">Ngày mất</label>
-                    {{ form.death_date }}
+                <div class="md:col-span-2">
+                    <label class="form-label flex items-center gap-2">
+                        {{ form.is_deceased }}
+                        <span>Đã mất</span>
+                    </label>
+                </div>
+
+                <div id="death-fields" style="display:none;" class="md:col-span-2">
+                    <div class="grid md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                            <label class="form-label">Ngày mất (Dương lịch)</label>
+                            {{ form.death_date }}
+                            <p class="form-hint">VD: 20/01/2020 — Enter để convert sang Âm</p>
+                        </div>
+                        <div>
+                            <label class="form-label">Ngày giỗ (Âm lịch)</label>
+                            {{ form.death_date_lunar }}
+                            <p class="form-hint">VD: 26/12 hoặc 26/12/2019 — Enter để convert sang Dương</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <div id="lunar-convert-info" class="text-sm text-blue-700 bg-blue-50 p-2 rounded hidden"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -162,21 +183,39 @@
                 Quan hệ gia đình (Cha / Mẹ)
             </div>
 
+            {{ family_form.father }}
+            {{ family_form.mother }}
+
             <div class="grid md:grid-cols-2 gap-4">
                 <div>
                     <label class="form-label">👨 Cha</label>
-                    {{ family_form.father }}
-                    <p class="form-hint">Chỉ hiện nam cùng chi, đời trên 1 bậc</p>
+                    <input type="text" id="father-search" class="form-input" autocomplete="off"
+                           placeholder="Click hoặc gõ tên để tìm..."
+                           value="{{ family_form.instance.father.name|default:'' }}">
+                    <p class="form-hint">Lọc theo Chi đã chọn ở trên. Click để xem danh sách.</p>
                 </div>
                 <div>
                     <label class="form-label">👩 Mẹ</label>
-                    {{ family_form.mother }}
-                    <p class="form-hint">Chỉ hiện nữ đời tương ứng</p>
+                    <input type="text" id="mother-search" class="form-input" autocomplete="off"
+                           placeholder="Click hoặc gõ tên để tìm..."
+                           value="{{ family_form.instance.mother.name|default:'' }}">
+                    <p class="form-hint">Chọn Cha trước → gợi ý Mẹ từ vợ.</p>
                 </div>
             </div>
 
+            <!-- Mother suggestion pills from father's wives -->
+            <div id="mother-suggest" class="mt-3 hidden">
+                <div class="p-3 bg-pink-50 rounded-lg border border-pink-200">
+                    <p class="text-sm font-semibold text-pink-800 mb-2">💑 Vợ của cha — click để chọn làm Mẹ:</p>
+                    <div id="mother-suggest-pills" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <div id="cross-suggest" class="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800 border border-blue-200 hidden">
+            </div>
+
             <div class="mt-3 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-800 border border-yellow-200">
-                💡 <strong>Mẹo:</strong> Chọn Cha trước → Chi và Đời sẽ tự tính. Quan hệ vợ/chồng thêm sau khi lưu.
+                💡 <strong>Mẹo:</strong> Chọn Cha trước → Chi và Đời sẽ tự tính. Danh sách vợ của Cha hiện ra để chọn Mẹ.
             </div>
         </div>
 
@@ -192,4 +231,268 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/autocomplete-search.js' %}"></script>
+<script src="{% static 'js/lunar-calendar.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ═══ DECEASED CHECKBOX LOGIC ═══
+    var isDeceased = document.getElementById('id_is_deceased');
+    var deathFields = document.getElementById('death-fields');
+    var deathDate = document.getElementById('id_death_date');
+    var deathDateLunar = document.getElementById('id_death_date_lunar');
+    var lunarInfo = document.getElementById('lunar-convert-info');
+
+    function toggleDeathFields() {
+        deathFields.style.display = isDeceased.checked ? 'block' : 'none';
+    }
+
+    function autoCheckDeceased() {
+        if ((deathDate.value && deathDate.value.trim()) || (deathDateLunar.value && deathDateLunar.value.trim())) {
+            isDeceased.checked = true;
+            toggleDeathFields();
+        }
+    }
+
+    isDeceased.addEventListener('change', toggleDeathFields);
+    deathDate.addEventListener('input', autoCheckDeceased);
+    deathDateLunar.addEventListener('input', autoCheckDeceased);
+
+    // Init: show death fields if already deceased
+    toggleDeathFields();
+
+    // ═══ LUNAR ↔ SOLAR CONVERSION ═══
+    function parseDateStr(str) {
+        // Support dd/mm/yyyy or dd/mm
+        var parts = str.trim().split('/');
+        if (parts.length < 2) return null;
+        var d = parseInt(parts[0]), m = parseInt(parts[1]), y = parts[2] ? parseInt(parts[2]) : null;
+        if (isNaN(d) || isNaN(m)) return null;
+        return { day: d, month: m, year: y };
+    }
+
+    // Solar → Lunar conversion on blur
+    deathDate.addEventListener('change', function() {
+        var p = parseDateStr(this.value);
+        if (!p || !p.year) return;
+        try {
+            var lunar = LunarCalendar.solarToLunar(p.day, p.month, p.year);
+            var lunarStr = lunar.day + '/' + lunar.month;
+            if (lunar.year) lunarStr += '/' + lunar.year;
+            if (!deathDateLunar.value.trim()) {
+                deathDateLunar.value = lunarStr;
+            }
+            lunarInfo.textContent = '🌙 Âm lịch: ' + LunarCalendar.formatLunarDate(lunar);
+            lunarInfo.classList.remove('hidden');
+        } catch(e) { console.warn(e); }
+    });
+
+    // Lunar → Solar conversion on blur
+    deathDateLunar.addEventListener('change', function() {
+        var p = parseDateStr(this.value);
+        if (!p) return;
+        // If no year, try to use current year or year from death_date
+        var year = p.year;
+        if (!year) {
+            var solarP = parseDateStr(deathDate.value);
+            year = (solarP && solarP.year) ? solarP.year : null;
+        }
+        if (!year) return; // Can't convert without year
+        try {
+            var solar = LunarCalendar.lunarToSolar(p.day, p.month, year, 0, 7);
+            if (solar && !deathDate.value.trim()) {
+                deathDate.value = solar.day + '/' + solar.month + '/' + solar.year;
+            }
+            if (solar) {
+                lunarInfo.textContent = '☀️ Dương lịch: ' + solar.day + '/' + solar.month + '/' + solar.year;
+                lunarInfo.classList.remove('hidden');
+            }
+        } catch(e) { console.warn(e); }
+    });
+
+    // ═══ FATHER/MOTHER AUTOCOMPLETE WITH CROSS-SUGGEST ═══
+    var fatherInput = document.getElementById('id_father');
+    var motherInput = document.getElementById('id_mother');
+    var fatherSearch = document.getElementById('father-search');
+    var motherSearch = document.getElementById('mother-search');
+    var motherSuggest = document.getElementById('mother-suggest');
+    var motherSuggestPills = document.getElementById('mother-suggest-pills');
+    var crossSuggest = document.getElementById('cross-suggest');
+    var chiSelect = document.getElementById('id_chi');
+
+    // Build father fetchUrl dynamically based on selected Chi
+    function getFatherUrl() {
+        var url = '/api/members/?gender=male';
+        if (chiSelect && chiSelect.value) {
+            url += '&chi=' + chiSelect.value;
+        }
+        return url;
+    }
+
+    // Status badge HTML
+    var statusIcons = {
+        married: '💑',
+        divorced: '💔',
+        widowed: '🕯'
+    };
+    var statusColors = {
+        married: 'bg-green-100 text-green-800 border-green-300',
+        divorced: 'bg-gray-100 text-gray-600 border-gray-300',
+        widowed: 'bg-yellow-100 text-yellow-800 border-yellow-300'
+    };
+
+    // Show mother suggestion pills from father's wife_relations or spouses
+    function showMotherSuggestions(fatherId, fatherName) {
+        fetch('/api/members/' + fatherId + '/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var relations = data.wife_relations_detail || [];
+                var spouses = data.spouses || [];
+
+                // If SpouseRelation records exist, show them with status
+                if (relations.length > 0) {
+                    motherSuggestPills.innerHTML = '';
+                    relations.forEach(function(wr) {
+                        var icon = statusIcons[wr.status] || '💑';
+                        var colors = statusColors[wr.status] || statusColors.married;
+                        var pill = document.createElement('button');
+                        pill.type = 'button';
+                        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium cursor-pointer hover:opacity-80 transition ' + colors;
+                        pill.innerHTML = icon + ' ' + wr.name +
+                            (wr.wife_order > 1 ? ' <span class="text-xs opacity-60">(Bà ' + wr.wife_order + ')</span>' : '') +
+                            (wr.status !== 'married' ? ' <span class="text-xs">(' + wr.status_display + ')</span>' : '');
+                        pill.addEventListener('click', function() {
+                            motherInput.value = wr.id;
+                            motherSearch.value = wr.name;
+                            motherSuggestPills.querySelectorAll('button').forEach(function(b) {
+                                b.classList.remove('ring-2', 'ring-pink-500');
+                            });
+                            pill.classList.add('ring-2', 'ring-pink-500');
+                        });
+                        if (motherInput.value && parseInt(motherInput.value) === wr.id) {
+                            pill.classList.add('ring-2', 'ring-pink-500');
+                        }
+                        motherSuggestPills.appendChild(pill);
+                    });
+                    motherSuggest.classList.remove('hidden');
+                } else if (spouses.length > 0) {
+                    // Fallback: use M2M spouses (no status info)
+                    motherSuggestPills.innerHTML = '';
+                    spouses.forEach(function(sp) {
+                        var pill = document.createElement('button');
+                        pill.type = 'button';
+                        pill.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium cursor-pointer hover:opacity-80 transition bg-pink-50 text-pink-800 border-pink-300';
+                        pill.innerHTML = '👩 ' + sp.name;
+                        pill.addEventListener('click', function() {
+                            motherInput.value = sp.id;
+                            motherSearch.value = sp.name;
+                            motherSuggestPills.querySelectorAll('button').forEach(function(b) {
+                                b.classList.remove('ring-2', 'ring-pink-500');
+                            });
+                            pill.classList.add('ring-2', 'ring-pink-500');
+                        });
+                        if (motherInput.value && parseInt(motherInput.value) === sp.id) {
+                            pill.classList.add('ring-2', 'ring-pink-500');
+                        }
+                        motherSuggestPills.appendChild(pill);
+                    });
+                    motherSuggest.classList.remove('hidden');
+                } else {
+                    motherSuggest.classList.add('hidden');
+                }
+            }).catch(function() {});
+    }
+
+    // Father autocomplete
+    var fatherAC = autocompleteInit(fatherSearch, {
+        fetchUrl: getFatherUrl(),
+        displayField: 'name',
+        valueField: 'id',
+        minChars: 0,
+        maxResults: 15,
+        iconFn: function(item) { return item.is_deceased ? '🕯' : '👨'; },
+        infoFn: function(item) {
+            var parts = [];
+            if (item.chi_number) parts.push('Chi ' + item.chi_number);
+            if (item.generation) parts.push('Đời ' + item.generation);
+            if (item.is_dinh) parts.push('★ Đinh');
+            return parts.join(' • ');
+        },
+        onSelect: function(item) {
+            fatherInput.value = item.id;
+            // Show mother suggestions from father's wives
+            showMotherSuggestions(item.id, item.name);
+        },
+        onClear: function() {
+            fatherInput.value = '';
+            motherSuggest.classList.add('hidden');
+            crossSuggest.classList.add('hidden');
+        }
+    });
+
+    // When Chi selection changes, update father fetchUrl
+    if (chiSelect) {
+        chiSelect.addEventListener('change', function() {
+            fatherAC.setFetchUrl(getFatherUrl());
+        });
+    }
+
+    // Mother autocomplete (search all females, fallback if not using suggestions)
+    autocompleteInit(motherSearch, {
+        fetchUrl: '/api/members/?gender=female',
+        displayField: 'name',
+        valueField: 'id',
+        minChars: 0,
+        maxResults: 15,
+        iconFn: function(item) { return item.is_deceased ? '🕯' : '👩'; },
+        infoFn: function(item) {
+            var parts = [];
+            if (item.chi_number) parts.push('Chi ' + item.chi_number);
+            if (item.generation) parts.push('Đời ' + item.generation);
+            return parts.join(' • ');
+        },
+        onSelect: function(item) {
+            motherInput.value = item.id;
+            // Reverse cross-suggest: find spouse → suggest as father
+            if (!fatherInput.value) {
+                fetch('/api/members/' + item.id + '/')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var relations = data.wife_relations_detail || [];
+                        var spouses = data.spouses || [];
+                        var candidates = relations.length > 0
+                            ? relations.map(function(wr) { return { id: wr.id, name: wr.name }; })
+                            : spouses.map(function(sp) { return { id: sp.id, name: sp.name }; });
+                        if (candidates.length > 0) {
+                            crossSuggest.innerHTML = '💡 Chồng của <b>' + item.name + '</b>: ';
+                            candidates.forEach(function(c, i) {
+                                crossSuggest.innerHTML += '<a href="#" class="font-bold text-blue-600 underline cross-link" data-id="' + c.id + '" data-name="' + c.name + '">' + c.name + '</a>' + (i < candidates.length - 1 ? ', ' : '');
+                            });
+                            crossSuggest.classList.remove('hidden');
+                            crossSuggest.querySelectorAll('.cross-link').forEach(function(link) {
+                                link.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    fatherInput.value = this.dataset.id;
+                                    fatherSearch.value = this.dataset.name;
+                                    crossSuggest.classList.add('hidden');
+                                });
+                            });
+                        }
+                    }).catch(function() {});
+            }
+        },
+        onClear: function() {
+            motherInput.value = '';
+            crossSuggest.classList.add('hidden');
+        }
+    });
+
+    // If father already selected on page load, show mother suggestions
+    if (fatherInput.value) {
+        showMotherSuggestions(fatherInput.value, fatherSearch.value);
+    }
+});
+</script>
 {% endblock %}

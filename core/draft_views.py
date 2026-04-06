@@ -342,6 +342,8 @@ def draft_export_json(request, draft_code):
             'relation_to_submitter': p.get_relation_to_submitter_display(),
             'birth_date': p.birth_date,
             'death_date': p.death_date,
+            'death_date_lunar': p.death_date_lunar,
+            'is_deceased': p.is_deceased,
             'birth_order': p.birth_order,
             'chi_number': p.chi_number,
             'generation': p.generation,
@@ -502,6 +504,8 @@ class DraftRelationshipBuilderView(TemplateView):
                 'gender': p.gender,
                 'birth_date': p.birth_date,
                 'death_date': p.death_date,
+                'death_date_lunar': p.death_date_lunar,
+                'is_deceased': p.is_deceased,
                 'father_temp_id': p.father_temp_id,
                 'mother_temp_id': p.mother_temp_id,
                 'relation_to_submitter': p.relation_to_submitter,
@@ -566,6 +570,8 @@ def draft_quick_add_person(request, draft_code):
             'gender': person.gender,
             'birth_date': person.birth_date,
             'death_date': person.death_date,
+            'death_date_lunar': person.death_date_lunar,
+            'is_deceased': person.is_deceased,
             'father_temp_id': None,
             'mother_temp_id': None,
             'relation_to_submitter': 'other',
@@ -594,6 +600,12 @@ def draft_edit_person_ajax(request, draft_code, person_pk):
     person.gender = request.POST.get('gender', person.gender)
     person.birth_date = request.POST.get('birth_date', '').strip()
     person.death_date = request.POST.get('death_date', '').strip()
+    person.death_date_lunar = request.POST.get('death_date_lunar', '').strip()
+    is_deceased_val = request.POST.get('is_deceased', '').strip()
+    if is_deceased_val != '':
+        person.is_deceased = is_deceased_val in ('true', '1', 'on')
+    elif person.death_date:
+        person.is_deceased = True
     person.notes = request.POST.get('notes', '').strip()
     person.relation_to_submitter = request.POST.get(
         'relation_to_submitter', person.relation_to_submitter
@@ -642,6 +654,8 @@ def draft_edit_person_ajax(request, draft_code, person_pk):
             'gender': person.gender,
             'birth_date': person.birth_date,
             'death_date': person.death_date,
+            'death_date_lunar': person.death_date_lunar,
+            'is_deceased': person.is_deceased,
             'father_temp_id': person.father_temp_id,
             'mother_temp_id': person.mother_temp_id,
             'relation_to_submitter': person.relation_to_submitter,
@@ -930,6 +944,8 @@ def admin_draft_approve(request, draft_code):
             generation=p.generation,
             birth_date=p.birth_date or '',
             death_date=p.death_date or '',
+            death_date_lunar=p.death_date_lunar or '',
+            is_deceased=p.is_deceased or bool(p.death_date),
             birth_order=p.birth_order,
             notes=p.notes,
             member_type=p.member_type or 'blood',

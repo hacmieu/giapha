@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Family, Chi, FamilyMember
+from core.models import Family, Chi, FamilyMember, SpouseRelation
 
 
 class FamilySerializer(serializers.ModelSerializer):
@@ -24,7 +24,7 @@ class FamilyMemberListSerializer(serializers.ModelSerializer):
     class Meta:
         model = FamilyMember
         fields = ['id', 'legacy_id', 'name', 'gender', 'chi_number', 'generation', 
-                  'is_dinh', 'member_type', 'birth_date', 'death_date']
+                  'is_dinh', 'member_type', 'birth_date', 'death_date', 'is_deceased']
 
 
 class FamilyMemberDetailSerializer(serializers.ModelSerializer):
@@ -37,6 +37,7 @@ class FamilyMemberDetailSerializer(serializers.ModelSerializer):
     mother_name = serializers.CharField(source='mother.name', read_only=True, default=None)
     spouses = FamilyMemberListSerializer(many=True, read_only=True)
     spouse_names = serializers.SerializerMethodField()
+    wife_relations_detail = serializers.SerializerMethodField()
     children = FamilyMemberListSerializer(many=True, read_only=True)
     children_names = serializers.SerializerMethodField()
     siblings = FamilyMemberListSerializer(many=True, read_only=True)
@@ -48,7 +49,9 @@ class FamilyMemberDetailSerializer(serializers.ModelSerializer):
                   'is_dinh', 'member_type', 'member_type_display', 'birth_order', 
                   'birth_date', 'death_date', 'notes', 'photo', 
                   'father', 'father_name', 'mother', 'mother_name', 
-                  'spouses', 'spouse_names', 'children', 'children_names', 'siblings',
+                  'spouses', 'spouse_names', 'wife_relations_detail',
+                  'children', 'children_names', 'siblings',
+                  'is_deceased', 'death_date_lunar',
                   'created_at', 'updated_at']
     
     def get_chi_name(self, obj):
@@ -61,6 +64,33 @@ class FamilyMemberDetailSerializer(serializers.ModelSerializer):
         # Sort by birth_order, then by name
         children = sorted(obj.children, key=lambda c: (c.birth_order or 999, c.name))
         return [{'id': c.id, 'name': c.name, 'gender': c.gender, 'birth_order': c.birth_order} for c in children]
+
+    def get_wife_relations_detail(self, obj):
+        """Return spouse relations with status for cross-suggestion"""
+        result = []
+        # As husband → wives
+        for wr in SpouseRelation.objects.filter(husband=obj).select_related('wife__chi').order_by('wife_order'):
+            result.append({
+                'id': wr.wife.id,
+                'name': wr.wife.name,
+                'gender': wr.wife.gender,
+                'status': wr.status,
+                'status_display': wr.get_status_display(),
+                'wife_order': wr.wife_order,
+                'marriage_date': wr.marriage_date,
+            })
+        # As wife → husbands
+        for wr in SpouseRelation.objects.filter(wife=obj).select_related('husband__chi').order_by('wife_order'):
+            result.append({
+                'id': wr.husband.id,
+                'name': wr.husband.name,
+                'gender': wr.husband.gender,
+                'status': wr.status,
+                'status_display': wr.get_status_display(),
+                'wife_order': wr.wife_order,
+                'marriage_date': wr.marriage_date,
+            })
+        return result
 
 
 class FamilyMemberWriteSerializer(serializers.ModelSerializer):

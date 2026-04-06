@@ -91,17 +91,20 @@
                         {% if member.generation %} · Đời {{ member.generation }}{% endif %}
                     </p>
                 </div>
-                <div class="text-5xl">
+                <div class="text-5xl relative">
                     {% if member.photo %}
                     <img src="{{ member.photo.url }}" class="w-16 h-16 rounded-full object-cover border-2 border-white">
                     {% else %}
                     {% if member.gender == 'male' %}👨{% else %}👩{% endif %}
                     {% endif %}
+                    {% if member.is_deceased or member.death_date %}
+                    <div class="mourning-band rounded-full" style="width:64px;height:64px;"></div>
+                    {% endif %}
                 </div>
             </div>
             <div class="flex gap-2 mt-3 flex-wrap">
                 {% if member.is_dinh %}<span class="badge-dinh">⭐ Suất Đinh</span>{% endif %}
-                {% if member.death_date %}<span class="text-xs bg-gray-300 text-gray-800 px-2 py-0.5 rounded-full">🕯 Đã mất</span>{% endif %}
+                {% if member.is_deceased or member.death_date %}<span class="text-xs bg-gray-300 text-gray-800 px-2 py-0.5 rounded-full">🕯 Đã mất</span>{% endif %}
                 <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">{{ member.get_member_type_display }}</span>
             </div>
         </div>
@@ -182,10 +185,14 @@
                             {{ spouse_form.wife_order }}
                         </div>
                         <div>
+                            <label class="text-sm font-medium text-gray-600">Tình trạng</label>
+                            {{ spouse_form.status }}
+                        </div>
+                        <div>
                             <label class="text-sm font-medium text-gray-600">Năm cưới</label>
                             {{ spouse_form.marriage_date }}
                         </div>
-                        <div>
+                        <div class="col-span-2">
                             <label class="text-sm font-medium text-gray-600">Ghi chú</label>
                             {{ spouse_form.notes }}
                         </div>
@@ -226,8 +233,9 @@
                 <div class="space-y-2">
                     {% for wr in wife_relations %}
                     <a href="{% url 'core:member_detail' wr.wife.pk %}" class="relation-link female">
-                        👩 {{ wr.wife.name }}
-                        <span class="text-xs opacity-60">(Bà {{ wr.wife_order }}{% if wr.marriage_date %} · {{ wr.marriage_date }}{% endif %})</span>
+                        {% if wr.status == 'divorced' %}💔{% elif wr.status == 'widowed' %}🕯{% else %}💑{% endif %}
+                        {{ wr.wife.name }}
+                        <span class="text-xs opacity-60">(Bà {{ wr.wife_order }}{% if wr.status != 'married' %} · {{ wr.get_status_display }}{% endif %}{% if wr.marriage_date %} · {{ wr.marriage_date }}{% endif %})</span>
                     </a>
                     {% endfor %}
                 </div>

@@ -167,14 +167,14 @@
     <div class="container mx-auto px-4">
         <!-- Search & Tools -->
         <div class="flex justify-between items-center mb-3">
-            <div class="relative w-full max-w-md">
+            <div class="relative w-full max-w-md" id="search-wrapper">
                 <input type="text" 
                        id="search-person" 
-                       list="person-list"
+                       autocomplete="off"
                        placeholder="🔍 Tìm thành viên..." 
-                       class="w-full px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       onchange="searchPerson(this.value)">
-                <datalist id="person-list"></datalist>
+                       class="w-full px-4 py-2 border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="search-clear" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden" onclick="clearSearch()">&times;</button>
+                <div id="search-dropdown" class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto hidden"></div>
             </div>
 
             <div class="flex gap-2">
@@ -236,6 +236,7 @@
     <button class="zoom-btn text-sm" onclick="resetZoom()" title="Đặt lại">⟲</button>
     <button id="reset-focus-btn" class="zoom-btn text-sm" onclick="resetFocus()" title="Hiện tất cả" style="display:none; background-color: #0ea5e9;">👁️</button>
     <button class="zoom-btn text-sm" onclick="calculateRelationship()" title="Tính vai vế">⚖️</button>
+    <button class="zoom-btn text-sm" onclick="captureDiagram()" title="Chụp ảnh phả đồ" style="background-color: #059669;">📷</button>
 </div>
 
 <!-- Member Detail Modal -->
@@ -269,6 +270,7 @@
 
 {% block extra_js %}
 <script src="https://unpkg.com/gojs/release/go.js"></script>
+<script src="{% static 'js/gojs-search.js' %}"></script>
 <script>
 let myDiagram;
 let currentChi = 0;
@@ -279,10 +281,21 @@ function init() {
 
     myDiagram = $(go.Diagram, "myDiagramDiv", {
         "undoManager.isEnabled": true,
-        layout: $(go.LayeredDigraphLayout, { 
-            direction: 90, 
+        layout: $(go.TreeLayout, { 
+            angle: 90, 
             layerSpacing: 60,
-            columnSpacing: 30
+            nodeSpacing: 20,
+            setsPortSpot: true,
+            setsChildPortSpot: true,
+            portSpot: go.Spot.Bottom,
+            childPortSpot: go.Spot.Top,
+            sorting: go.TreeLayout.SortingAscending,
+            comparer: function(va, vb) {
+                var da = va.node ? va.node.data : {};
+                var db = vb.node ? vb.node.data : {};
+                // Trái sang phải: con trưởng (birth_order nhỏ) bên TRÁI
+                return (da.birth_order || 9999) - (db.birth_order || 9999);
+            }
         }),
         "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
         initialAutoScale: go.Diagram.Uniform,
@@ -301,7 +314,6 @@ function init() {
                     ),
                 click: (e, node) => {
                     showMemberModal(node.data.key);
-                    focusLineage(node);
                 },
                 doubleClick: (e, node) => {
                     const key = node.data.key;
@@ -362,22 +374,31 @@ function init() {
             $(go.Panel, "Vertical",
                 { margin: 10, minSize: new go.Size(100, NaN) },
 
-                // Photo
-                $(go.Picture,
-                    { 
-                        margin: new go.Margin(0, 0, 6, 0), 
-                        width: 60, height: 75, background: "#f5f5f5",
-                        imageStretch: go.GraphObject.UniformToFill
-                    },
-                    new go.Binding("source", "", data => {
-                        if (data.photo) return data.photo;
-                        // Male Placeholder
-                        if (data.s === 'male') {
-                            return "/media/members/male_placeholder.jpg";
-                        }
-                        // Female Placeholder
-                        return "/media/members/female_placeholder.jpg";
-                    })
+                // Photo with mourning band overlay
+                $(go.Panel, "Spot",
+                    { margin: new go.Margin(0, 0, 6, 0) },
+                    $(go.Picture,
+                        { 
+                            width: 60, height: 75, background: "#f5f5f5",
+                            imageStretch: go.GraphObject.UniformToFill
+                        },
+                        new go.Binding("source", "", data => {
+                            if (data.photo) return data.photo;
+                            if (data.s === 'male') return "/media/members/male_placeholder.jpg";
+                            return "/media/members/female_placeholder.jpg";
+                        })
+                    ),
+                    // Mourning band diagonal stripe for deceased
+                    $(go.Shape, "Rectangle",
+                        {
+                            width: 5, height: 100,
+                            fill: "rgba(0,0,0,0.6)", stroke: null,
+                            angle: 45,
+                            alignment: go.Spot.Center,
+                            visible: false
+                        },
+                        new go.Binding("visible", "deceased")
+                    )
                 ),
 
                 // Name (bold, larger)
@@ -407,15 +428,15 @@ function init() {
         )
     );
 
-    // LINK TEMPLATE - Parent-child (solid brown)
+    // LINK TEMPLATE - Parent-child (solid brown, top-down arrows)
     myDiagram.linkTemplate =
         $(go.Link,
-            { routing: go.Link.AvoidsNodes, curve: go.Link.JumpOver, corner: 8 },
+            { routing: go.Link.Orthogonal, corner: 8 },
             $(go.Shape, { strokeWidth: 2, stroke: "#78350f" }),
-            $(go.Shape, { toArrow: "Standard", scale: 1, fill: "#78350f", stroke: null })
+            $(go.Shape, { toArrow: "Standard", scale: 1.2, fill: "#78350f", stroke: null })
         );
 
-    // GROUP TEMPLATE - Spouse block (husband + wife(s) side by side)
+    // GROUP TEMPLATE - Spouse block (husband LEFT, wife(s) RIGHT)
     myDiagram.groupTemplate =
         $(go.Group, "Auto",
             {
@@ -423,7 +444,15 @@ function init() {
                     wrappingColumn: Infinity,
                     cellSize: new go.Size(1, 1),
                     spacing: new go.Size(4, 4),
-                    alignment: go.GridLayout.Position
+                    alignment: go.GridLayout.Position,
+                    sorting: go.GridLayout.Forward,
+                    comparer: function(a, b) {
+                        var da = a.data || {}, db = b.data || {};
+                        var aIsMale = da.s === 'male' ? 0 : 1;
+                        var bIsMale = db.s === 'male' ? 0 : 1;
+                        if (aIsMale !== bIsMale) return aIsMale - bIsMale;
+                        return (da.key || 0) - (db.key || 0);
+                    }
                 }),
                 selectionAdorned: false,
             },
@@ -489,10 +518,11 @@ function loadData(chi = 0) {
             const apiLinks = data.linkDataArray || [];
             const links = [...apiLinks];
 
-            // Build parent-child links if not provided by API (GraphDataView provides some but manual linking might still be needed for parent-child if not explicit)
-            // Actually GraphDataView does NOT return parent-child links in linkDataArray, it only returns Social Links.
-            // We need to build tree links from f/m properties as before.
-            
+            // Sort nodes by birth_order so layout places siblings in correct order
+            nodes.sort(function(a, b) {
+                return (a.birth_order || 9999) - (b.birth_order || 9999);
+            });
+
             const nodeKeys = new Set(nodes.map(n => n.key));
             const nodeMap = {};
             nodes.forEach(n => { nodeMap[n.key] = n; });
@@ -503,7 +533,6 @@ function loadData(chi = 0) {
             nodes.forEach(node => {
                 if (node.s !== 'male') return;
                 if (!Array.isArray(node.ux) || node.ux.length === 0) return;
-                // Collect wives that exist in current node set
                 const wivesHere = node.ux.filter(id => nodeKeys.has(id) && !wifeInGroup.has(id));
                 if (wivesHere.length === 0) return;
                 const gKey = 'g_' + node.key;
@@ -512,28 +541,37 @@ function loadData(chi = 0) {
                     const wn = nodeMap[wId];
                     if (wn) { wn.group = gKey; wifeInGroup.add(wId); }
                 });
-                groupNodes.push({ key: gKey, isGroup: true });
+                groupNodes.push({ key: gKey, isGroup: true, birth_order: node.birth_order });
             });
-            // Add group nodes to array
             groupNodes.forEach(g => nodes.push(g));
 
-            const linkSet = new Set(); // deduplicate
+            // Build parent→child links, sorted by birth_order per father
+            // Group children by father, sort each group, then add links in order
+            const childrenByFather = {};
             nodes.forEach(node => {
-                if (node.isGroup) return;
-                if (node.f && nodeKeys.has(node.f)) {
-                    // Link to father's group if father is in a group
-                    const fatherNode = nodeMap[node.f];
-                    const fromKey = (fatherNode && fatherNode.group) ? fatherNode.group : node.f;
-                    // If this node is in a group, link to the group
-                    const toKey = node.group ? node.group : node.key;
-                    const linkId = fromKey + '->' + toKey;
-                    if (!linkSet.has(linkId)) {
-                        linkSet.add(linkId);
+                if (node.isGroup || !node.f || !nodeKeys.has(node.f)) return;
+                if (!childrenByFather[node.f]) childrenByFather[node.f] = [];
+                childrenByFather[node.f].push(node);
+            });
+            const linkSet = new Set();
+            Object.keys(childrenByFather).forEach(fId => {
+                const children = childrenByFather[fId];
+                children.sort((a, b) => (a.birth_order || 9999) - (b.birth_order || 9999));
+                const fatherNode = nodeMap[parseInt(fId)];
+                const fromKey = (fatherNode && fatherNode.group) ? fatherNode.group : parseInt(fId);
+                children.forEach(child => {
+                    const toKey = child.group ? child.group : child.key;
+                    const lid = fromKey + '->' + toKey;
+                    if (!linkSet.has(lid)) {
+                        linkSet.add(lid);
                         links.push({ from: fromKey, to: toKey });
                     }
-                } else if (node.f) {
-                    links.push({ from: node.f, to: node.key });
-                }
+                });
+            });
+            // Also add links for nodes whose father is not in the current set
+            nodes.forEach(node => {
+                if (node.isGroup || !node.f || nodeKeys.has(node.f)) return;
+                links.push({ from: node.f, to: node.key });
             });
 
             myDiagram.model = new go.GraphLinksModel(nodes, links); // Use 'links' array which includes both API and parent-child links
@@ -797,9 +835,18 @@ function focusLineage(node) {
     
     collectDescendants(centralData.key, 1);
 
-    // 2. Hide irrelevant nodes
+    // 2. Hide irrelevant nodes (also handle groups)
     myDiagram.nodes.each(n => {
-        n.visible = relevantKeys.has(n.data.key);
+        if (n.data.isGroup) {
+            // Show group if any member is relevant
+            let hasVisible = false;
+            n.memberParts.each(part => {
+                if (part instanceof go.Node && relevantKeys.has(part.data.key)) hasVisible = true;
+            });
+            n.visible = hasVisible;
+        } else {
+            n.visible = relevantKeys.has(n.data.key);
+        }
     });
     
     // 3. Hide links connected to invisible nodes
@@ -821,42 +868,49 @@ function resetFocus() {
     myDiagram.commandHandler.zoomToFit();
 }
 
-// Search Logic
+// Search - use reusable component
+let searchApi;
 function setupSearch() {
-    const dataList = document.getElementById('person-list');
-    dataList.innerHTML = '';
-    
-    // Collect all names
-    const names = myDiagram.model.nodeDataArray
-        .map(n => n.n)
-        .sort((a, b) => a.localeCompare(b));
-        
-    names.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        dataList.appendChild(option);
+    searchApi = gojsSearchInit(myDiagram, {
+        extraInfo: function(d) {
+            var parts = [];
+            if (d.chi) parts.push(d.chi);
+            if (d.gen != null) parts.push('Đời ' + d.gen);
+            return parts.join(' • ');
+        },
+        onSelect: function(node, diagram) {
+            if (isFocused) resetFocus();
+        }
     });
 }
 
-function searchPerson(name) {
-    if (!name) return;
-    
-    // Find node by name (case insensitive)
-    const nodeData = myDiagram.model.nodeDataArray.find(n => n.n.toLowerCase() === name.toLowerCase());
-    
-    if (nodeData) {
-        const node = myDiagram.findNodeForKey(nodeData.key);
-        if (node) {
-            // Trigger focus view
-            focusLineage(node);
-            
-            // Center on node
-            myDiagram.scrollToRect(node.actualBounds);
-            myDiagram.select(node);
-        }
-    } else {
-        alert("Không tìm thấy thành viên: " + name);
+// Capture diagram as image
+function captureDiagram() {
+    if (!myDiagram) return;
+
+    // Determine title for filename
+    var chiLabel = currentChi > 0 ? 'Chi-' + currentChi : 'Toan-bo';
+    var filename = 'Pha-do-' + chiLabel + '.png';
+
+    // Make image of the ENTIRE diagram (all nodes), ignoring current viewport/zoom
+    var imgData = myDiagram.makeImageData({
+        scale: 1.5,
+        background: '#fefbf3',
+        maxSize: new go.Size(Infinity, Infinity)
+    });
+
+    if (!imgData) {
+        alert('Không thể chụp ảnh. Phả đồ có thể quá lớn.');
+        return;
     }
+
+    // Create download link
+    var a = document.createElement('a');
+    a.href = imgData;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
 
 window.addEventListener('DOMContentLoaded', init);

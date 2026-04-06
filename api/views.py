@@ -176,6 +176,7 @@ class GraphDataView(APIView):
                 "is_dinh": m.is_dinh,
                 "member_type": m.member_type,  # UC03: for visual distinction
                 "birth_order": m.birth_order,
+                "deceased": m.is_deceased or bool(m.death_date),
             }
             nodes.append(node)
         

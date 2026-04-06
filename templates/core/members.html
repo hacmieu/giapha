@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Danh Sách Thành Viên{% endblock %}
 
@@ -88,7 +89,7 @@
         <form method="GET" class="grid md:grid-cols-5 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
-                <input type="text" name="q" value="{{ search_query }}" 
+                <input type="text" name="q" id="member-search-input" value="{{ search_query }}" 
                     class="w-full border border-gray-300 rounded-lg p-2.5"
                     placeholder="Nhập tên...">
             </div>
@@ -141,7 +142,10 @@
                         {% if member.generation %} • Đời {{ member.generation }}{% endif %}
                     </p>
                 </div>
-                <span class="text-2xl">{% if member.gender == 'male' %}👨{% else %}👩{% endif %}</span>
+                <span class="text-2xl relative">
+                    {% if member.gender == 'male' %}👨{% else %}👩{% endif %}
+                    {% if member.is_deceased or member.death_date %}<span class="mourning-dot"></span>{% endif %}
+                </span>
             </div>
             <div class="mt-2 flex gap-1 flex-wrap">
                 {% if member.is_dinh %}
@@ -153,8 +157,8 @@
                 {% if member.member_type == 'adopted_in' %}
                 <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Nhập tịch</span>
                 {% endif %}
-                {% if member.death_date %}
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">Đã mất</span>
+                {% if member.is_deceased or member.death_date %}
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">🕯 Đã mất</span>
                 {% endif %}
             </div>
         </div>
@@ -204,7 +208,34 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/autocomplete-search.js' %}"></script>
 <script>
+    // Init autocomplete for member search
+    document.addEventListener('DOMContentLoaded', function() {
+        var searchInput = document.getElementById('member-search-input');
+        if (searchInput) {
+            autocompleteInit(searchInput, {
+                fetchUrl: '/api/members/',
+                displayField: 'name',
+                valueField: 'id',
+                maxResults: 12,
+                iconFn: function(item) {
+                    return item.gender === 'male' ? '👨' : '👩';
+                },
+                infoFn: function(item) {
+                    var parts = [];
+                    if (item.chi_number) parts.push('Chi ' + item.chi_number);
+                    if (item.generation) parts.push('Đời ' + item.generation);
+                    if (item.is_dinh) parts.push('★ Đinh');
+                    return parts.join(' • ');
+                },
+                onSelect: function(item) {
+                    searchInput.value = item.name;
+                    searchInput.closest('form').submit();
+                }
+            });
+        }
+    });
     function showMemberModal(memberId) {
         const modal = document.getElementById('memberModal');
         const modalName = document.getElementById('modalName');

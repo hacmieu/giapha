@@ -185,7 +185,7 @@
 
     <!-- Legend -->
     <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1">
-        <span class="legend-item"><span class="legend-line" style="background:#059669"></span> Bố → Con</span>
+        <span class="legend-item"><span class="legend-line" style="background:#78350f"></span> Bố → Con</span>
         <span class="legend-item"><span class="legend-line" style="background:#D946EF;height:0;border-top:2px dashed #D946EF"></span> Mẹ → Con</span>
         <span class="legend-item"><span class="legend-line" style="background:#E11D48;height:0;border-top:2px dashed #E11D48"></span> 💑 Kết hôn</span>
         <span class="legend-item"><span class="legend-line" style="background:#9CA3AF;height:0;border-top:2px dashed #9CA3AF"></span> 💔 Ly hôn</span>
@@ -414,11 +414,6 @@ function doRearrange() {
         columnSpacing: 40,
         setsPortSpots: false,
         initializeOption: go.LayeredDigraphLayout.InitDepthFirstIn,
-        columnFunction: function(v) {
-            var nd = v.node;
-            if (nd && nd.data && nd.data.ord) return nd.data.ord;
-            return 0;
-        },
     });
     diagram.layoutDiagram(true);
     diagram.zoomToFit();
@@ -619,12 +614,6 @@ function saveLayout() {
             columnSpacing: 40,
             setsPortSpots: false,
             initializeOption: go.LayeredDigraphLayout.InitDepthFirstIn,
-            columnFunction: function(v) {
-                // Use birth_order (ord) to influence column assignment
-                var nd = v.node;
-                if (nd && nd.data && nd.data.ord) return nd.data.ord;
-                return 0;
-            },
         }),
     });
 
@@ -658,19 +647,31 @@ function saveLayout() {
         $(go.Shape, 'RoundedRectangle', {
             strokeWidth: 2, parameter1: 8,
         },
-        new go.Binding('fill', 's', function(s) {
-            return s === 'male' ? '#EFF6FF' : '#FDF2F8';
+        new go.Binding('fill', '', function(data) {
+            if (data.s === 'male') {
+                return $(go.Brush, 'Linear', { 0: '#ffffff', 1: '#dbeafe' });
+            }
+            if (data.s === 'female') {
+                return $(go.Brush, 'Linear', { 0: '#ffffff', 1: '#fce7f3' });
+            }
+            return '#f5f5f5';
         }),
-        new go.Binding('stroke', 's', function(s) {
-            return s === 'male' ? '#1e40af' : '#be185d';
+        new go.Binding('stroke', '', function(data) {
+            if (data.dinh) return '#00796b';
+            if (data.s === 'male') return '#1e40af';
+            if (data.s === 'female') return '#be185d';
+            return '#9e9e9e';
+        }),
+        new go.Binding('strokeWidth', '', function(data) {
+            return data.dinh ? 3 : 2;
         })),
-        $(go.Panel, 'Vertical', { margin: 8, defaultAlignment: go.Spot.Center },
-            // Photo: portrait 3:4 ratio (60 × 80)
+        $(go.Panel, 'Vertical', { margin: 10, defaultAlignment: go.Spot.Center, minSize: new go.Size(100, NaN) },
+            // Photo: portrait 3:4 ratio (60 × 75)
             $(go.Picture, {
-                width: 60, height: 80,
+                width: 60, height: 75,
                 margin: new go.Margin(0, 0, 6, 0),
                 imageStretch: go.GraphObject.UniformToFill,
-                background: '#f0f0f0',
+                background: '#f5f5f5',
             }, new go.Binding('source', '', function(d) {
                 if (d.photo) return d.photo;
                 return d.s === 'male'
@@ -683,9 +684,9 @@ function saveLayout() {
             }, new go.Binding('text', 'key', function(k) { return '#' + k; })),
             // Name
             $(go.TextBlock, {
-                font: 'bold 12px sans-serif', stroke: '#1c1917',
+                font: "bold 11pt 'Noto Sans VN', sans-serif", stroke: '#333',
                 textAlign: 'center',
-                maxSize: new go.Size(110, NaN),
+                maxSize: new go.Size(120, NaN),
                 wrap: go.TextBlock.WrapFit,
                 margin: new go.Margin(2, 0, 0, 0),
             }, new go.Binding('text', 'n')),
@@ -701,22 +702,19 @@ function saveLayout() {
                 return parts.join(' – ');
             }),
             new go.Binding('visible', '', function(d) { return !!(d.b || d.d); })),
-            // Relation label
-            $(go.TextBlock, {
-                font: '9px sans-serif', stroke: '#78350f',
-                background: '#fef3c7',
-                textAlign: 'center',
-                margin: new go.Margin(3, 0, 0, 0),
-            }, new go.Binding('text', 'rel'),
-               new go.Binding('visible', 'rel', function(r) { return !!r; })),
-            // Đinh badge
-            $(go.TextBlock, {
-                font: 'bold 9px sans-serif', stroke: '#1e40af',
-                background: '#dbeafe',
-                textAlign: 'center',
-                margin: new go.Margin(3, 0, 0, 0),
-                text: '⚔ Đinh',
-            }, new go.Binding('visible', 'dinh')),
+            // Relation label + Đinh info line (matches genogram style)
+            $(go.Panel, 'Horizontal',
+                { margin: new go.Margin(4, 0, 0, 0) },
+                $(go.TextBlock, {
+                    font: '9pt sans-serif', stroke: '#666',
+                }, new go.Binding('text', '', function(d) {
+                    var info = [];
+                    if (d.rel) info.push(d.rel);
+                    if (d.dinh) info.push('★ Đinh');
+                    return info.join(' • ');
+                }),
+                new go.Binding('visible', '', function(d) { return !!(d.rel || d.dinh); }))
+            ),
             // Wives list (shown in Đinh-only mode)
             $(go.TextBlock, {
                 font: 'italic 9px sans-serif', stroke: '#be185d',
@@ -729,27 +727,37 @@ function saveLayout() {
         )
     );
 
-    // ── Group template — husband + wives block (like public genogram viewer) ──
+    // ── Group template — husband + wives block (husband LEFT, wives RIGHT) ──
     diagram.groupTemplate = $(go.Group, 'Auto',
         {
             layout: $(go.GridLayout, {
                 wrappingColumn: Infinity,
                 alignment: go.GridLayout.Position,
                 cellSize: new go.Size(1, 1),
-                spacing: new go.Size(10, 5)
-            })
+                spacing: new go.Size(4, 4),
+                sorting: go.GridLayout.Forward,
+                comparer: function(a, b) {
+                    // Males first (husband on left), then wives sorted by group order
+                    var da = a.data || {}, db = b.data || {};
+                    var aIsMale = da.s === 'male' ? 0 : 1;
+                    var bIsMale = db.s === 'male' ? 0 : 1;
+                    if (aIsMale !== bIsMale) return aIsMale - bIsMale;
+                    return (da.key || 0) - (db.key || 0);
+                }
+            }),
+            selectionAdorned: false,
         },
         $(go.Shape, 'RoundedRectangle',
-            { parameter1: 10, fill: 'rgba(255,255,255,0.4)', stroke: 'rgba(200,180,160,0.6)', strokeWidth: 1 }
+            { fill: 'transparent', stroke: '#f472b6', strokeWidth: 1.5, strokeDashArray: [4, 3], parameter1: 10 }
         ),
-        $(go.Placeholder, { padding: 5 })
+        $(go.Placeholder, { padding: 4 })
     );
 
     // ── Link templates ──
-    // Father → Child (green solid, this is the ONLY layout link)
+    // Father → Child (brown solid, matching genogram style)
     diagram.linkTemplate = $(go.Link,
         {
-            routing: go.Link.AvoidsNodes, corner: 8,
+            routing: go.Link.AvoidsNodes, corner: 8, curve: go.Link.JumpOver,
             cursor: 'pointer',
             click: function(e, link) {
                 if (!canEdit) return;
@@ -760,8 +768,8 @@ function saveLayout() {
                 }
             }
         },
-        $(go.Shape, { strokeWidth: 2, stroke: '#059669' }),
-        $(go.Shape, { toArrow: 'Triangle', stroke: '#059669', fill: '#059669', scale: 1.2 })
+        $(go.Shape, { strokeWidth: 2, stroke: '#78350f' }),
+        $(go.Shape, { toArrow: 'Standard', stroke: null, fill: '#78350f', scale: 1 })
     );
 
     // Mother → Child (purple, thin, NOT layout-affecting — visual decoration only)
@@ -869,24 +877,28 @@ function saveLayout() {
         'uncle_aunt': 'Chú/Bác/Cô/Dì', 'other': '',
     };
 
-    // Build groups: husband + wife-only nodes grouped into visual blocks
+    // Build groups: husband + wives grouped into visual blocks (like genogram)
     function buildGroupData() {
         var groupSet = {};     // groupKey -> true
         var personGroup = {}; // personKey -> groupKey
+        var wifeInGroup = {};  // wifeKey -> true (prevent wife appearing in multiple groups)
         spouseRels.forEach(function(r) {
             var p1 = personMap[r.p1], p2 = personMap[r.p2];
             if (!p1 || !p2) return;
+            // Determine husband (male) and wife (female)
             var husbandId = null, wifeId = null;
-            if (p2.gender === 'female' && !p2.father_temp_id && !p2.mother_temp_id) {
-                wifeId = r.p2; husbandId = r.p1;
-            } else if (p1.gender === 'female' && !p1.father_temp_id && !p1.mother_temp_id) {
-                wifeId = r.p1; husbandId = r.p2;
+            if (p1.gender === 'male' && p2.gender === 'female') {
+                husbandId = r.p1; wifeId = r.p2;
+            } else if (p2.gender === 'male' && p1.gender === 'female') {
+                husbandId = r.p2; wifeId = r.p1;
             }
             if (!husbandId || !wifeId) return;
+            if (wifeInGroup[wifeId]) return; // already grouped with another husband
             var groupKey = 'g_' + husbandId;
             groupSet[groupKey] = true;
             personGroup[husbandId] = groupKey;
             personGroup[wifeId] = groupKey;
+            wifeInGroup[wifeId] = true;
         });
         var groupNodes = Object.keys(groupSet).map(function(gk) {
             return { key: gk, isGroup: true };
@@ -926,18 +938,28 @@ function saveLayout() {
         nodeDataArray.push(g);
     });
 
-    // Links: father→child for layout, mother→child visual-only, spouse visual-only
+    // Links: father→child (through groups), mother→child visual-only, spouse visual-only
     function buildLinkData() {
         var links = [];
+        var linkSet = {}; // deduplicate group-to-group links
         Object.keys(personMap).forEach(function(key) {
             var p = personMap[key];
+            var tid = parseInt(key);
             if (p.father_temp_id && personMap[p.father_temp_id]) {
-                links.push({ from: p.father_temp_id, to: p.temp_id, category: '' });
+                // Route through groups like genogram
+                var fromKey = currentGroupData.personGroup[p.father_temp_id] || p.father_temp_id;
+                var toKey = currentGroupData.personGroup[tid] || tid;
+                var lid = fromKey + '->' + toKey;
+                if (!linkSet[lid]) {
+                    linkSet[lid] = true;
+                    links.push({ from: fromKey, to: toKey, category: '' });
+                }
             }
             if (p.mother_temp_id && personMap[p.mother_temp_id]) {
-                links.push({ from: p.mother_temp_id, to: p.temp_id, category: 'mother' });
+                links.push({ from: p.mother_temp_id, to: tid, category: 'mother' });
             }
         });
+        // Spouse links are visual-only (groups handle the side-by-side positioning)
         spouseRels.forEach(function(r) {
             if (personMap[r.p1] && personMap[r.p2]) {
                 var cat = r.status === 'divorced' ? 'divorced' :

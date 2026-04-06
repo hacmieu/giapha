@@ -141,9 +141,56 @@ function formatLunarDate(lunar) {
     return text;
 }
 
+function jdToDate(jd) {
+    let a, b, c, d, e, m;
+    if (jd > 2299160) {
+        a = Math.floor((jd - 1867216.25) / 36524.25);
+        a = jd + 1 + a - Math.floor(a / 4);
+    } else {
+        a = jd;
+    }
+    b = a + 1524;
+    c = Math.floor((b - 122.1) / 365.25);
+    d = Math.floor(365.25 * c);
+    e = Math.floor((b - d) / 30.6001);
+    let day = b - d - Math.floor(30.6001 * e);
+    let month = (e < 14) ? e - 1 : e - 13;
+    let year = (month > 2) ? c - 4716 : c - 4715;
+    return { day: day, month: month, year: year };
+}
+
+function lunarToSolar(lunarDay, lunarMonth, lunarYear, lunarLeap, timeZone) {
+    timeZone = timeZone || 7;
+    let a11, b11;
+    if (lunarMonth < 11) {
+        a11 = getLunarMonth11(lunarYear - 1, timeZone);
+        b11 = getLunarMonth11(lunarYear, timeZone);
+    } else {
+        a11 = getLunarMonth11(lunarYear, timeZone);
+        b11 = getLunarMonth11(lunarYear + 1, timeZone);
+    }
+    let k = Math.floor(0.5 + (a11 - 2415021.076998695) / 29.530588853);
+    let off = lunarMonth - 11;
+    if (off < 0) off += 12;
+    if (b11 - a11 > 365) {
+        let leapOff = getLeapMonthOffset(a11, timeZone);
+        let leapMonth = leapOff - 2;
+        if (leapMonth < 0) leapMonth += 12;
+        if (lunarLeap && lunarMonth !== leapMonth) {
+            return null; // invalid leap month
+        }
+        if (lunarLeap || (off >= leapOff)) {
+            off += 1;
+        }
+    }
+    let monthStart = getNewMoonDay(k + off, timeZone);
+    return jdToDate(monthStart + lunarDay - 1);
+}
+
 // Export for use in browser
 window.LunarCalendar = {
     solarToLunar,
+    lunarToSolar,
     getCanChi,
     formatLunarDate
 };
