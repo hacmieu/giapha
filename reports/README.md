@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md](./20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md) | Redeploy done + claim URL mới (Descriptive Homburg) |
 | [20260717_1851-genealogy-viewer-cloudflare-drop.md](./20260717_1851-genealogy-viewer-cloudflare-drop.md) | PDCA done: static Drop package + live Workers temporary URL |
 | [pdca/2026-03-29-phase1-2-kickoff.md](./pdca/2026-03-29-phase1-2-kickoff.md) | Kickoff quy trình PDCA Phase 1–2 |
 | [templates/pdca-report-template.md](./templates/pdca-report-template.md) | Template report PDCA |

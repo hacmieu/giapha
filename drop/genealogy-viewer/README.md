@@ -11,8 +11,14 @@ genealogy-viewer/
 ├── js/genealogy-viewer.js  # Load ./data/gojs_data.json (không gọi Django API)
 ├── js/autocomplete-search.js
 ├── data/gojs_data.json     # Snapshot 547 người (Họ Trần Chi 4)
+├── wrangler.toml           # Assets config cho Wrangler temporary
 └── README.md
 ```
+
+## Live (temporary — claim trong 60 phút)
+
+- URL: https://giapha-genealogy-viewer.descriptive-homburg.workers.dev
+- Claim: xem `reports/20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md`
 
 ## Deploy lên Cloudflare Drop
 
@@ -25,7 +31,8 @@ genealogy-viewer/
 
 ```bash
 cd drop/genealogy-viewer
-npm exec --yes wrangler@latest -- deploy . --name giapha-genealogy-viewer --temporary --compatibility-date 2026-07-17
+# Cần Node >= 22
+npm exec --yes wrangler@4.102.0 -- deploy . --name giapha-genealogy-viewer --temporary --compatibility-date 2026-07-18
 ```
 
 ## Local preview
