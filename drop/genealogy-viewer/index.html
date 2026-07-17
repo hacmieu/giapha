@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phả Đồ Đinh - Họ Trần Chi 4 - Vũ Tộc Làng Chuông</title>
+    <link rel="stylesheet" href="./css/viewer.css">
+</head>
+<body>
+<header class="site-header">
+    <div>
+        <h1>Vũ Tộc Làng Chuông</h1>
+        <p>Thôn Hữu Chung, Xã Tân An, TP Hải Phòng — Phả Đồ Họ Trần Chi 4 (static / Cloudflare Drop)</p>
+    </div>
+</header>
+
+<div class="genealogy-page">
+    <aside class="sidebar">
+        <h3>📜 Phả Đồ Họ Trần Chi 4</h3>
+
+        <div class="stats-box">
+            <div>👥 Tổng người: <strong id="totalPeople">--</strong></div>
+            <div>🔗 Quan hệ: <strong id="totalRelationships">--</strong></div>
+            <div>🏛 Thế hệ: <strong id="generationRange">4-12</strong></div>
+        </div>
+
+        <div>
+            <label class="ctrl-label">Chọn Gia Phả:</label>
+            <select id="genealogySelect" class="ctrl-select" onchange="loadGenealogy()">
+                <option value="static" selected>Gia Phả Họ Trần Chi 4 (547 người)</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="ctrl-label">🔍 Tìm Kiếm:</label>
+            <input type="text" id="searchInput" class="ctrl-input" autocomplete="off" placeholder="Nhập tên...">
+        </div>
+
+        <div>
+            <label class="ctrl-label">🏛 Lọc Thế Hệ:</label>
+            <select id="filterGeneration" class="ctrl-select" onchange="filterByGeneration()">
+                <option value="">Tất Cả</option>
+                <option value="4">Đời thứ 4</option>
+                <option value="5">Đời thứ 5</option>
+                <option value="6">Đời thứ 6</option>
+                <option value="7">Đời thứ 7</option>
+                <option value="8">Đời thứ 8</option>
+                <option value="9">Đời thứ 9</option>
+                <option value="10">Đời thứ 10</option>
+                <option value="11">Đời thứ 11</option>
+                <option value="12">Đời thứ 12</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="ctrl-label">🎨 Chế Độ:</label>
+            <select id="viewMode" class="ctrl-select" onchange="changeViewMode()">
+                <option value="tree">Phả Đồ Thẳng (Tree)</option>
+                <option value="force">Mối Quan Hệ (Force)</option>
+            </select>
+        </div>
+
+        <div class="btn-row">
+            <button type="button" class="btn btn-green" onclick="zoomToFit()">🔍 Fit</button>
+            <button type="button" class="btn btn-blue" onclick="exportAsImage()">📷 Ảnh</button>
+            <button type="button" class="btn btn-gray" onclick="downloadJSON()">📥 JSON</button>
+        </div>
+
+        <div class="info-box">
+            <div id="noSelection" style="color:#9ca3af;font-style:italic;">
+                Nhấp vào thành viên để xem thông tin
+            </div>
+            <div id="selectedInfo" style="display:none;">
+                <div id="personInfo"></div>
+            </div>
+        </div>
+
+        <div style="border-top:1px solid #e5e7eb;padding-top:8px;">
+            <div class="ctrl-label">Màu theo thế hệ:</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#fef3c7;border:2px solid #78350f;"></div>Đời 4 (Tổ)</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#eff6ff;border:2px solid #1d4ed8;"></div>Đời 5</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#f0f9ff;border:2px solid #0369a1;"></div>Đời 6</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#f0fdf4;border:2px solid #047857;"></div>Đời 7</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#fff7ed;border:2px solid #b45309;"></div>Đời 8</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#fef2f2;border:2px solid #b91c1c;"></div>Đời 9</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#faf5ff;border:2px solid #7e22ce;"></div>Đời 10–12</div>
+        </div>
+    </aside>
+
+    <div id="myDiagramDiv">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:16px;">
+            ⏳ Đang tải phả đồ...
+        </div>
+    </div>
+</div>
+
+<footer class="site-footer">
+    © 2024–2026 Gia Phả Vũ Tộc Làng Chuông — Static export for Cloudflare Drop.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
+<script src="./js/autocomplete-search.js"></script>
+<script src="./js/genealogy-viewer.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStaticGenealogy();
+    });
+</script>
+</body>
+</html>

@@ -38,3 +38,4 @@ Updated: 2026-03-29
 
 1. 2026-03-29: Chốt triển khai Phase 1-2 trước, Phase 3 deferred.
 2. 2026-03-29: Bắt buộc PDCA + memory + reports để rút ngắn handover.
+3. 2026-07-17: genealogy-viewer Cloudflare Drop = static package `drop/genealogy-viewer/` + snapshot `gojs_data.json` (không gọi Django API). Chi tiết: `memory/20260717_1851-genealogy-viewer-cloudflare-drop.md`.

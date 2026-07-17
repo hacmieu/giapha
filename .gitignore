@@ -8,3 +8,5 @@ media/
 .idea/
 static/
 *.log
+.wrangler/
+drop/genealogy-viewer/.wrangler/
