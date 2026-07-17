@@ -1,7 +1,9 @@
 name = "giapha-genealogy-viewer"
+account_id = "716f165ab210a3626462c1c9b903ab44"
 compatibility_date = "2026-07-18"
+workers_dev = true
 
 [assets]
-directory = "."
+directory = "./public"
 html_handling = "auto-trailing-slash"
 not_found_handling = "404-page"

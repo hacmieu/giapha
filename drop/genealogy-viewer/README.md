@@ -1,58 +1,57 @@
-# Genealogy Viewer — Cloudflare Drop package
+# Genealogy Viewer — Cloudflare Drop / Workers package
 
-Static export của module [genealogy-viewer](https://giaphavutoc.hay1.net/genealogy-viewer/) để deploy lên [Cloudflare Drop](https://www.cloudflare.com/drop/).
+Static export của module [genealogy-viewer](https://giaphavutoc.hay1.net/genealogy-viewer/).
+
+## Live (Hacmieu@gmail.com — production)
+
+**https://giapha-genealogy-viewer.hacmieu.workers.dev**
+
+- Account: `Hacmieu@gmail.com's Account` (`716f165ab210a3626462c1c9b903ab44`)
+- Worker name: `giapha-genealogy-viewer`
+- Report: `reports/20260718_0119-deploy-genealogy-viewer-hacmieu.md`
 
 ## Cấu trúc
 
 ```
 genealogy-viewer/
-├── index.html              # Entry (bắt buộc cho Drop)
-├── css/viewer.css
-├── js/genealogy-viewer.js  # Load ./data/gojs_data.json (không gọi Django API)
-├── js/autocomplete-search.js
-├── data/gojs_data.json     # Snapshot 547 người (Họ Trần Chi 4)
-├── wrangler.toml           # Assets config cho Wrangler temporary
+├── public/                 # Assets deploy (Wrangler [assets].directory)
+│   ├── index.html
+│   ├── css/viewer.css
+│   ├── js/genealogy-viewer.js
+│   ├── js/autocomplete-search.js
+│   └── data/gojs_data.json
+├── wrangler.toml           # account_id = Hacmieu
+├── index.html / css / js / data   # bản gốc (Drop zip / sync nguồn)
 └── README.md
 ```
 
-## Live (temporary — claim trong 60 phút)
-
-- URL: https://giapha-genealogy-viewer.descriptive-homburg.workers.dev
-- Claim: xem `reports/20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md`
-
-## Deploy lên Cloudflare Drop
-
-1. Zip thư mục này (hoặc dùng file `../genealogy-viewer.zip` nếu có).
-2. Mở https://www.cloudflare.com/drop/
-3. Kéo thả **folder** `genealogy-viewer/` hoặc file `.zip`.
-4. Nhận URL `*.workers.dev` và **claim URL** (hết hạn ~60 phút nếu chưa claim).
-
-### CLI thay thế (Wrangler temporary)
+## Deploy lại (Wrangler — account Hacmieu)
 
 ```bash
 cd drop/genealogy-viewer
-# Cần Node >= 22
-npm exec --yes wrangler@4.102.0 -- deploy . --name giapha-genealogy-viewer --temporary --compatibility-date 2026-07-18
+# Node >= 22, đã wrangler login với hacmieu@gmail.com
+export CLOUDFLARE_ACCOUNT_ID=716f165ab210a3626462c1c9b903ab44
+# sync public từ bản gốc nếu cần:
+# cp -r index.html css js data public/
+npm exec --yes wrangler@4.102.0 -- deploy
 ```
+
+## Cloudflare Drop (kéo thả)
+
+Zip thư mục `public/` (hoặc gói có `index.html` ở root) rồi kéo lên https://www.cloudflare.com/drop/
 
 ## Local preview
 
 ```bash
-cd drop/genealogy-viewer
-python3 -m http.server 8765
-# mở http://127.0.0.1:8765/
+cd drop/genealogy-viewer/public
+python3 -m http.server 9876 --bind 127.0.0.1
+# http://127.0.0.1:9876/
 ```
 
-Không mở `index.html` bằng `file://` — `fetch` JSON sẽ bị chặn.
-
-## Đồng bộ dữ liệu lại từ Django
-
-Trên server Django (khi đã có genealogy trong DB):
+## Đồng bộ dữ liệu từ Django
 
 ```bash
-# Ví dụ: lấy GoJS payload từ API rồi ghi đè snapshot
 curl -s http://localhost:8000/api/genealogy/<id>/gojs_data/ \
-  > drop/genealogy-viewer/data/gojs_data.json
+  | tee drop/genealogy-viewer/data/gojs_data.json \
+        drop/genealogy-viewer/public/data/gojs_data.json >/dev/null
 ```
-
-Hoặc copy lại từ `genealogy_data.json` ở root repo nếu file đó đã được export mới.

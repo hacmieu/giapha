@@ -6,6 +6,8 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260718_0119-deploy-genealogy-viewer-hacmieu.md](./20260718_0119-deploy-genealogy-viewer-hacmieu.md) | Deploy vào account Hacmieu (không temporary) — done |
+| [20260718_0109-deploy-genealogy-viewer-hacmieu-account.md](./20260718_0109-deploy-genealogy-viewer-hacmieu-account.md) | Plan chờ auth (superseded bởi 0119) |
 | [20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md](./20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md) | Redeploy Drop/Workers vì miss claim lần trước |
 | [20260717_1851-genealogy-viewer-cloudflare-drop.md](./20260717_1851-genealogy-viewer-cloudflare-drop.md) | Plan tách module genealogy-viewer → Cloudflare Drop (static HTML/JS/JSON) |
 
