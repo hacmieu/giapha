@@ -1,4 +1,4 @@
-# Genealogy Viewer — Cloudflare Drop / Workers package
+# Trần Tộc Genealogy Viewer — Cloudflare Workers
 
 Static export của module [genealogy-viewer](https://giaphavutoc.hay1.net/genealogy-viewer/).
 
@@ -8,7 +8,14 @@ Static export của module [genealogy-viewer](https://giaphavutoc.hay1.net/genea
 
 - Account: `Hacmieu@gmail.com's Account` (`716f165ab210a3626462c1c9b903ab44`)
 - Worker name: `giapha-genealogy-viewer`
-- Report: `reports/20260718_0119-deploy-genealogy-viewer-hacmieu.md`
+- UI report: `reports/pdca/20260719_1159-tran-toc-viewer-modal.md`
+
+## Trải nghiệm
+
+- Cây phả hệ là không gian chính; sidebar chỉ giữ điều khiển và chú giải.
+- Click thành viên hoặc chọn kết quả tìm kiếm để mở modal hồ sơ.
+- Hồ sơ nhóm theo thân thế, gia đình và ghi chép gia phả.
+- Escape, nút × hoặc click nền để đóng; responsive trên mobile.
 
 ## Cấu trúc
 
@@ -21,7 +28,7 @@ genealogy-viewer/
 │   ├── js/autocomplete-search.js
 │   └── data/gojs_data.json
 ├── wrangler.toml           # account_id = Hacmieu
-├── index.html / css / js / data   # bản gốc (Drop zip / sync nguồn)
+├── index.html              # Entry cho gói zip/Cloudflare Drop, trỏ vào public/
 └── README.md
 ```
 
@@ -31,8 +38,6 @@ genealogy-viewer/
 cd drop/genealogy-viewer
 # Node >= 22, đã wrangler login với hacmieu@gmail.com
 export CLOUDFLARE_ACCOUNT_ID=716f165ab210a3626462c1c9b903ab44
-# sync public từ bản gốc nếu cần:
-# cp -r index.html css js data public/
 npm exec --yes wrangler@4.102.0 -- deploy
 ```
 
@@ -52,6 +57,5 @@ python3 -m http.server 9876 --bind 127.0.0.1
 
 ```bash
 curl -s http://localhost:8000/api/genealogy/<id>/gojs_data/ \
-  | tee drop/genealogy-viewer/data/gojs_data.json \
-        drop/genealogy-viewer/public/data/gojs_data.json >/dev/null
+  > drop/genealogy-viewer/public/data/gojs_data.json
 ```

@@ -9,6 +9,7 @@
 
 let genealogyData = null;
 let myDiagram = null;
+let personModalReturnFocus = null;
 
 /** Relative path for static Drop package (override via window.GIAPHA_DATA_URL) */
 var GIAPHA_STATIC_DATA_URL = (typeof window !== 'undefined' && window.GIAPHA_DATA_URL)
@@ -30,6 +31,20 @@ const GEN_COLORS = {
 
 function getGenColor(gen) {
     return (GEN_COLORS[gen] || { bg: "#4b5563", text: "#fff" }).bg;
+}
+
+function getGivenInitial(name) {
+    const parts = String(name || '').trim().split(/\s+/);
+    return (parts[parts.length - 1] || 'T').charAt(0).toUpperCase();
+}
+
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 // ──────────────────────────────────────────────
@@ -112,18 +127,22 @@ function initDiagram() {
         $(go.Panel, "Vertical",
             { margin: new go.Margin(8, 8, 8, 8), minSize: new go.Size(90, NaN) },
 
-            // Photo placeholder
-            $(go.Picture,
-                {
-                    margin: new go.Margin(0, 0, 5, 0),
-                    width: 52, height: 65,
-                    background: "#f0fdf4",
-                    imageStretch: go.GraphObject.UniformToFill,
-                    source: "/media/members/male_placeholder.jpg",
-                    errorFunction: function(pic, e) {
-                        pic.source = "";
-                    }
-                }
+            // Monogram: tránh tải hàng trăm ảnh placeholder không tồn tại
+            $(go.Panel, "Spot",
+                { margin: new go.Margin(0, 0, 6, 0) },
+                $(go.Shape, "Circle",
+                    { width: 34, height: 34, strokeWidth: 1.5 },
+                    new go.Binding("fill", "generation", function(gen) {
+                        return getGenColor(gen);
+                    }),
+                    new go.Binding("stroke", "generation", function(gen) {
+                        return gen === 4 ? "#78350f" : "#ffffff";
+                    })
+                ),
+                $(go.TextBlock,
+                    { font: "bold 10pt Georgia, serif", stroke: "#ffffff" },
+                    new go.Binding("text", "name", getGivenInitial)
+                )
             ),
 
             // Name
@@ -208,6 +227,7 @@ function applyGenealogyData(data) {
 
     updateStats(data.metadata);
     initSearchAutocomplete();
+    initPersonModal();
 
     myDiagram.addDiagramListener("InitialLayoutCompleted", function() {
         myDiagram.zoomToFit();
@@ -241,31 +261,100 @@ function loadGenealogy() {
 }
 
 // ──────────────────────────────────────────────
-// Hiển thị thông tin người được chọn
+// Hiển thị hồ sơ thành viên trong modal
 // ──────────────────────────────────────────────
 function showPersonInfo(data) {
     if (!data) return;
-    document.getElementById('noSelection').style.display = 'none';
-    const panel = document.getElementById('selectedInfo');
-    panel.style.display = 'block';
 
-    let html = '<strong style="font-size:13px;">' + data.name + '</strong><br>';
-    html += '<span style="color:#6b7280;font-size:11px;">ID: ' + data.key + '</span><br>';
-    html += '<span style="font-size:12px;">🏛 Đời thứ ' + data.generation + '</span><br>';
-    if (data.spouses) html += '<span style="font-size:12px;">💑 Vợ: ' + data.spouses + '</span><br>';
-    if (data.birthYear) html += '<span style="font-size:12px;">📅 Năm sinh: ' + data.birthYear + '</span><br>';
-    if (data.location) html += '<span style="font-size:12px;">📍 ' + data.location + '</span><br>';
-    if (data.notes) html += '<span style="font-size:11px;color:#6b7280;">📝 ' + data.notes + '</span><br>';
-
-    document.getElementById('personInfo').innerHTML = html;
-
-    // Highlight node
+    // Giữ vị trí ngữ cảnh: chọn và đưa node vào vùng nhìn trước khi mở hồ sơ.
     if (myDiagram) {
         const node = myDiagram.findNodeForKey(data.key);
         if (node) {
             myDiagram.select(node);
             myDiagram.commandHandler.scrollToPart(node);
         }
+    }
+
+    const modal = document.getElementById('personModal');
+    if (!modal) return;
+
+    const father = data.fatherId && genealogyData
+        ? genealogyData.nodeDataArray.find(function(person) { return person.key === data.fatherId; })
+        : null;
+    const children = genealogyData
+        ? genealogyData.nodeDataArray.filter(function(person) { return person.fatherId === data.key; })
+        : [];
+    const field = function(label, value, wide) {
+        if (value === undefined || value === null || value === '') return '';
+        return '<div class="profile-field' + (wide ? ' wide' : '') + '">' +
+            '<span class="profile-label">' + escapeHtml(label) + '</span>' +
+            '<span class="profile-value">' + escapeHtml(value) + '</span>' +
+            '</div>';
+    };
+
+    document.getElementById('personMonogram').textContent = getGivenInitial(data.name);
+    document.getElementById('personGeneration').textContent = 'Đời ' + (data.generation || '--');
+    document.getElementById('personModalName').textContent = data.name || 'Chưa rõ họ tên';
+    document.getElementById('personModalId').textContent = 'Mã gia phả · ' + (data.key || 'Chưa xác định');
+
+    let body = '<section class="profile-section" aria-labelledby="section-vitals">' +
+        '<h3 id="section-vitals">Thân thế</h3><div class="profile-grid">' +
+        field('Năm sinh', data.birthYear || 'Chưa ghi') +
+        field('Nơi ở', data.location || 'Chưa ghi') +
+        '</div></section>';
+
+    body += '<section class="profile-section" aria-labelledby="section-family">' +
+        '<h3 id="section-family">Gia đình</h3><div class="profile-grid">' +
+        field('Thân phụ', father ? father.name : 'Chưa xác định') +
+        field('Phối ngẫu', data.spouses || 'Chưa ghi') +
+        field('Con trong phả đồ', children.length ? children.length + ' người' : 'Chưa ghi') +
+        '</div></section>';
+
+    if (data.notes) {
+        body += '<section class="profile-section" aria-labelledby="section-notes">' +
+            '<h3 id="section-notes">Ghi chép gia phả</h3>' +
+            '<p class="profile-note">' + escapeHtml(data.notes) + '</p></section>';
+    }
+
+    document.getElementById('personModalBody').innerHTML = body;
+    personModalReturnFocus = document.activeElement;
+
+    if (typeof modal.showModal === 'function') {
+        if (!modal.open) modal.showModal();
+    } else {
+        modal.setAttribute('open', '');
+    }
+}
+
+function initPersonModal() {
+    const modal = document.getElementById('personModal');
+    if (!modal || modal.dataset.ready === 'true') return;
+    modal.dataset.ready = 'true';
+
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) closePersonModal();
+    });
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && modal.open) {
+            event.preventDefault();
+            closePersonModal();
+        }
+    });
+    modal.addEventListener('close', function() {
+        if (personModalReturnFocus && typeof personModalReturnFocus.focus === 'function') {
+            personModalReturnFocus.focus();
+        }
+        personModalReturnFocus = null;
+    });
+}
+
+function closePersonModal() {
+    const modal = document.getElementById('personModal');
+    if (!modal) return;
+    if (typeof modal.close === 'function' && modal.open) {
+        modal.close();
+    } else {
+        modal.removeAttribute('open');
     }
 }
 

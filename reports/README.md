@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260719_1159-tran-toc-viewer-modal.md](./pdca/20260719_1159-tran-toc-viewer-modal.md) | PDCA done: Trần Tộc UI, hồ sơ modal, browser check và deploy Hacmieu |
 | [20260718_0119-deploy-genealogy-viewer-hacmieu.md](./20260718_0119-deploy-genealogy-viewer-hacmieu.md) | Deploy done trên Hacmieu — https://giapha-genealogy-viewer.hacmieu.workers.dev |
 | [20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md](./20260718_0058-redeploy-genealogy-viewer-cloudflare-drop.md) | Redeploy done + claim URL mới (Descriptive Homburg) |
 | [20260717_1851-genealogy-viewer-cloudflare-drop.md](./20260717_1851-genealogy-viewer-cloudflare-drop.md) | PDCA done: static Drop package + live Workers temporary URL |
