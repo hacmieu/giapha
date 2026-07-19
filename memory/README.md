@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1510-print-person-subtree-ux.md](./20260719_1510-print-person-subtree-ux.md) | UX trích nhánh hậu duệ để in: chọn người → đến đời X → preview → PDF |
 | [20260719_1457-zoom-slider-collapsible-controls.md](./20260719_1457-zoom-slider-collapsible-controls.md) | Zoom bằng slider (chống double-tap mobile); panel điều khiển ẩn sau nút 🧭 |
 | [20260719_1449-diagram-nav-controls.md](./20260719_1449-diagram-nav-controls.md) | Cụm nút zoom/pan/Về Tổ nổi trên diagram; overlay đặt trong .diagram-stage |
 | [20260719_1444-modal-family-links.md](./20260719_1444-modal-family-links.md) | Link Thân phụ/con trong modal (event delegation); phối ngẫu chỉ là chuỗi nên giữ text |
