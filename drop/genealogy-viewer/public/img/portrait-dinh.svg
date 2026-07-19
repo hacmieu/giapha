@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="208" height="260" viewBox="0 0 208 260" role="img" aria-label="Portrait gia tÙc">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7f1e4"/>
+      <stop offset="55%" stop-color="#ebe1cf"/>
+      <stop offset="100%" stop-color="#d9cbb4"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0.3" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#f0d2b4"/>
+      <stop offset="100%" stop-color="#d7ae89"/>
+    </linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1f3d5a"/>
+      <stop offset="100%" stop-color="#122636"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="208" height="260" rx="18" fill="#f4efe4"/>
+  <rect x="10" y="10" width="188" height="240" rx="14" fill="url(#bg)" stroke="#c8943e" stroke-width="3"/>
+  <rect x="18" y="18" width="172" height="224" rx="10" fill="none" stroke="#a62c2b" stroke-opacity=".35" stroke-width="1.5"/>
+  <ellipse cx="104" cy="96" rx="78" ry="86" fill="url(#glow)"/>
+  <ellipse cx="104" cy="214" rx="70" ry="34" fill="url(#robe)"/>
+  <path d="M48 214 C58 168 78 148 104 148 C130 148 150 168 160 214 Z" fill="url(#robe)"/>
+  <path d="M86 164 L104 178 L122 164" fill="none" stroke="#c8943e" stroke-width="2"/>
+  <circle cx="104" cy="98" r="42" fill="url(#skin)"/>
+  <path d="M68 92 C72 58 90 46 104 46 C118 46 136 58 140 92 C128 78 116 74 104 74 C92 74 80 78 68 92 Z" fill="#2a221c"/>
+  <ellipse cx="90" cy="100" rx="3.2" ry="3.8" fill="#2a221c"/>
+  <ellipse cx="118" cy="100" rx="3.2" ry="3.8" fill="#2a221c"/>
+  <path d="M96 116 C100 120 108 120 112 116" fill="none" stroke="#b07a57" stroke-width="2" stroke-linecap="round"/>
+  <path d="M74 122 C84 134 124 134 134 122" fill="none" stroke="#c9a484" stroke-width="1.5" opacity=".55"/>
+</svg>

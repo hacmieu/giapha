@@ -1,61 +1,42 @@
-# Trần Tộc Genealogy Viewer — Cloudflare Workers
+# Trần tộc Chanh Thôn — Genealogy Viewer
 
-Static export của module [genealogy-viewer](https://giaphavutoc.hay1.net/genealogy-viewer/).
+Static export của module genealogy-viewer cho Cloudflare Workers.
 
-## Live (Hacmieu@gmail.com — production)
+## Live (Hacmieu@gmail.com)
 
 **https://giapha-genealogy-viewer.hacmieu.workers.dev**
 
-- Account: `Hacmieu@gmail.com's Account` (`716f165ab210a3626462c1c9b903ab44`)
-- Worker name: `giapha-genealogy-viewer`
-- UI report: `reports/pdca/20260719_1159-tran-toc-viewer-modal.md`
+- Nhận diện: **Trần tộc Chanh Thôn**
+- Địa danh: **Chanh Thôn - Ninh Bình (Hà Nam cũ)**
+- Phả đồ: Họ Trần Chi 4
+- UI report: `reports/pdca/20260719_1212-chanh-thon-portrait.md`
 
 ## Trải nghiệm
 
-- Cây phả hệ là không gian chính; sidebar chỉ giữ điều khiển và chú giải.
-- Click thành viên hoặc chọn kết quả tìm kiếm để mở modal hồ sơ.
-- Hồ sơ nhóm theo thân thế, gia đình và ghi chép gia phả.
-- Escape, nút × hoặc click nền để đóng; responsive trên mobile.
+- Sidebar: điều khiển / tìm / lọc / chú giải.
+- Click node → modal hồ sơ (thân thế, gia đình, ghi chép).
+- Portrait SVG trên node và trong modal; sẵn sàng thay bằng `photo` URL khi có.
 
 ## Cấu trúc
 
 ```
 genealogy-viewer/
-├── public/                 # Assets deploy (Wrangler [assets].directory)
+├── public/
 │   ├── index.html
 │   ├── css/viewer.css
-│   ├── js/genealogy-viewer.js
-│   ├── js/autocomplete-search.js
+│   ├── js/...
+│   ├── img/portrait-dinh.svg
+│   ├── img/portrait-spouse.svg
 │   └── data/gojs_data.json
-├── wrangler.toml           # account_id = Hacmieu
-├── index.html              # Entry cho gói zip/Cloudflare Drop, trỏ vào public/
+├── wrangler.toml
+├── index.html
 └── README.md
 ```
 
-## Deploy lại (Wrangler — account Hacmieu)
+## Deploy
 
 ```bash
 cd drop/genealogy-viewer
-# Node >= 22, đã wrangler login với hacmieu@gmail.com
 export CLOUDFLARE_ACCOUNT_ID=716f165ab210a3626462c1c9b903ab44
 npm exec --yes wrangler@4.102.0 -- deploy
-```
-
-## Cloudflare Drop (kéo thả)
-
-Zip thư mục `public/` (hoặc gói có `index.html` ở root) rồi kéo lên https://www.cloudflare.com/drop/
-
-## Local preview
-
-```bash
-cd drop/genealogy-viewer/public
-python3 -m http.server 9876 --bind 127.0.0.1
-# http://127.0.0.1:9876/
-```
-
-## Đồng bộ dữ liệu từ Django
-
-```bash
-curl -s http://localhost:8000/api/genealogy/<id>/gojs_data/ \
-  > drop/genealogy-viewer/public/data/gojs_data.json
 ```

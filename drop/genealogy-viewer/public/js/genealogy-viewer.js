@@ -1,6 +1,6 @@
 /**
  * Genealogy Viewer - GoJS Integration (static / Cloudflare Drop)
- * Phả Đồ Gia Phả - Họ Trần Chi 4
+ * Phả Đồ Gia Phả - Trần tộc Chanh Thôn / Họ Trần Chi 4
  *
  * Data source: ./data/gojs_data.json (no Django API)
  */
@@ -16,6 +16,17 @@ var GIAPHA_STATIC_DATA_URL = (typeof window !== 'undefined' && window.GIAPHA_DAT
     ? window.GIAPHA_DATA_URL
     : './data/gojs_data.json';
 
+var GIAPHA_ASSET_BASE = (typeof window !== 'undefined' && window.GIAPHA_ASSET_BASE)
+    ? window.GIAPHA_ASSET_BASE
+    : './';
+
+function portraitUrl(kind) {
+    var file = kind === 'spouse' ? 'img/portrait-spouse.svg' : 'img/portrait-dinh.svg';
+    return GIAPHA_ASSET_BASE.replace(/\/?$/, '/') + file;
+}
+
+var GIAPHA_PORTRAIT_DINH = portraitUrl('dinh');
+var GIAPHA_PORTRAIT_SPOUSE = portraitUrl('spouse');
 // Màu sắc theo thế hệ
 const GEN_COLORS = {
     4:  { bg: "#7c3aed", text: "#fff" },
@@ -127,20 +138,37 @@ function initDiagram() {
         $(go.Panel, "Vertical",
             { margin: new go.Margin(8, 8, 8, 8), minSize: new go.Size(90, NaN) },
 
-            // Monogram: tránh tải hàng trăm ảnh placeholder không tồn tại
+            // Portrait khung cổ điển (SVG local, không phụ thuộc CDN/media Django)
             $(go.Panel, "Spot",
                 { margin: new go.Margin(0, 0, 6, 0) },
-                $(go.Shape, "Circle",
-                    { width: 34, height: 34, strokeWidth: 1.5 },
-                    new go.Binding("fill", "generation", function(gen) {
-                        return getGenColor(gen);
-                    }),
+                $(go.Picture,
+                    {
+                        width: 52,
+                        height: 65,
+                        source: GIAPHA_PORTRAIT_DINH,
+                        imageStretch: go.GraphObject.UniformToFill,
+                        errorFunction: function(pic) { pic.source = ""; }
+                    }
+                ),
+                $(go.Shape, "RoundedRectangle",
+                    {
+                        width: 52,
+                        height: 65,
+                        fill: "transparent",
+                        parameter1: 6,
+                        strokeWidth: 1.5
+                    },
                     new go.Binding("stroke", "generation", function(gen) {
-                        return gen === 4 ? "#78350f" : "#ffffff";
+                        return gen === 4 ? "#78350f" : "#c8943e";
                     })
                 ),
                 $(go.TextBlock,
-                    { font: "bold 10pt Georgia, serif", stroke: "#ffffff" },
+                    {
+                        font: "bold 9pt Georgia, serif",
+                        stroke: "#fff9e9",
+                        alignment: new go.Spot(0.5, 0.92, 0, 0),
+                        background: "rgba(13,35,56,.55)"
+                    },
                     new go.Binding("text", "name", getGivenInitial)
                 )
             ),
@@ -292,6 +320,11 @@ function showPersonInfo(data) {
             '</div>';
     };
 
+    const portrait = document.getElementById('personPortrait');
+    if (portrait) {
+        portrait.src = data.photo || GIAPHA_PORTRAIT_DINH;
+        portrait.alt = 'Portrait ' + (data.name || 'thành viên');
+    }
     document.getElementById('personMonogram').textContent = getGivenInitial(data.name);
     document.getElementById('personGeneration').textContent = 'Đời ' + (data.generation || '--');
     document.getElementById('personModalName').textContent = data.name || 'Chưa rõ họ tên';

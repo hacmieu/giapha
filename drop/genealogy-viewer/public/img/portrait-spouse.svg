@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="208" height="260" viewBox="0 0 208 260" role="img" aria-label="Portrait phÑi ng«u">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbf4ea"/>
+      <stop offset="100%" stop-color="#ead7c3"/>
+    </linearGradient>
+    <linearGradient id="skin2" x1="0.3" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#f3d7bd"/>
+      <stop offset="100%" stop-color="#dbb190"/>
+    </linearGradient>
+    <linearGradient id="robe2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8d2f2e"/>
+      <stop offset="100%" stop-color="#5f1c1c"/>
+    </linearGradient>
+  </defs>
+  <rect width="208" height="260" rx="18" fill="#f7f1e6"/>
+  <rect x="10" y="10" width="188" height="240" rx="14" fill="url(#bg2)" stroke="#c8943e" stroke-width="3"/>
+  <ellipse cx="104" cy="214" rx="70" ry="34" fill="url(#robe2)"/>
+  <path d="M48 214 C58 168 78 148 104 148 C130 148 150 168 160 214 Z" fill="url(#robe2)"/>
+  <circle cx="104" cy="98" r="42" fill="url(#skin2)"/>
+  <path d="M66 98 C70 52 90 40 104 40 C118 40 138 52 142 98 C132 74 118 66 104 66 C90 66 76 74 66 98 Z" fill="#3a2a22"/>
+  <ellipse cx="90" cy="100" rx="3.2" ry="3.8" fill="#2a221c"/>
+  <ellipse cx="118" cy="100" rx="3.2" ry="3.8" fill="#2a221c"/>
+  <path d="M96 116 C100 120 108 120 112 116" fill="none" stroke="#b07a57" stroke-width="2" stroke-linecap="round"/>
+</svg>

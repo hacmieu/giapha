@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phả Đồ Đinh - Họ Trần Chi 4 - Trần Tộc Làng Chuông</title>
-    <link rel="stylesheet" href="./public/css/viewer.css?v=7">
+    <title>Phả Đồ Đinh - Họ Trần Chi 4 - Trần tộc Chanh Thôn</title>
+    <link rel="stylesheet" href="./public/css/viewer.css?v=8">
 </head>
 <body>
 <header class="site-header">
     <div class="clan-seal" aria-hidden="true">陳</div>
     <div class="site-heading">
         <span class="eyebrow">Gia phả điện tử</span>
-        <h1>Trần Tộc Làng Chuông</h1>
-        <p>Thôn Hữu Chung, Xã Tân An, TP Hải Phòng · Phả đồ Họ Trần Chi 4</p>
+        <h1>Trần tộc Chanh Thôn</h1>
+        <p>Chanh Thôn - Ninh Bình (Hà Nam cũ) · Phả đồ Họ Trần Chi 4</p>
     </div>
 </header>
 
@@ -88,7 +88,7 @@
         </div>
     </aside>
 
-    <main id="myDiagramDiv" aria-label="Phả đồ Trần Tộc Họ Trần Chi 4">
+    <main id="myDiagramDiv" aria-label="Phả đồ Trần tộc Chanh Thôn - Họ Trần Chi 4">
         <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:16px;">
             ⏳ Đang tải phả đồ...
         </div>
@@ -99,7 +99,10 @@
     <div class="modal-shell">
         <button type="button" class="modal-close" onclick="closePersonModal()" aria-label="Đóng hồ sơ">×</button>
         <div class="modal-identity">
-            <div id="personMonogram" class="person-monogram" aria-hidden="true">T</div>
+            <div class="person-portrait-frame">
+                <img id="personPortrait" class="person-portrait" src="./public/img/portrait-dinh.svg" alt="">
+                <span id="personMonogram" class="person-monogram" aria-hidden="true">T</span>
+            </div>
             <div>
                 <span id="personGeneration" class="generation-badge">Đời --</span>
                 <h2 id="personModalName">Hồ sơ thành viên</h2>
@@ -111,13 +114,13 @@
 </dialog>
 
 <footer class="site-footer">
-    © 2024–2026 Gia Phả Trần Tộc Làng Chuông · Gìn giữ mạch nguồn gia tộc.
+    © 2024–2026 Gia Phả Trần tộc Chanh Thôn · Chanh Thôn - Ninh Bình (Hà Nam cũ).
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
-<script>window.GIAPHA_DATA_URL = './public/data/gojs_data.json';</script>
+<script>window.GIAPHA_DATA_URL = './public/data/gojs_data.json'; window.GIAPHA_ASSET_BASE = './public/';</script>
 <script src="./public/js/autocomplete-search.js"></script>
-<script src="./public/js/genealogy-viewer.js?v=7"></script>
+<script src="./public/js/genealogy-viewer.js?v=8"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         loadStaticGenealogy();
