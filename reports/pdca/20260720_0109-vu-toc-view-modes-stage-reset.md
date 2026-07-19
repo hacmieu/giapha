@@ -55,7 +55,17 @@ Xem plan liên kết ở trên.
 
 Không migration, không mutation D1. Graph 397 node nặng hơn main, nhưng chỉ tải theo yêu cầu. Rollback bằng Worker version trước.
 
+## Follow-up từ audit (2026-07-20)
+
+- Fixed: `collectDescendants()` đi theo cả `fatherId` và `motherId` (con của con gái).
+- Fixed: `getPublicPerson` + modal hiển thị `socialRelations`.
+- Còn mở: admin `createPerson`/`updatePerson` vẫn ép không-chi ⇒ `external` (sai tổ tiên/spouse chưa gán chi).
+- Còn mở: exporter vẫn expect 91 external trong khi live còn 82.
+- Còn mở: projection server-side `?mode=` và fixture tests; hiện client projection đủ dùng.
+
 ## Next actions
 
 - Làm CRUD cho `social_relations` để view Quan hệ khác có dữ liệu gia tộc thật.
+- Sửa admin scope derivation theo tổ tiên/quan hệ, không chỉ `branch_id`.
+- Cập nhật exporter validation count và (tuỳ chọn) mode projection phía server.
 - UAT nội dung: xác nhận các spouse relation hiện có đã đủ chồng của con gái; bổ sung quan hệ còn thiếu qua admin sau.

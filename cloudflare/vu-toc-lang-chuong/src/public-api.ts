@@ -399,10 +399,27 @@ export async function getPublicPerson(env: Env, personId: string): Promise<Respo
          AND related.deleted_at IS NULL
        ORDER BY relation.wife_order, related.name`,
     ).bind(personId, env.FAMILY_ID, personId, personId),
+    env.DB.prepare(
+      `SELECT relation.id, relation.to_person_id, relation.to_person_name,
+              relation.to_person_gender, relation.relation_type, relation.label,
+              relation.seniority_note, relation.notes,
+              related.id AS related_id, related.name AS related_name,
+              related.tree_scope AS related_tree_scope,
+              related.lineage_role AS related_lineage_role
+       FROM social_relations relation
+       LEFT JOIN people related ON related.id = relation.to_person_id
+         AND related.visibility = 'public'
+         AND related.deleted_at IS NULL
+       WHERE relation.family_id = ?
+         AND relation.from_person_id = ?
+         AND relation.visibility = 'public'
+       ORDER BY relation.label, relation.relation_type`,
+    ).bind(env.FAMILY_ID, personId),
   ]);
   const parentsResult = batchResult(batch, 0);
   const childrenResult = batchResult(batch, 1);
   const spousesResult = batchResult(batch, 2);
+  const socialResult = batchResult(batch, 3);
 
   return json({
     person: {
@@ -431,6 +448,7 @@ export async function getPublicPerson(env: Env, personId: string): Promise<Respo
     parents: parentsResult.results,
     children: childrenResult.results,
     spouses: spousesResult.results,
+    socialRelations: socialResult.results,
   });
 }
 

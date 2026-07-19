@@ -26,3 +26,9 @@
 ## Dữ liệu còn thiếu
 
 `social_relations` hiện chỉ có 1 bản ghi (`blood_out`, “Con của Cô”). View quan hệ khác vẫn hữu ích nhờ 82 external people và toàn bộ parent/spouse links, nhưng sẽ phong phú hơn khi CRUD social relations được nhập thật.
+
+## Audit follow-up
+
+- Vẽ nhánh hậu duệ phải traverse cả cha và mẹ; chỉ `fatherId` sẽ mất con của con gái.
+- Hồ sơ chi tiết cần trả `socialRelations` dù graph view đã vẽ được cạnh social.
+- Admin scope derivation và exporter validation count vẫn là nợ kỹ thuật riêng.

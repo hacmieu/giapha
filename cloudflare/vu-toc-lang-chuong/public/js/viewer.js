@@ -690,12 +690,15 @@
       return String(p.id) === String(rootKey);
     });
     if (!root) return [];
-    var childrenByFather = {};
+    // Đi theo cả cha và mẹ — con của con gái thường chỉ có parent_relations.mother.
+    var childrenByParent = {};
     all.forEach(function (p) {
-      if (!p.fatherId) return;
-      var fk = String(p.fatherId);
-      if (!childrenByFather[fk]) childrenByFather[fk] = [];
-      childrenByFather[fk].push(p);
+      [p.fatherId, p.motherId].forEach(function (parentId) {
+        if (!parentId) return;
+        var key = String(parentId);
+        if (!childrenByParent[key]) childrenByParent[key] = [];
+        childrenByParent[key].push(p);
+      });
     });
     var limit = endGeneration ? Number(endGeneration) : Infinity;
     var result = [];
@@ -707,7 +710,9 @@
       if (seen[key]) continue;
       seen[key] = true;
       result.push(person);
-      (childrenByFather[key] || []).forEach(function (child) {
+      (childrenByParent[key] || []).forEach(function (child) {
+        var childKey = String(child.id);
+        if (seen[childKey]) return;
         var generation = Number(child.generation) || 0;
         if (generation <= limit) queue.push(child);
       });
@@ -910,6 +915,7 @@
     });
     var spouses = payload.spouses || [];
     var children = payload.children || [];
+    var socialRelations = payload.socialRelations || [];
 
     var body =
       '<section class="profile-section" aria-labelledby="section-vitals">' +
@@ -949,6 +955,39 @@
           )
         : field("Con", "Chưa ghi")) +
       "</div></section>";
+
+    if (socialRelations.length) {
+      body +=
+        '<section class="profile-section" aria-labelledby="section-social">' +
+        '<h3 id="section-social">Quan hệ khác</h3><div class="profile-grid">' +
+        fieldRaw(
+          "Liên kết (" + socialRelations.length + ")",
+          '<span class="person-link-list">' +
+            socialRelations
+              .map(function (relation) {
+                var label = relation.label || relation.relation_type || "quan hệ khác";
+                if (relation.related_id) {
+                  return (
+                    escapeHtml(label) +
+                    ": " +
+                    personLink({
+                      id: relation.related_id,
+                      name: relation.related_name,
+                    })
+                  );
+                }
+                return (
+                  escapeHtml(label) +
+                  ": " +
+                  escapeHtml(relation.to_person_name || "Chưa rõ")
+                );
+              })
+              .join("") +
+            "</span>",
+          true,
+        ) +
+        "</div></section>";
+    }
 
     // Vẽ nhánh — chỉ khi người nằm trong bloodline cây chính
     var inBlood = bloodlineNodes.some(function (n) {
