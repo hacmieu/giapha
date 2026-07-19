@@ -267,11 +267,36 @@
             textAlign: "center",
             margin: new go.Margin(1, 0, 0, 0),
           },
-          new go.Binding("text", "spouseText", function (t) {
-            return t ? "Phối ngẫu: " + t : " ";
+          new go.Binding("text", "", function (d) {
+            if (d.wifeLabel) return d.wifeLabel;
+            return d.spouseText ? "Phối ngẫu: " + d.spouseText : " ";
           }),
         ),
       ),
+    );
+
+    diagram.groupTemplate = $(
+      go.Group,
+      "Auto",
+      {
+        layout: $(go.GridLayout, {
+          wrappingColumn: Infinity,
+          alignment: go.GridLayout.Position,
+          cellSize: new go.Size(1, 1),
+          spacing: new go.Size(4, 4),
+        }),
+        isSubGraphExpanded: true,
+        selectable: false,
+        computesBoundsAfterDrag: true,
+      },
+      $(go.Shape, "RoundedRectangle", {
+        parameter1: 8,
+        fill: "rgba(253, 242, 248, 0.5)",
+        stroke: "#f9a8d4",
+        strokeWidth: 1,
+        strokeDashArray: [4, 2],
+      }),
+      $(go.Placeholder, { padding: 6 }),
     );
 
     diagram.linkTemplate = $(
@@ -284,10 +309,16 @@
           if (kind === "spouse") return "#a62c2b";
           if (kind === "social") return "#7c3aed";
           if (kind === "mother") return "#db2777";
+          if (kind === "father") return "#2563eb";
           return "#9ca3af";
         }),
         new go.Binding("strokeDashArray", "linkKind", function (kind) {
-          return kind === "spouse" || kind === "social" ? [6, 4] : null;
+          return kind === "spouse" || kind === "social" || kind === "mother"
+            ? [6, 4]
+            : null;
+        }),
+        new go.Binding("strokeWidth", "linkKind", function (kind) {
+          return kind === "father" ? 2 : 1.5;
         }),
       ),
       $(
@@ -341,36 +372,50 @@
       linkKeyProperty: "id",
       linkFromKeyProperty: "from",
       linkToKeyProperty: "to",
+      nodeGroupKeyProperty: "group",
       nodeDataArray: nodes.map(function (node) {
-        return {
+        var copy = {
           id: node.id,
-          name: node.name,
+          name: node.name || "",
           gender: node.gender,
           generation: node.generation,
           lineageRole: node.lineageRole,
           treeScope: node.treeScope,
           isDeceased: node.isDeceased,
           spouseText: node.spouseText || "",
+          wifeLabel: node.wifeLabel || "",
         };
+        if (node.isGroup) {
+          copy.isGroup = true;
+          copy.isFamily = true;
+        }
+        if (node.group) copy.group = node.group;
+        return copy;
       }),
       linkDataArray: links,
     });
   }
 
-  function graphSpouseNames(personId) {
-    if (!graphPayload) return "";
-    var names = (graphPayload.spouseRelations || [])
-      .filter(function (relation) {
-        return relation.personAId === personId || relation.personBId === personId;
-      })
-      .map(function (relation) {
-        var otherId =
-          relation.personAId === personId ? relation.personBId : relation.personAId;
-        return nodeById[otherId] ? nodeById[otherId].name : null;
-      })
-      .filter(Boolean);
-    if (names.length === 1) return names[0];
-    return names.length > 1 ? names.length + " người" : "";
+  function resolveCoupleEndpoints(relation, nodeMap) {
+    var a = nodeMap[relation.personAId];
+    var b = nodeMap[relation.personBId];
+    if (!a || !b) return null;
+
+    var wifeId = relation.wifePersonId;
+    var husbandId = null;
+    if (wifeId === relation.personAId) husbandId = relation.personBId;
+    else if (wifeId === relation.personBId) husbandId = relation.personAId;
+    else if (a.gender === "male" && b.gender === "female") {
+      husbandId = a.id;
+      wifeId = b.id;
+    } else if (b.gender === "male" && a.gender === "female") {
+      husbandId = b.id;
+      wifeId = a.id;
+    } else {
+      husbandId = relation.personAId;
+      wifeId = relation.personBId;
+    }
+    return { husbandId: husbandId, wifeId: wifeId };
   }
 
   function selectGraphData(view) {
@@ -381,7 +426,6 @@
       allNodes.forEach(function (node) {
         if (node.treeScope === "main") selectedIds[node.id] = true;
       });
-      // Thêm vợ/chồng trực tiếp của người trong main, kể cả người phối ngẫu là external.
       (graphPayload.spouseRelations || []).forEach(function (relation) {
         if (selectedIds[relation.personAId] || selectedIds[relation.personBId]) {
           selectedIds[relation.personAId] = true;
@@ -394,34 +438,98 @@
       });
     }
 
-    var nodes = allNodes
-      .filter(function (node) {
-        return selectedIds[node.id];
-      })
-      .map(function (node) {
-        return Object.assign({}, node, { spouseText: graphSpouseNames(node.id) });
+    // Person map — không ghi spouseText (đã hiện vợ trong group).
+    var nodeMap = {};
+    allNodes.forEach(function (node) {
+      if (!selectedIds[node.id]) return;
+      nodeMap[node.id] = Object.assign({}, node, {
+        spouseText: "",
+        wifeLabel: "",
       });
-    var links = [];
+    });
 
+    // Gom vợ theo chồng — giống relationships.html (fam_<husband>).
+    var wivesByHusband = {};
+    (graphPayload.spouseRelations || []).forEach(function (relation) {
+      if (!selectedIds[relation.personAId] || !selectedIds[relation.personBId]) return;
+      var ends = resolveCoupleEndpoints(relation, nodeMap);
+      if (!ends || !nodeMap[ends.husbandId] || !nodeMap[ends.wifeId]) return;
+      if (!wivesByHusband[ends.husbandId]) wivesByHusband[ends.husbandId] = [];
+      wivesByHusband[ends.husbandId].push({
+        id: ends.wifeId,
+        order: relation.wifeOrder == null ? 999 : Number(relation.wifeOrder),
+      });
+    });
+
+    var familyGroupKeys = {};
+    var wifeInGroup = {};
+    var groupNodes = [];
+    Object.keys(wivesByHusband).forEach(function (husbandId) {
+      var seenWives = {};
+      var wives = wivesByHusband[husbandId]
+        .filter(function (wife) {
+          if (!nodeMap[wife.id] || wifeInGroup[wife.id] || seenWives[wife.id]) return false;
+          seenWives[wife.id] = true;
+          return true;
+        })
+        .sort(function (a, b) {
+          return a.order - b.order;
+        });
+      if (!wives.length || !nodeMap[husbandId]) return;
+
+      var groupKey = "fam:" + husbandId;
+      familyGroupKeys[husbandId] = groupKey;
+      groupNodes.push({
+        id: groupKey,
+        isGroup: true,
+        isFamily: true,
+        name: "",
+        generation: nodeMap[husbandId].generation,
+        lineageRole: "family_group",
+        treeScope: nodeMap[husbandId].treeScope,
+        isDeceased: false,
+        spouseText: "",
+      });
+      nodeMap[husbandId].group = groupKey;
+      wives.forEach(function (wife, index) {
+        nodeMap[wife.id].group = groupKey;
+        wifeInGroup[wife.id] = true;
+        if (wives.length > 1) {
+          nodeMap[wife.id].wifeLabel =
+            "Bà " + (wife.order < 999 ? wife.order : index + 1);
+        }
+      });
+    });
+
+    var fatherOf = {};
+    var motherOf = {};
     (graphPayload.parentRelations || []).forEach(function (relation) {
-      if (selectedIds[relation.parentId] && selectedIds[relation.childId]) {
+      if (!selectedIds[relation.parentId] || !selectedIds[relation.childId]) return;
+      if (relation.relationType === "father") fatherOf[relation.childId] = relation.parentId;
+      if (relation.relationType === "mother") motherOf[relation.childId] = relation.parentId;
+    });
+
+    var links = [];
+    Object.keys(nodeMap).forEach(function (childId) {
+      var child = nodeMap[childId];
+      var fatherId = fatherOf[childId];
+      var motherId = motherOf[childId];
+      if (fatherId && nodeMap[fatherId]) {
         links.push({
-          id: "parent:" + relation.id,
-          from: relation.parentId,
-          to: relation.childId,
-          linkKind: relation.relationType,
-          label: relation.relationType === "mother" ? "mẹ" : "",
+          id: "father:" + childId,
+          from: familyGroupKeys[fatherId] || fatherId,
+          to: child.group || childId,
+          linkKind: "father",
+          label: "",
         });
       }
-    });
-    (graphPayload.spouseRelations || []).forEach(function (relation) {
-      if (selectedIds[relation.personAId] && selectedIds[relation.personBId]) {
+      if (motherId && nodeMap[motherId]) {
         links.push({
-          id: "spouse:" + relation.id,
-          from: relation.personAId,
-          to: relation.personBId,
-          linkKind: "spouse",
-          label: relation.wifeOrder ? "vợ thứ " + relation.wifeOrder : "vợ/chồng",
+          id: "mother:" + childId,
+          from: motherId,
+          to: childId,
+          linkKind: "mother",
+          label: "mẹ",
         });
       }
     });
@@ -431,7 +539,7 @@
         var targetId = relation.toPersonId;
         if (!targetId && relation.toPersonName) {
           targetId = "social-target:" + relation.id;
-          nodes.push({
+          nodeMap[targetId] = {
             id: targetId,
             name: relation.toPersonName,
             gender: relation.toPersonGender || "male",
@@ -440,10 +548,11 @@
             treeScope: "external",
             isDeceased: false,
             spouseText: "",
-          });
+            wifeLabel: "",
+          };
           selectedIds[targetId] = true;
         }
-        if (targetId && selectedIds[relation.fromPersonId] && selectedIds[targetId]) {
+        if (targetId && nodeMap[relation.fromPersonId] && nodeMap[targetId]) {
           links.push({
             id: "social:" + relation.id,
             from: relation.fromPersonId,
@@ -455,7 +564,15 @@
       });
     }
 
-    return { nodes: nodes, links: links };
+    var personNodes = Object.keys(nodeMap).map(function (id) {
+      return nodeMap[id];
+    });
+    return {
+      nodes: groupNodes.concat(personNodes),
+      links: links,
+      personCount: personNodes.length,
+      familyGroupCount: groupNodes.length,
+    };
   }
 
   function buildBloodline() {
@@ -489,10 +606,13 @@
         compaction: go.TreeLayout.CompactionBlock,
       });
     } else {
-      diagram.layout = $(go.LayeredDigraphLayout, {
-        direction: 90,
+      // Gia đình / quan hệ: TreeLayout như Django relationships.html (group = một node cây).
+      diagram.layout = $(go.TreeLayout, {
+        angle: 90,
         layerSpacing: 55,
-        columnSpacing: 20,
+        nodeSpacing: 18,
+        arrangement: go.TreeLayout.ArrangementHorizontal,
+        sorting: go.TreeLayout.SortingForwards,
       });
     }
   }
@@ -519,7 +639,9 @@
       diagram.model = createTreeModel(bloodlineNodes);
     } else {
       var data = selectGraphData(view);
-      currentViewNodes = data.nodes;
+      currentViewNodes = data.nodes.filter(function (node) {
+        return !node.isGroup;
+      });
       diagram.model = createGraphModel(data.nodes, data.links);
     }
     applyFiltersVisibility();
@@ -577,17 +699,22 @@
     var bestScore = -1;
     diagram.nodes.each(function (node) {
       if (!node.visible) return;
+      if (node instanceof go.Group || node.data.isGroup) return;
       var d = node.data;
       var gen = d.generation == null ? 99 : Number(d.generation);
       var isDinh = d.lineageRole === "dinh" || d.lineageRole === "dinh_adopted";
       var size = 0;
-      node.findTreeParts().each(function () {
-        size += 1;
-      });
+      try {
+        node.findTreeParts().each(function () {
+          size += 1;
+        });
+      } catch (err) {
+        size = 1;
+      }
       var score = (isDinh ? 100000 : 0) - gen * 1000 + size;
       if (score > bestScore) {
         bestScore = score;
-        best = node;
+        best = node.containingGroup || node;
       }
     });
     if (best) {
@@ -596,7 +723,7 @@
         best.actualBounds.centerX - vb.width / 2,
         best.actualBounds.y - 24,
       );
-      diagram.select(best);
+      if (!(best instanceof go.Group)) diagram.select(best);
     }
     syncZoomSlider();
   }
@@ -662,11 +789,22 @@
     var maxGenNum = maxGen === "" ? null : Number(maxGen);
     diagram.startTransaction("filter");
     diagram.nodes.each(function (node) {
+      if (node instanceof go.Group || node.data.isGroup) return;
       var visible = true;
       if (maxGenNum !== null && node.data.generation != null) {
         visible = Number(node.data.generation) <= maxGenNum;
       }
       node.visible = visible;
+    });
+    diagram.nodes.each(function (node) {
+      if (!(node instanceof go.Group) && !node.data.isGroup) return;
+      var anyMemberVisible = false;
+      node.memberParts.each(function (part) {
+        if (part instanceof go.Node && !(part instanceof go.Group) && part.visible) {
+          anyMemberVisible = true;
+        }
+      });
+      node.visible = maxGenNum === null ? true : anyMemberVisible;
     });
     diagram.links.each(function (link) {
       link.visible =
@@ -1237,6 +1375,7 @@
         populateGenerationFilter();
         configureLayout("lineage");
         applyTreeModel(bloodlineNodes);
+        updateStats();
         resetStage();
         initSearch();
       })

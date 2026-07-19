@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260720_0131-vu-toc-django-family-group.md](./pdca/20260720_0131-vu-toc-django-family-group.md) | Port Django family group (chồng+vợ trong khối, con nối từ fam_) sang viewer Cloudflare |
 | [pdca/20260720_0109-vu-toc-view-modes-stage-reset.md](./pdca/20260720_0109-vu-toc-view-modes-stage-reset.md) | Bỏ lọc Chi; reset stage; 3 data views; graph API 397 người/629 links; deploy live |
 | [pdca/20260720_0054-vu-toc-viewer-feature-parity.md](./pdca/20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc → Vũ Tộc: autocomplete, 🧭/slider/d-pad, modal dialog+vẽ nhánh, export; deploy live |
 | [pdca/20260720_0040-vu-toc-root-unify.md](./pdca/20260720_0040-vu-toc-root-unify.md) | Nối 8 chi về Thủy Tổ TỎ PHỤ/TỔ MẪU: sửa luật main=có chi+tổ tiên; vá D1 live; main 306→318 |

@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_0131-vu-toc-django-family-group.md](./20260720_0131-vu-toc-django-family-group.md) | Port gom vợ–chồng kiểu Django (`fam_<chồng>` + groupTemplate) sang view Gia đình mở rộng |
 | [20260720_0109-vu-toc-view-modes-stage-reset.md](./20260720_0109-vu-toc-view-modes-stage-reset.md) | Reset stage khi dùng sidebar; bỏ lọc Chi; thêm Dòng chính / Gia đình mở rộng / Quan hệ khác |
 | [20260720_0054-vu-toc-viewer-feature-parity.md](./20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc → Vũ Tộc: sidebar, controls 🧭, modal dialog, vẽ nhánh, autocomplete, export |
 | [20260720_0007-vu-toc-r2-deploy.md](./20260720_0007-vu-toc-r2-deploy.md) | Done: R2 + deploy staging public/admin Hacmieu; live tree 306, media OK, admin JWT fail-closed |
