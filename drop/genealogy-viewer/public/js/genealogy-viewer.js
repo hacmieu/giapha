@@ -460,12 +460,15 @@ function initSearchAutocomplete() {
         onSelect: function(item) {
             var match = genealogyData.nodeDataArray.find(function(n) { return n.key === item.id; });
             if (match && myDiagram) {
-                var node = myDiagram.findNodeForKey(match.key);
-                if (node) {
-                    myDiagram.select(node);
-                    myDiagram.commandHandler.scrollToPart(node);
-                    showPersonInfo(match);
-                }
+                setMobilePane('diagram');
+                requestAnimationFrame(function() {
+                    var node = myDiagram.findNodeForKey(match.key);
+                    if (node) {
+                        myDiagram.select(node);
+                        myDiagram.commandHandler.scrollToPart(node);
+                        showPersonInfo(match);
+                    }
+                });
             }
         }
     });
@@ -584,6 +587,33 @@ function toggleDiagramControls() {
         panel.setAttribute('hidden', '');
     }
     if (toggle) toggle.setAttribute('aria-expanded', String(willOpen));
+}
+
+/** Mobile: tách Phả đồ / Điều khiển thành 2 tab — mặc định chỉ hiện phả đồ full màn hình */
+function setMobilePane(pane) {
+    var showControls = pane === 'controls';
+    document.body.classList.toggle('mobile-pane-controls', showControls);
+
+    var tabDiagram = document.getElementById('tabDiagram');
+    var tabControls = document.getElementById('tabControls');
+    if (tabDiagram) {
+        tabDiagram.classList.toggle('is-active', !showControls);
+        tabDiagram.setAttribute('aria-selected', String(!showControls));
+    }
+    if (tabControls) {
+        tabControls.classList.toggle('is-active', showControls);
+        tabControls.setAttribute('aria-selected', String(showControls));
+    }
+
+    // Quay lại phả đồ: GoJS cần cập nhật kích thước div đã hiện lại
+    if (!showControls && myDiagram) {
+        requestAnimationFrame(function() {
+            try {
+                myDiagram.requestUpdate();
+                if (typeof myDiagram.focus === 'function') myDiagram.focus();
+            } catch (err) { /* ignore */ }
+        });
+    }
 }
 
 /** Pan theo hướng (dx, dy ∈ {-1,0,1}), bước ~60% khung nhìn */

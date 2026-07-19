@@ -2,9 +2,9 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Phả Đồ Đinh - Họ Trần Chi 4 - Trần tộc Chanh Thôn</title>
-    <link rel="stylesheet" href="./css/viewer.css?v=12">
+    <link rel="stylesheet" href="./css/viewer.css?v=13">
 </head>
 <body>
 <header class="site-header">
@@ -16,8 +16,13 @@
     </div>
 </header>
 
+<nav class="mobile-pane-tabs" role="tablist" aria-label="Chế độ xem mobile">
+    <button type="button" class="mobile-pane-tab is-active" id="tabDiagram" role="tab" aria-selected="true" onclick="setMobilePane('diagram')">Phả đồ</button>
+    <button type="button" class="mobile-pane-tab" id="tabControls" role="tab" aria-selected="false" onclick="setMobilePane('controls')">Điều khiển</button>
+</nav>
+
 <div class="genealogy-page">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebarPanel">
         <h3>📜 Phả Đồ Họ Trần Chi 4</h3>
 
         <div class="stats-box">
@@ -141,7 +146,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
 <script src="./js/autocomplete-search.js"></script>
-<script src="./js/genealogy-viewer.js?v=15"></script>
+<script src="./js/genealogy-viewer.js?v=16"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         loadStaticGenealogy();

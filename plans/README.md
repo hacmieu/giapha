@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1741-mobile-pane-tabs.md](./20260719_1741-mobile-pane-tabs.md) | Tách sidebar mobile thành tab Phả đồ / Điều khiển |
 | [20260719_1510-print-person-subtree-ux.md](./20260719_1510-print-person-subtree-ux.md) | Thiết kế tab Trích nhánh & In, chọn người gốc và đời cuối |
 | [20260719_1457-zoom-slider-collapsible-controls.md](./20260719_1457-zoom-slider-collapsible-controls.md) | Thanh trượt zoom + bảng điều khiển thu gọn dạng tab |
 | [20260719_1449-diagram-nav-controls.md](./20260719_1449-diagram-nav-controls.md) | Nút phóng to / thu nhỏ / điều hướng trên phả đồ |

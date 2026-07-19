@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260719_1741-mobile-pane-tabs.md](./pdca/20260719_1741-mobile-pane-tabs.md) | PDCA done: mobile tab Phả đồ/Điều khiển, diagram 726px full; deploy 5841ad04 |
 | [pdca/20260719_1510-print-person-subtree-ux.md](./pdca/20260719_1510-print-person-subtree-ux.md) | PDCA design: trích subtree theo người/đời, preview in/PDF; chưa triển khai |
 | [pdca/20260719_1457-zoom-slider-collapsible-controls.md](./pdca/20260719_1457-zoom-slider-collapsible-controls.md) | PDCA done: slider zoom neo tâm + panel toggle 🧭; deploy 866d31ad |
 | [pdca/20260719_1449-diagram-nav-controls.md](./pdca/20260719_1449-diagram-nav-controls.md) | PDCA done: d-pad pan + zoom + Về Tổ trên diagram; deploy f78bc300 |
