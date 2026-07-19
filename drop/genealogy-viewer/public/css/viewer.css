@@ -525,6 +525,9 @@ html, body {
         flex: 1;
         min-height: 0;
         width: 100%;
+        padding: 12px 0 14px;
+        background: var(--paper);
+        box-sizing: border-box;
     }
     #myDiagramDiv {
         min-height: 0;

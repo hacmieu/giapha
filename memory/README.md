@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1747-mobile-tab-order-padding.md](./20260719_1747-mobile-tab-order-padding.md) | Tab Điều khiển trước; bẫy GoJS init khi div ẩn → initialViewPending |
 | [20260719_1741-mobile-pane-tabs.md](./20260719_1741-mobile-pane-tabs.md) | Mobile Worker: tab Phả đồ/Điều khiển; mặc định diagram full-screen |
 | [20260719_1510-print-person-subtree-ux.md](./20260719_1510-print-person-subtree-ux.md) | UX trích nhánh hậu duệ để in: chọn người → đến đời X → preview → PDF |
 | [20260719_1457-zoom-slider-collapsible-controls.md](./20260719_1457-zoom-slider-collapsible-controls.md) | Zoom bằng slider (chống double-tap mobile); panel điều khiển ẩn sau nút 🧭 |

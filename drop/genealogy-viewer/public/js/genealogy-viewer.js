@@ -542,8 +542,15 @@ function zoomToFit()    { if (myDiagram) myDiagram.zoomToFit(); }
 function centerDiagram(){ if (myDiagram) myDiagram.commandHandler.scrollToPart(myDiagram.nodes.first()); }
 
 /** View mặc định: scale 0.7, node Tổ căn giữa ngang, cách mép trên 24px */
+var initialViewPending = false;
 function applyInitialView() {
     if (!myDiagram) return;
+    // Div đang ẩn (mobile mở tab Điều khiển): hoãn tới khi tab Phả đồ được mở
+    if (!myDiagram.div || myDiagram.div.offsetWidth === 0) {
+        initialViewPending = true;
+        return;
+    }
+    initialViewPending = false;
     myDiagram.scale = 0.7;
     var root = myDiagram.findTreeRoots().first();
     if (root) {
@@ -610,6 +617,7 @@ function setMobilePane(pane) {
         requestAnimationFrame(function() {
             try {
                 myDiagram.requestUpdate();
+                if (initialViewPending) applyInitialView();
                 if (typeof myDiagram.focus === 'function') myDiagram.focus();
             } catch (err) { /* ignore */ }
         });
