@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260719_1449-diagram-nav-controls.md](./pdca/20260719_1449-diagram-nav-controls.md) | PDCA done: d-pad pan + zoom + Về Tổ trên diagram; deploy f78bc300 |
 | [pdca/20260719_1444-modal-family-links.md](./pdca/20260719_1444-modal-family-links.md) | PDCA done: modal link cha↔con điều hướng 2 chiều; deploy 083b339a |
 | [pdca/20260719_1330-initial-scale-70.md](./pdca/20260719_1330-initial-scale-70.md) | PDCA done: scale mặc định 0.7; deploy 7087d98c |
 | [pdca/20260719_1230-initial-zoom-center-root.md](./pdca/20260719_1230-initial-zoom-center-root.md) | PDCA done: load zoom 1:1 center Tổ, gỡ zoomToFit ghi đè; deploy e4eb0a83 |

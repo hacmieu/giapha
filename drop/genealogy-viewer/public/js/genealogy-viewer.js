@@ -80,17 +80,8 @@ function initDiagram() {
     });
 
     // Khi load: zoom 70% và đưa node Tổ (gốc cây) vào giữa trên cùng khung nhìn
-    myDiagram.addDiagramListener("InitialLayoutCompleted", function(e) {
-        var d = e.diagram;
-        d.scale = 0.7;
-        var root = d.findTreeRoots().first();
-        if (root) {
-            var b = root.actualBounds;
-            d.position = new go.Point(
-                b.centerX - d.viewportBounds.width / 2,
-                b.y - 24
-            );
-        }
+    myDiagram.addDiagramListener("InitialLayoutCompleted", function() {
+        applyInitialView();
     });
 
     // ── Node template: photo-card style ───────
@@ -541,6 +532,34 @@ function changeViewMode() {
 // ──────────────────────────────────────────────
 function zoomToFit()    { if (myDiagram) myDiagram.zoomToFit(); }
 function centerDiagram(){ if (myDiagram) myDiagram.commandHandler.scrollToPart(myDiagram.nodes.first()); }
+
+/** View mặc định: scale 0.7, node Tổ căn giữa ngang, cách mép trên 24px */
+function applyInitialView() {
+    if (!myDiagram) return;
+    myDiagram.scale = 0.7;
+    var root = myDiagram.findTreeRoots().first();
+    if (root) {
+        var b = root.actualBounds;
+        myDiagram.position = new window.go.Point(
+            b.centerX - myDiagram.viewportBounds.width / 2,
+            b.y - 24
+        );
+    }
+}
+
+function goToRoot()       { applyInitialView(); }
+function zoomInDiagram()  { if (myDiagram) myDiagram.commandHandler.increaseZoom(); }
+function zoomOutDiagram() { if (myDiagram) myDiagram.commandHandler.decreaseZoom(); }
+
+/** Pan theo hướng (dx, dy ∈ {-1,0,1}), bước ~60% khung nhìn */
+function panDiagram(dx, dy) {
+    if (!myDiagram) return;
+    var vp = myDiagram.viewportBounds;
+    myDiagram.position = new window.go.Point(
+        myDiagram.position.x + dx * vp.width * 0.6,
+        myDiagram.position.y + dy * vp.height * 0.6
+    );
+}
 
 // ──────────────────────────────────────────────
 // Export

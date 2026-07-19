@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phả Đồ Đinh - Họ Trần Chi 4 - Trần tộc Chanh Thôn</title>
-    <link rel="stylesheet" href="./public/css/viewer.css?v=10">
+    <link rel="stylesheet" href="./public/css/viewer.css?v=11">
 </head>
 <body>
 <header class="site-header">
@@ -88,11 +88,28 @@
         </div>
     </aside>
 
-    <main id="myDiagramDiv" aria-label="Phả đồ Trần tộc Chanh Thôn - Họ Trần Chi 4">
-        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:16px;">
-            ⏳ Đang tải phả đồ...
+    <div class="diagram-stage">
+        <main id="myDiagramDiv" aria-label="Phả đồ Trần tộc Chanh Thôn - Họ Trần Chi 4">
+            <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:16px;">
+                ⏳ Đang tải phả đồ...
+            </div>
+        </main>
+
+        <div class="diagram-controls" role="group" aria-label="Điều khiển phả đồ">
+            <div class="nav-pad">
+                <button type="button" class="dc-btn nav-up" onclick="panDiagram(0, -1)" title="Di chuyển lên" aria-label="Di chuyển lên">▲</button>
+                <button type="button" class="dc-btn nav-left" onclick="panDiagram(-1, 0)" title="Di chuyển trái" aria-label="Di chuyển trái">◀</button>
+                <button type="button" class="dc-btn nav-home" onclick="goToRoot()" title="Về Tổ" aria-label="Về Tổ">⌂</button>
+                <button type="button" class="dc-btn nav-right" onclick="panDiagram(1, 0)" title="Di chuyển phải" aria-label="Di chuyển phải">▶</button>
+                <button type="button" class="dc-btn nav-down" onclick="panDiagram(0, 1)" title="Di chuyển xuống" aria-label="Di chuyển xuống">▼</button>
+            </div>
+            <div class="zoom-stack">
+                <button type="button" class="dc-btn" onclick="zoomInDiagram()" title="Phóng to" aria-label="Phóng to">＋</button>
+                <button type="button" class="dc-btn" onclick="zoomOutDiagram()" title="Thu nhỏ" aria-label="Thu nhỏ">－</button>
+                <button type="button" class="dc-btn" onclick="zoomToFit()" title="Xem toàn cảnh" aria-label="Xem toàn cảnh">⛶</button>
+            </div>
         </div>
-    </main>
+    </div>
 </div>
 
 <dialog id="personModal" class="person-modal" aria-labelledby="personModalName">
@@ -120,7 +137,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
 <script>window.GIAPHA_DATA_URL = './public/data/gojs_data.json'; window.GIAPHA_ASSET_BASE = './public/';</script>
 <script src="./public/js/autocomplete-search.js"></script>
-<script src="./public/js/genealogy-viewer.js?v=13"></script>
+<script src="./public/js/genealogy-viewer.js?v=14"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         loadStaticGenealogy();

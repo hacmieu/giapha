@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1449-diagram-nav-controls.md](./20260719_1449-diagram-nav-controls.md) | Cụm nút zoom/pan/Về Tổ nổi trên diagram; overlay đặt trong .diagram-stage |
 | [20260719_1444-modal-family-links.md](./20260719_1444-modal-family-links.md) | Link Thân phụ/con trong modal (event delegation); phối ngẫu chỉ là chuỗi nên giữ text |
 | [20260719_1330-initial-scale-70.md](./20260719_1330-initial-scale-70.md) | Chốt scale mặc định viewer = 0.7 (theo yêu cầu người dùng) |
 | [20260719_1230-initial-zoom-center-root.md](./20260719_1230-initial-zoom-center-root.md) | Initial view zoom 1:1 center node Tổ; bẫy listener zoomToFit trùng; chờ cache CF sau deploy |

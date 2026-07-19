@@ -180,6 +180,61 @@ html, body {
     border: 1px solid #374151;
     flex-shrink: 0;
 }
+.diagram-stage {
+    position: relative;
+    flex: 1;
+    display: flex;
+    min-width: 0;
+}
+.diagram-controls {
+    position: absolute;
+    right: 16px;
+    bottom: 18px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.nav-pad {
+    display: grid;
+    grid-template-areas:
+        ".    up    ."
+        "left home  right"
+        ".    down  .";
+    gap: 3px;
+}
+.nav-up    { grid-area: up; }
+.nav-left  { grid-area: left; }
+.nav-home  { grid-area: home; font-size: 17px; }
+.nav-right { grid-area: right; }
+.nav-down  { grid-area: down; }
+.zoom-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.dc-btn {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .94);
+    color: var(--ink);
+    font: 600 14px/1 Georgia, serif;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .14);
+    transition: background .12s ease, color .12s ease;
+}
+.dc-btn:hover,
+.dc-btn:focus-visible {
+    background: var(--ink);
+    color: #fff9e9;
+    border-color: var(--ink);
+}
 #myDiagramDiv {
     flex: 1;
     background-color: var(--paper);
@@ -389,6 +444,8 @@ html, body {
     .genealogy-page { flex-direction: column; height: auto; min-height: calc(100vh - 99px); }
     .sidebar { width: 100%; max-height: 39vh; padding: 12px; }
     #myDiagramDiv { min-height: 58vh; }
+    .diagram-controls { right: 10px; bottom: 12px; gap: 8px; }
+    .dc-btn { width: 32px; height: 32px; }
     .modal-identity { padding: 20px 49px 19px 18px; }
     .person-portrait-frame { width: 66px; height: 84px; flex-basis: 66px; }
     .person-monogram { width: 22px; height: 22px; font-size: 11px; }
