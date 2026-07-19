@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260719_1812-branch-search-focus-fix.md](./pdca/20260719_1812-branch-search-focus-fix.md) | PDCA done: fix search khi xem nhánh (focusPersonOnDiagram); deploy ed9f076e |
 | [pdca/20260719_1756-descendant-branch-filter.md](./pdca/20260719_1756-descendant-branch-filter.md) | PDCA done: lọc đến đời + subtree hậu duệ tùy chọn; deploy 075f9bea |
 | [pdca/20260719_1747-mobile-tab-order-padding.md](./pdca/20260719_1747-mobile-tab-order-padding.md) | PDCA done: Điều khiển mặc định, padding phả đồ, fix init khi ẩn; deploy aecde8c7 |
 | [pdca/20260719_1741-mobile-pane-tabs.md](./pdca/20260719_1741-mobile-pane-tabs.md) | PDCA done: mobile tab Phả đồ/Điều khiển, diagram 726px full; deploy 5841ad04 |

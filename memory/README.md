@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1812-branch-search-focus-fix.md](./20260719_1812-branch-search-focus-fix.md) | Fix tìm người khi đang xem nhánh: `focusPersonOnDiagram` tự khôi phục full tree |
 | [20260719_1756-descendant-branch-filter.md](./20260719_1756-descendant-branch-filter.md) | Lọc “đến đời” giữ tổ tiên; subtree hậu duệ theo người/đời; dữ liệu có Đời 13 |
 | [20260719_1747-mobile-tab-order-padding.md](./20260719_1747-mobile-tab-order-padding.md) | Tab Điều khiển trước; bẫy GoJS init khi div ẩn → initialViewPending |
 | [20260719_1741-mobile-pane-tabs.md](./20260719_1741-mobile-pane-tabs.md) | Mobile Worker: tab Phả đồ/Điều khiển; mặc định diagram full-screen |

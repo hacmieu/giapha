@@ -426,7 +426,7 @@ function initPersonModal() {
             const person = genealogyData.nodeDataArray.find(function(p) {
                 return String(p.key) === link.dataset.key;
             });
-            if (person) showPersonInfo(person);
+            if (person) focusPersonOnDiagram(person);
         }
     });
     document.addEventListener('keydown', function(event) {
@@ -525,16 +525,26 @@ function initSearchAutocomplete() {
             if (match && myDiagram) {
                 setMobilePane('diagram');
                 requestAnimationFrame(function() {
-                    var node = myDiagram.findNodeForKey(match.key);
-                    if (node) {
-                        myDiagram.select(node);
-                        myDiagram.commandHandler.scrollToPart(node);
-                        showPersonInfo(match);
-                    }
+                    focusPersonOnDiagram(match);
                 });
             }
         }
     });
+}
+
+/** Nhảy tới một người trên phả đồ; nếu đang xem nhánh mà người đó nằm ngoài nhánh thì quay về phả đồ đầy đủ trước. */
+function focusPersonOnDiagram(match) {
+    if (!match || !myDiagram) return;
+    var node = myDiagram.findNodeForKey(match.key);
+    if (!node && branchViewRootKey) {
+        showFullTree();
+        node = myDiagram.findNodeForKey(match.key);
+    }
+    if (node) {
+        myDiagram.select(node);
+        myDiagram.commandHandler.scrollToPart(node);
+    }
+    showPersonInfo(match);
 }
 
 // Legacy compatibility
@@ -544,14 +554,7 @@ function searchPerson(query) {
     const match = genealogyData.nodeDataArray.find(function(n) {
         return n.name.toLowerCase().includes(q) || n.key.includes(q);
     });
-    if (match) {
-        const node = myDiagram.findNodeForKey(match.key);
-        if (node) {
-            myDiagram.select(node);
-            myDiagram.commandHandler.scrollToPart(node);
-            showPersonInfo(match);
-        }
-    }
+    if (match) focusPersonOnDiagram(match);
 }
 
 // ──────────────────────────────────────────────
