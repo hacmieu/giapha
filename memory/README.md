@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1909-daily-work-consolidation.md](./20260719_1909-daily-work-consolidation.md) | Tổng kết 13 vòng công việc ngày 19/07: 12 runtime done, 1 thiết kế; quy ước GoJS/mobile/subtree/deploy |
 | [20260719_1812-branch-search-focus-fix.md](./20260719_1812-branch-search-focus-fix.md) | Fix tìm người khi đang xem nhánh: `focusPersonOnDiagram` tự khôi phục full tree |
 | [20260719_1756-descendant-branch-filter.md](./20260719_1756-descendant-branch-filter.md) | Lọc “đến đời” giữ tổ tiên; subtree hậu duệ theo người/đời; dữ liệu có Đời 13 |
 | [20260719_1747-mobile-tab-order-padding.md](./20260719_1747-mobile-tab-order-padding.md) | Tab Điều khiển trước; bẫy GoJS init khi div ẩn → initialViewPending |

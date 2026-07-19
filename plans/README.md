@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1909-daily-work-consolidation.md](./20260719_1909-daily-work-consolidation.md) | Kế hoạch tổng hợp/handover toàn bộ 13 vòng công việc ngày 19/07 |
 | [20260719_1812-branch-search-focus-fix.md](./20260719_1812-branch-search-focus-fix.md) | Fix: tìm người mới khi đang xem nhánh thì phả đồ không đổi |
 | [20260719_1756-descendant-branch-filter.md](./20260719_1756-descendant-branch-filter.md) | Sửa lọc đời và vẽ nhánh hậu duệ đến đời tùy chọn |
 | [20260719_1747-mobile-tab-order-padding.md](./20260719_1747-mobile-tab-order-padding.md) | Tab Điều khiển trước + padding vùng phả đồ mobile |
