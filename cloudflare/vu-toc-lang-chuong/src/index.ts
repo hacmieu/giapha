@@ -9,6 +9,7 @@ import {
 import { requireAdmin } from "./auth";
 import { HttpError, assertSameOrigin, json } from "./http";
 import {
+  getPublicGraph,
   getPublicMedia,
   getPublicPerson,
   getPublicTree,
@@ -43,6 +44,9 @@ async function routeApi(
   }
   if (method === "GET" && url.pathname === "/api/public/tree") {
     return getPublicTree(env);
+  }
+  if (method === "GET" && url.pathname === "/api/public/graph") {
+    return getPublicGraph(env);
   }
   if (method === "GET" && url.pathname === "/api/public/search") {
     return searchPublicPeople(env, url);

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Phả Đồ — Vũ Tộc Làng Chuông</title>
-  <link rel="stylesheet" href="/css/viewer.css?v=5" />
+  <link rel="stylesheet" href="/css/viewer.css?v=8" />
 </head>
 <body class="mobile-pane-diagram">
 <header class="site-header">
@@ -26,19 +26,14 @@
     <h3>📜 Phả Đồ Vũ Tộc</h3>
 
     <div class="stats-box">
-      <div>👥 Cây chính: <strong id="totalPeople">--</strong></div>
-      <div>🔗 Quan hệ cha–con: <strong id="totalRelationships">--</strong></div>
-      <div>🏛 Chi / Đời: <strong id="generationRange">--</strong></div>
+      <div>👥 Người trong view: <strong id="totalPeople">--</strong></div>
+      <div>🔗 Liên kết trong view: <strong id="totalRelationships">--</strong></div>
+      <div>🏛 Phạm vi: <strong id="generationRange">--</strong></div>
     </div>
 
     <div>
       <label class="ctrl-label" for="searchInput">🔍 Tìm Kiếm:</label>
       <input type="text" id="searchInput" class="ctrl-input" autocomplete="off" placeholder="Nhập tên (gồm quan hệ ngoài)…" />
-    </div>
-
-    <div>
-      <label class="ctrl-label">🏛 Lọc theo Chi:</label>
-      <div id="branchFilter" class="branch-filter"></div>
     </div>
 
     <div>
@@ -49,8 +44,17 @@
     </div>
 
     <div>
-      <label class="ctrl-label" for="viewMode">🎨 Chế Độ:</label>
+      <label class="ctrl-label" for="viewMode">👁 View:</label>
       <select id="viewMode" class="ctrl-select">
+        <option value="lineage" selected>Dòng chính (cha → con)</option>
+        <option value="family">Gia đình mở rộng (vợ, con gái, chồng)</option>
+        <option value="relations">Quan hệ khác / ngoại tộc</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="ctrl-label" for="layoutMode">🎨 Bố Cục:</label>
+      <select id="layoutMode" class="ctrl-select">
         <option value="tree" selected>Phả Đồ Thẳng (Tree)</option>
         <option value="force">Mối Quan Hệ (Force)</option>
       </select>
@@ -78,6 +82,8 @@
       <div class="legend-row"><div class="legend-dot" style="background:#f0fdf4;border:2px solid #047857;"></div>Đời 6–7</div>
       <div class="legend-row"><div class="legend-dot" style="background:#fff7ed;border:2px solid #b45309;"></div>Đời 8–9</div>
       <div class="legend-row"><div class="legend-dot" style="background:#fef2f2;border:2px solid #b91c1c;"></div>Đời 10+</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#fdf2f8;border:2px solid #db2777;"></div>Phối ngẫu</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#faf5ff;border:2px solid #7c3aed;"></div>Quan hệ ngoài</div>
     </div>
   </aside>
 
@@ -134,7 +140,7 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
-<script src="/js/autocomplete-search.js?v=5"></script>
-<script src="/js/viewer.js?v=5"></script>
+<script src="/js/autocomplete-search.js?v=8"></script>
+<script src="/js/viewer.js?v=8"></script>
 </body>
 </html>

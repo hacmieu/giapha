@@ -44,6 +44,18 @@ interface SpouseRow {
   status: string;
 }
 
+interface SocialRow {
+  id: string;
+  from_person_id: string;
+  to_person_id: string | null;
+  to_person_name: string | null;
+  to_person_gender: "male" | "female" | null;
+  relation_type: string;
+  label: string;
+  seniority_note: string;
+  notes: string;
+}
+
 function rows<T>(result: D1Result<unknown>): T[] {
   return result.results as T[];
 }
@@ -164,6 +176,7 @@ export async function getPublicTree(env: Env): Promise<Response> {
     branchId: person.branch_id,
     generation: person.generation,
     lineageRole: person.lineage_role,
+    treeScope: person.tree_scope,
     isDinh: Boolean(person.is_dinh),
     birthOrder: person.birth_order,
     isDeceased: Boolean(person.is_deceased),
@@ -200,6 +213,126 @@ export async function getPublicTree(env: Env): Promise<Response> {
       metadata: {
         totalPeople: nodes.length,
         totalBranches: branches.length,
+        generatedAt: new Date().toISOString(),
+      },
+    },
+    {
+      headers: {
+        "cache-control": "public, max-age=60, stale-while-revalidate=300",
+      },
+    },
+  );
+}
+
+export async function getPublicGraph(env: Env): Promise<Response> {
+  const batch = await env.DB.batch([
+    env.DB.prepare(
+      `SELECT id, legacy_id, person_code, name, gender, branch_id, generation,
+              lineage_role, tree_scope, is_dinh, birth_order, birth_date,
+              death_date, death_date_lunar, is_deceased, notes, photo_key,
+              version, updated_at
+       FROM people
+       WHERE family_id = ?
+         AND visibility = 'public'
+         AND deleted_at IS NULL
+       ORDER BY tree_scope, generation, birth_order, name`,
+    ).bind(env.FAMILY_ID),
+    env.DB.prepare(
+      `SELECT relation.id, relation.child_id, relation.parent_id, relation.relation_type
+       FROM parent_relations relation
+       JOIN people child ON child.id = relation.child_id
+       JOIN people parent ON parent.id = relation.parent_id
+       WHERE relation.family_id = ?
+         AND child.visibility = 'public'
+         AND parent.visibility = 'public'
+         AND child.deleted_at IS NULL
+         AND parent.deleted_at IS NULL`,
+    ).bind(env.FAMILY_ID),
+    env.DB.prepare(
+      `SELECT relation.id, relation.person_a_id, relation.person_b_id,
+              relation.wife_person_id, relation.wife_order, relation.status
+       FROM spouse_relations relation
+       JOIN people person_a ON person_a.id = relation.person_a_id
+       JOIN people person_b ON person_b.id = relation.person_b_id
+       WHERE relation.family_id = ?
+         AND person_a.visibility = 'public'
+         AND person_b.visibility = 'public'
+         AND person_a.deleted_at IS NULL
+         AND person_b.deleted_at IS NULL`,
+    ).bind(env.FAMILY_ID),
+    env.DB.prepare(
+      `SELECT relation.id, relation.from_person_id, relation.to_person_id,
+              relation.to_person_name, relation.to_person_gender,
+              relation.relation_type, relation.label,
+              relation.seniority_note, relation.notes
+       FROM social_relations relation
+       JOIN people source ON source.id = relation.from_person_id
+       LEFT JOIN people target ON target.id = relation.to_person_id
+       WHERE relation.family_id = ?
+         AND relation.visibility = 'public'
+         AND source.visibility = 'public'
+         AND source.deleted_at IS NULL
+         AND (
+           relation.to_person_id IS NULL
+           OR (target.visibility = 'public' AND target.deleted_at IS NULL)
+         )`,
+    ).bind(env.FAMILY_ID),
+  ]);
+
+  const people = rows<PersonRow>(batchResult(batch, 0));
+  const parents = rows<ParentRow>(batchResult(batch, 1));
+  const spouses = rows<SpouseRow>(batchResult(batch, 2));
+  const social = rows<SocialRow>(batchResult(batch, 3));
+
+  return json(
+    {
+      nodes: people.map((person) => ({
+        id: person.id,
+        legacyId: person.legacy_id,
+        personCode: person.person_code,
+        name: person.name,
+        gender: person.gender,
+        branchId: person.branch_id,
+        generation: person.generation,
+        lineageRole: person.lineage_role,
+        treeScope: person.tree_scope,
+        isDinh: Boolean(person.is_dinh),
+        birthOrder: person.birth_order,
+        isDeceased: Boolean(person.is_deceased),
+        photoUrl: person.photo_key
+          ? `/api/public/media/${encodeURIComponent(person.photo_key)}`
+          : null,
+      })),
+      parentRelations: parents.map((relation) => ({
+        id: relation.id,
+        childId: relation.child_id,
+        parentId: relation.parent_id,
+        relationType: relation.relation_type,
+      })),
+      spouseRelations: spouses.map((relation) => ({
+        id: relation.id,
+        personAId: relation.person_a_id,
+        personBId: relation.person_b_id,
+        wifePersonId: relation.wife_person_id,
+        wifeOrder: relation.wife_order,
+        status: relation.status,
+      })),
+      socialRelations: social.map((relation) => ({
+        id: relation.id,
+        fromPersonId: relation.from_person_id,
+        toPersonId: relation.to_person_id,
+        toPersonName: relation.to_person_name,
+        toPersonGender: relation.to_person_gender,
+        relationType: relation.relation_type,
+        label: relation.label,
+        seniorityNote: relation.seniority_note,
+        notes: relation.notes,
+      })),
+      metadata: {
+        totalPeople: people.length,
+        totalParentRelations: parents.length,
+        totalSpouseRelations: spouses.length,
+        totalSocialRelations: social.length,
         generatedAt: new Date().toISOString(),
       },
     },

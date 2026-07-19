@@ -4,6 +4,7 @@
 
   var API = {
     tree: "/api/public/tree",
+    graph: "/api/public/graph",
     person: function (id) {
       return "/api/public/people/" + encodeURIComponent(id);
     },
@@ -24,10 +25,11 @@
   var $ = go.GraphObject.make;
   var diagram = null;
   var treePayload = null;
+  var graphPayload = null;
   var bloodlineNodes = [];
   var nodeById = {};
   var branchViewRootKey = null;
-  var activeBranch = null;
+  var currentViewNodes = [];
   var searchAC = null;
   var personModalReturnFocus = null;
   var initialViewPending = false;
@@ -67,6 +69,18 @@
   }
   function genAccent(gen) {
     return genStroke(gen);
+  }
+
+  function nodeFill(data) {
+    if (data.lineageRole === "external") return "#faf5ff";
+    if (data.lineageRole === "spouse") return "#fdf2f8";
+    return genFill(data.generation);
+  }
+
+  function nodeStroke(data) {
+    if (data.lineageRole === "external") return "#7c3aed";
+    if (data.lineageRole === "spouse") return "#db2777";
+    return genStroke(data.generation);
   }
 
   function spouseLabel(node) {
@@ -143,6 +157,7 @@
           ),
         ),
         click: function (e, node) {
+          if (String(node.data.id).startsWith("social-target:")) return;
           openPerson(node.data.id);
         },
       },
@@ -150,8 +165,8 @@
         go.Shape,
         "RoundedRectangle",
         { parameter1: 8, strokeWidth: 2 },
-        new go.Binding("fill", "generation", genFill),
-        new go.Binding("stroke", "generation", genStroke),
+        new go.Binding("fill", "", nodeFill),
+        new go.Binding("stroke", "", nodeStroke),
         new go.Binding("strokeWidth", "generation", function (g) {
           return Number(g) <= 1 ? 3 : 2;
         }),
@@ -253,7 +268,7 @@
             margin: new go.Margin(1, 0, 0, 0),
           },
           new go.Binding("text", "spouseText", function (t) {
-            return t ? "Vợ: " + t : " ";
+            return t ? "Phối ngẫu: " + t : " ";
           }),
         ),
       ),
@@ -262,7 +277,35 @@
     diagram.linkTemplate = $(
       go.Link,
       { routing: go.Link.Orthogonal, corner: 6, selectable: false },
-      $(go.Shape, { strokeWidth: 1.5, stroke: "#9ca3af" }),
+      $(
+        go.Shape,
+        { strokeWidth: 1.5, stroke: "#9ca3af" },
+        new go.Binding("stroke", "linkKind", function (kind) {
+          if (kind === "spouse") return "#a62c2b";
+          if (kind === "social") return "#7c3aed";
+          if (kind === "mother") return "#db2777";
+          return "#9ca3af";
+        }),
+        new go.Binding("strokeDashArray", "linkKind", function (kind) {
+          return kind === "spouse" || kind === "social" ? [6, 4] : null;
+        }),
+      ),
+      $(
+        go.Panel,
+        "Auto",
+        new go.Binding("visible", "label", function (label) {
+          return Boolean(label);
+        }),
+        $(go.Shape, "RoundedRectangle", {
+          fill: "rgba(255,255,255,.92)",
+          stroke: "#d9d1c2",
+        }),
+        $(
+          go.TextBlock,
+          { margin: 3, font: "9px Arial", stroke: "#4b5563" },
+          new go.Binding("text", "label"),
+        ),
+      ),
     );
   }
 
@@ -292,6 +335,129 @@
     });
   }
 
+  function createGraphModel(nodes, links) {
+    return new go.GraphLinksModel({
+      nodeKeyProperty: "id",
+      linkKeyProperty: "id",
+      linkFromKeyProperty: "from",
+      linkToKeyProperty: "to",
+      nodeDataArray: nodes.map(function (node) {
+        return {
+          id: node.id,
+          name: node.name,
+          gender: node.gender,
+          generation: node.generation,
+          lineageRole: node.lineageRole,
+          treeScope: node.treeScope,
+          isDeceased: node.isDeceased,
+          spouseText: node.spouseText || "",
+        };
+      }),
+      linkDataArray: links,
+    });
+  }
+
+  function graphSpouseNames(personId) {
+    if (!graphPayload) return "";
+    var names = (graphPayload.spouseRelations || [])
+      .filter(function (relation) {
+        return relation.personAId === personId || relation.personBId === personId;
+      })
+      .map(function (relation) {
+        var otherId =
+          relation.personAId === personId ? relation.personBId : relation.personAId;
+        return nodeById[otherId] ? nodeById[otherId].name : null;
+      })
+      .filter(Boolean);
+    if (names.length === 1) return names[0];
+    return names.length > 1 ? names.length + " người" : "";
+  }
+
+  function selectGraphData(view) {
+    var allNodes = (graphPayload && graphPayload.nodes) || [];
+    var selectedIds = {};
+
+    if (view === "family") {
+      allNodes.forEach(function (node) {
+        if (node.treeScope === "main") selectedIds[node.id] = true;
+      });
+      // Thêm vợ/chồng trực tiếp của người trong main, kể cả người phối ngẫu là external.
+      (graphPayload.spouseRelations || []).forEach(function (relation) {
+        if (selectedIds[relation.personAId] || selectedIds[relation.personBId]) {
+          selectedIds[relation.personAId] = true;
+          selectedIds[relation.personBId] = true;
+        }
+      });
+    } else {
+      allNodes.forEach(function (node) {
+        selectedIds[node.id] = true;
+      });
+    }
+
+    var nodes = allNodes
+      .filter(function (node) {
+        return selectedIds[node.id];
+      })
+      .map(function (node) {
+        return Object.assign({}, node, { spouseText: graphSpouseNames(node.id) });
+      });
+    var links = [];
+
+    (graphPayload.parentRelations || []).forEach(function (relation) {
+      if (selectedIds[relation.parentId] && selectedIds[relation.childId]) {
+        links.push({
+          id: "parent:" + relation.id,
+          from: relation.parentId,
+          to: relation.childId,
+          linkKind: relation.relationType,
+          label: relation.relationType === "mother" ? "mẹ" : "",
+        });
+      }
+    });
+    (graphPayload.spouseRelations || []).forEach(function (relation) {
+      if (selectedIds[relation.personAId] && selectedIds[relation.personBId]) {
+        links.push({
+          id: "spouse:" + relation.id,
+          from: relation.personAId,
+          to: relation.personBId,
+          linkKind: "spouse",
+          label: relation.wifeOrder ? "vợ thứ " + relation.wifeOrder : "vợ/chồng",
+        });
+      }
+    });
+
+    if (view === "relations") {
+      (graphPayload.socialRelations || []).forEach(function (relation) {
+        var targetId = relation.toPersonId;
+        if (!targetId && relation.toPersonName) {
+          targetId = "social-target:" + relation.id;
+          nodes.push({
+            id: targetId,
+            name: relation.toPersonName,
+            gender: relation.toPersonGender || "male",
+            generation: null,
+            lineageRole: "external",
+            treeScope: "external",
+            isDeceased: false,
+            spouseText: "",
+          });
+          selectedIds[targetId] = true;
+        }
+        if (targetId && selectedIds[relation.fromPersonId] && selectedIds[targetId]) {
+          links.push({
+            id: "social:" + relation.id,
+            from: relation.fromPersonId,
+            to: targetId,
+            linkKind: "social",
+            label: relation.label || relation.relationType || "quan hệ khác",
+          });
+        }
+      });
+    }
+
+    return { nodes: nodes, links: links };
+  }
+
   function buildBloodline() {
     bloodlineNodes = (treePayload.nodes || [])
       .filter(function (n) {
@@ -302,9 +468,101 @@
       });
   }
 
-  function applyModel(nodes) {
+  function applyTreeModel(nodes) {
+    currentViewNodes = nodes;
     diagram.model = createTreeModel(nodes);
     applyFiltersVisibility();
+  }
+
+  function configureLayout(view) {
+    var layoutMode = el("layoutMode").value;
+    if (layoutMode === "force") {
+      diagram.layout = $(go.ForceDirectedLayout, {
+        defaultSpringLength: view === "relations" ? 75 : 60,
+        defaultElectricalCharge: view === "relations" ? 260 : 200,
+      });
+    } else if (view === "lineage" || branchViewRootKey) {
+      diagram.layout = $(go.TreeLayout, {
+        angle: 90,
+        layerSpacing: 50,
+        nodeSpacing: 15,
+        compaction: go.TreeLayout.CompactionBlock,
+      });
+    } else {
+      diagram.layout = $(go.LayeredDigraphLayout, {
+        direction: 90,
+        layerSpacing: 55,
+        columnSpacing: 20,
+      });
+    }
+  }
+
+  function resetStage() {
+    if (!diagram) return;
+    diagram.clearSelection();
+    diagram.layout.invalidateLayout();
+    diagram.layoutDiagram(true);
+    requestAnimationFrame(function () {
+      applyInitialView();
+    });
+  }
+
+  function rebuildCurrentView() {
+    if (!diagram) return;
+    var view = el("viewMode").value;
+    branchViewRootKey = null;
+    el("branchViewBanner").setAttribute("hidden", "");
+    configureLayout(view);
+
+    if (view === "lineage") {
+      currentViewNodes = bloodlineNodes;
+      diagram.model = createTreeModel(bloodlineNodes);
+    } else {
+      var data = selectGraphData(view);
+      currentViewNodes = data.nodes;
+      diagram.model = createGraphModel(data.nodes, data.links);
+    }
+    applyFiltersVisibility();
+    updateStats();
+    resetStage();
+  }
+
+  function ensureGraphPayload() {
+    if (graphPayload) return Promise.resolve(graphPayload);
+    return fetch(API.graph)
+      .then(function (response) {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then(function (payload) {
+        graphPayload = payload;
+        (payload.nodes || []).forEach(function (node) {
+          nodeById[node.id] = node;
+        });
+        return payload;
+      });
+  }
+
+  function changeDataView() {
+    var view = el("viewMode").value;
+    el("filterGeneration").value = "";
+    if (view === "lineage") {
+      rebuildCurrentView();
+      return;
+    }
+    el("myDiagramDiv").classList.add("is-loading-view");
+    ensureGraphPayload()
+      .then(function () {
+        rebuildCurrentView();
+      })
+      .catch(function (error) {
+        window.alert("Không tải được view: " + error.message);
+        el("viewMode").value = "lineage";
+        rebuildCurrentView();
+      })
+      .finally(function () {
+        el("myDiagramDiv").classList.remove("is-loading-view");
+      });
   }
 
   function applyInitialView() {
@@ -317,7 +575,7 @@
     diagram.scale = 0.7;
     var best = null;
     var bestScore = -1;
-    diagram.findTreeRoots().each(function (node) {
+    diagram.nodes.each(function (node) {
       if (!node.visible) return;
       var d = node.data;
       var gen = d.generation == null ? 99 : Number(d.generation);
@@ -345,7 +603,7 @@
 
   // ── Sidebar / filters ───────────────────────────────────────────
   function updateStats() {
-    var people = bloodlineNodes;
+    var people = currentViewNodes.length ? currentViewNodes : bloodlineNodes;
     var gens = people
       .map(function (p) {
         return Number(p.generation);
@@ -353,22 +611,24 @@
       .filter(function (g) {
         return Number.isFinite(g);
       });
-    el("totalPeople").textContent = String(
-      (treePayload.metadata && treePayload.metadata.totalPeople) || people.length,
-    );
+    el("totalPeople").textContent = String(people.length);
     el("totalRelationships").textContent = String(
-      people.filter(function (p) {
-        return !!p.fatherId;
-      }).length,
+      diagram && diagram.model instanceof go.GraphLinksModel
+        ? diagram.model.linkDataArray.length
+        : people.filter(function (p) {
+            return !!p.fatherId;
+          }).length,
     );
-    var branchCount =
-      (treePayload.metadata && treePayload.metadata.totalBranches) ||
-      (treePayload.branches || []).length;
+    var viewLabel = {
+      lineage: "Dòng chính",
+      family: "Gia đình mở rộng",
+      relations: "Quan hệ khác",
+    }[el("viewMode").value];
     if (gens.length) {
       el("generationRange").textContent =
-        branchCount + " chi · Đời " + Math.min.apply(null, gens) + "–" + Math.max.apply(null, gens);
+        viewLabel + " · Đời " + Math.min.apply(null, gens) + "–" + Math.max.apply(null, gens);
     } else {
-      el("generationRange").textContent = branchCount + " chi";
+      el("generationRange").textContent = viewLabel;
     }
   }
 
@@ -396,50 +656,6 @@
     });
   }
 
-  function renderBranchFilter() {
-    var wrap = el("branchFilter");
-    wrap.innerHTML = "";
-    var all = document.createElement("button");
-    all.type = "button";
-    all.textContent = "Tất cả";
-    all.className = "active";
-    all.onclick = function () {
-      setBranch(null);
-    };
-    wrap.appendChild(all);
-    (treePayload.branches || []).forEach(function (b) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.textContent = "Chi " + b.number;
-      btn.title = b.name;
-      btn.dataset.branch = b.id;
-      btn.onclick = function () {
-        setBranch(b.id);
-      };
-      wrap.appendChild(btn);
-    });
-  }
-
-  function setBranch(branchId) {
-    activeBranch = branchId;
-    el("branchFilter").querySelectorAll("button").forEach(function (btn) {
-      var match =
-        (branchId === null && !btn.dataset.branch) || btn.dataset.branch === branchId;
-      btn.classList.toggle("active", match);
-    });
-    applyFiltersVisibility();
-    if (branchId !== null) {
-      var first = null;
-      diagram.nodes.each(function (node) {
-        if (!first && node.visible && node.data.branchId === branchId) first = node;
-      });
-      if (first) {
-        diagram.select(first);
-        diagram.commandHandler.scrollToPart(first);
-      }
-    }
-  }
-
   function applyFiltersVisibility() {
     if (!diagram) return;
     var maxGen = el("filterGeneration").value;
@@ -450,11 +666,6 @@
       if (maxGenNum !== null && node.data.generation != null) {
         visible = Number(node.data.generation) <= maxGenNum;
       }
-      if (visible && activeBranch !== null && node.data.branchId !== activeBranch) {
-        // Khi lọc chi: giữ tổ tiên ngoài chi nếu cần? Trần Tộc không có chi.
-        // Vũ Tộc: làm mờ bằng visible=false các node ngoài chi (trừ khi đang xem nhánh hậu duệ).
-        if (!branchViewRootKey) visible = false;
-      }
       node.visible = visible;
     });
     diagram.links.each(function (link) {
@@ -462,30 +673,14 @@
         !!(link.fromNode && link.toNode && link.fromNode.visible && link.toNode.visible);
     });
     diagram.commitTransaction("filter");
-    diagram.layout.invalidateLayout();
-    diagram.layoutDiagram(true);
   }
 
   function filterByGeneration() {
-    applyFiltersVisibility();
+    rebuildCurrentView();
   }
 
-  function changeViewMode() {
-    if (!diagram) return;
-    var mode = el("viewMode").value;
-    if (mode === "tree") {
-      diagram.layout = $(go.TreeLayout, {
-        angle: 90,
-        layerSpacing: 50,
-        nodeSpacing: 15,
-        compaction: go.TreeLayout.CompactionBlock,
-      });
-    } else {
-      diagram.layout = $(go.ForceDirectedLayout, {
-        defaultSpringLength: 60,
-        defaultElectricalCharge: 200,
-      });
-    }
+  function changeLayoutMode() {
+    rebuildCurrentView();
   }
 
   // ── Branch / descendants ────────────────────────────────────────
@@ -529,14 +724,11 @@
     if (!people.length) return;
     var root = people[0];
     branchViewRootKey = rootKey;
-    activeBranch = null;
-    el("branchFilter").querySelectorAll("button").forEach(function (btn) {
-      btn.classList.toggle("active", !btn.dataset.branch);
-    });
     closePersonModal();
     setMobilePane("diagram");
     requestAnimationFrame(function () {
-      applyModel(people);
+      configureLayout("lineage");
+      applyTreeModel(people);
       var banner = el("branchViewBanner");
       var text = el("branchViewText");
       if (text) {
@@ -551,20 +743,16 @@
       }
       if (banner) banner.removeAttribute("hidden");
       el("filterGeneration").value = "";
+      resetStage();
     });
   }
 
   function showFullTree() {
     if (!diagram || !bloodlineNodes.length) return;
     branchViewRootKey = null;
-    applyModel(bloodlineNodes);
-    var banner = el("branchViewBanner");
-    if (banner) banner.setAttribute("hidden", "");
+    el("viewMode").value = "lineage";
     el("filterGeneration").value = "";
-    activeBranch = null;
-    el("branchFilter").querySelectorAll("button").forEach(function (btn) {
-      btn.classList.toggle("active", !btn.dataset.branch);
-    });
+    rebuildCurrentView();
     setMobilePane("diagram");
   }
 
@@ -604,19 +792,38 @@
   }
 
   function focusOrOpen(id) {
-    var node = diagram && diagram.findNodeForKey(id);
-    if (!node && branchViewRootKey) {
-      showFullTree();
-      node = diagram.findNodeForKey(id);
+    function focusAfterReset() {
+      resetStage();
+      requestAnimationFrame(function () {
+        var node = diagram && diagram.findNodeForKey(id);
+        if (node) {
+          node.visible = true;
+          diagram.select(node);
+          diagram.commandHandler.scrollToPart(node);
+        }
+        openPerson(id);
+      });
     }
-    if (node) {
-      if (!node.visible) {
-        node.visible = true;
-      }
-      diagram.select(node);
-      diagram.commandHandler.scrollToPart(node);
+
+    var currentNode = diagram && diagram.findNodeForKey(id);
+    if (currentNode && !branchViewRootKey) {
+      rebuildCurrentView();
+      focusAfterReset();
+      return;
     }
-    openPerson(id);
+
+    ensureGraphPayload()
+      .then(function () {
+        var person = nodeById[id];
+        el("viewMode").value =
+          person && person.treeScope === "external" ? "relations" : "family";
+        el("filterGeneration").value = "";
+        rebuildCurrentView();
+        focusAfterReset();
+      })
+      .catch(function () {
+        openPerson(id);
+      });
   }
 
   // ── Modal ───────────────────────────────────────────────────────
@@ -923,8 +1130,16 @@
   }
 
   function downloadJSON() {
-    if (!treePayload) return;
-    var blob = new Blob([JSON.stringify(treePayload, null, 2)], {
+    if (!diagram || !diagram.model) return;
+    var payload = {
+      view: el("viewMode").value,
+      layout: el("layoutMode").value,
+      nodes: diagram.model.nodeDataArray,
+      links:
+        diagram.model instanceof go.GraphLinksModel ? diagram.model.linkDataArray : [],
+      exportedAt: new Date().toISOString(),
+    };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: "application/json",
     });
     var url = URL.createObjectURL(blob);
@@ -943,7 +1158,8 @@
     el("btnRoot").onclick = applyInitialView;
     el("btnShowFullTree").onclick = showFullTree;
     el("filterGeneration").onchange = filterByGeneration;
-    el("viewMode").onchange = changeViewMode;
+    el("viewMode").onchange = changeDataView;
+    el("layoutMode").onchange = changeLayoutMode;
     el("zoomSlider").oninput = function () {
       setDiagramZoom(this.value);
     };
@@ -979,10 +1195,10 @@
           nodeById[n.id] = n;
         });
         buildBloodline();
-        applyModel(bloodlineNodes);
-        renderBranchFilter();
         populateGenerationFilter();
-        updateStats();
+        configureLayout("lineage");
+        applyTreeModel(bloodlineNodes);
+        resetStage();
         initSearch();
       })
       .catch(function (err) {

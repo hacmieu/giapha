@@ -180,26 +180,6 @@ html, body {
     border: 1px solid #374151;
     flex-shrink: 0;
 }
-.branch-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-.branch-filter button {
-    padding: 4px 9px;
-    border: 1px solid #d1d5db;
-    border-radius: 999px;
-    background: #fff;
-    font-size: 11px;
-    cursor: pointer;
-    color: var(--ink-deep);
-    touch-action: manipulation;
-}
-.branch-filter button.active {
-    background: var(--vermilion);
-    border-color: var(--vermilion);
-    color: #fff;
-}
 .loading-msg {
     display: flex;
     align-items: center;
@@ -337,6 +317,10 @@ html, body {
         linear-gradient(90deg, rgba(23, 50, 77, .035) 1px, transparent 1px);
     background-size: 24px 24px;
     min-width: 0;
+}
+#myDiagramDiv.is-loading-view {
+    opacity: .55;
+    cursor: progress;
 }
 .site-footer {
     padding: 8px 16px;

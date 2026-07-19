@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_0109-vu-toc-view-modes-stage-reset.md](./20260720_0109-vu-toc-view-modes-stage-reset.md) | View là data projection, layout là bố cục; reset stage về Thủy Tổ; graph public lazy-load 397 người/629 links |
 | [20260720_0054-vu-toc-viewer-feature-parity.md](./20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc: autocomplete+API search, visible-filter đời, modal dialog+vẽ nhánh, panel 🧭; giữ lọc Chi Vũ |
 | [20260720_0045-detach-nguyen-external.md](./20260720_0045-detach-nguyen-external.md) | Họ Nguyễn/Nguyên (không spouse_in) tách tạm external; dâu Nguyễn giữ trên thẻ; Vợ… → spouse |
 | [20260720_0040-vu-toc-root-unify.md](./20260720_0040-vu-toc-root-unify.md) | Thủy Tổ TỎ PHỤ/TỔ MẪU không gán chi → luật chi_id=external cắt gốc; sửa main=có chi+tổ tiên; public tree cần cha&con cùng main |
