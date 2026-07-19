@@ -69,8 +69,6 @@ function initDiagram() {
         "undoManager.isEnabled": false,
         allowDelete: false,
         allowCopy: false,
-        initialAutoScale: go.Diagram.Fit,
-        contentAlignment: go.Spot.TopCenter,
         layout: $(go.TreeLayout, {
             angle: 90,
             layerSpacing: 50,
@@ -79,6 +77,20 @@ function initDiagram() {
             sorting: go.TreeLayout.SortingAscending
         }),
         "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
+    });
+
+    // Khi load: zoom 1:1 và đưa node Tổ (gốc cây) vào giữa trên cùng khung nhìn
+    myDiagram.addDiagramListener("InitialLayoutCompleted", function(e) {
+        var d = e.diagram;
+        d.scale = 1;
+        var root = d.findTreeRoots().first();
+        if (root) {
+            var b = root.actualBounds;
+            d.position = new go.Point(
+                b.centerX - d.viewportBounds.width / 2,
+                b.y - 24
+            );
+        }
     });
 
     // ── Node template: photo-card style ───────
@@ -263,10 +275,6 @@ function applyGenealogyData(data) {
     updateStats(data.metadata);
     initSearchAutocomplete();
     initPersonModal();
-
-    myDiagram.addDiagramListener("InitialLayoutCompleted", function() {
-        myDiagram.zoomToFit();
-    });
 }
 
 function loadStaticGenealogy(dataUrl) {

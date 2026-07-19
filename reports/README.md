@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260719_1230-initial-zoom-center-root.md](./pdca/20260719_1230-initial-zoom-center-root.md) | PDCA done: load zoom 1:1 center Tổ, gỡ zoomToFit ghi đè; deploy e4eb0a83 |
 | [pdca/20260719_1225-uniform-node-portrait-fix.md](./pdca/20260719_1225-uniform-node-portrait-fix.md) | PDCA done: fix SVG hỏng, silhouette shape GoJS, node cao đồng đều; deploy 94cc4222 |
 | [pdca/20260719_1212-chanh-thon-portrait.md](./pdca/20260719_1212-chanh-thon-portrait.md) | PDCA done: Trần tộc Chanh Thôn + portrait; deploy Hacmieu |
 | [pdca/20260719_1159-tran-toc-viewer-modal.md](./pdca/20260719_1159-tran-toc-viewer-modal.md) | PDCA done: Trần Tộc UI, hồ sơ modal, browser check và deploy Hacmieu |
