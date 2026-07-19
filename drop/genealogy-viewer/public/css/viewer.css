@@ -184,8 +184,35 @@ html, body {
     position: relative;
     flex: 1;
     display: flex;
+    flex-direction: column;
     min-width: 0;
 }
+.branch-view-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    color: var(--ink-deep);
+    background: #fff8e8;
+    border-bottom: 1px solid #e4c77e;
+    font-size: 12px;
+    font-weight: 600;
+}
+.branch-view-banner[hidden] { display: none; }
+.branch-view-banner button {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    color: #fff;
+    background: var(--vermilion);
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.branch-view-banner button:hover { background: var(--vermilion-dark); }
 .diagram-controls {
     position: absolute;
     right: 16px;
@@ -462,6 +489,39 @@ html, body {
     flex-wrap: wrap;
     gap: 4px 14px;
 }
+.branch-builder p {
+    margin: 0 0 10px;
+    color: #625d55;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.branch-builder-controls {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+.branch-generation-select {
+    min-width: 0;
+    flex: 1;
+    padding: 8px 9px;
+    color: var(--ink-deep);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-size: 12px;
+}
+.branch-draw-btn {
+    padding: 8px 12px;
+    color: #fff;
+    background: var(--vermilion);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.branch-draw-btn:hover { background: var(--vermilion-dark); }
 .profile-note {
     margin: 0;
     padding: 11px 13px;
@@ -545,6 +605,14 @@ html, body {
     .modal-body { padding: 18px; }
     .profile-grid { grid-template-columns: 1fr; }
     .profile-field.wide { grid-column: auto; }
+    .branch-view-banner {
+        margin: -12px 0 0;
+        padding: 7px 10px;
+        font-size: 11px;
+    }
+    .branch-builder-controls { flex-direction: column; }
+    .branch-generation-select,
+    .branch-draw-btn { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
     .person-modal[open] { animation: none; }

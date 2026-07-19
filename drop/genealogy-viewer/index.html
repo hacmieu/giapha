@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Phả Đồ Đinh - Họ Trần Chi 4 - Trần tộc Chanh Thôn</title>
-    <link rel="stylesheet" href="./public/css/viewer.css?v=14">
+    <link rel="stylesheet" href="./public/css/viewer.css?v=16">
 </head>
 <body class="mobile-pane-controls">
 <header class="site-header">
@@ -28,7 +28,7 @@
         <div class="stats-box">
             <div>👥 Tổng người: <strong id="totalPeople">--</strong></div>
             <div>🔗 Quan hệ: <strong id="totalRelationships">--</strong></div>
-            <div>🏛 Thế hệ: <strong id="generationRange">4-12</strong></div>
+            <div>🏛 Thế hệ: <strong id="generationRange">4-13</strong></div>
         </div>
 
         <div>
@@ -44,18 +44,19 @@
         </div>
 
         <div>
-            <label class="ctrl-label">🏛 Lọc Thế Hệ:</label>
+            <label class="ctrl-label">🏛 Xem Đến Đời:</label>
             <select id="filterGeneration" class="ctrl-select" onchange="filterByGeneration()">
                 <option value="">Tất Cả</option>
-                <option value="4">Đời thứ 4</option>
-                <option value="5">Đời thứ 5</option>
-                <option value="6">Đời thứ 6</option>
-                <option value="7">Đời thứ 7</option>
-                <option value="8">Đời thứ 8</option>
-                <option value="9">Đời thứ 9</option>
-                <option value="10">Đời thứ 10</option>
-                <option value="11">Đời thứ 11</option>
-                <option value="12">Đời thứ 12</option>
+                <option value="4">Đến đời thứ 4</option>
+                <option value="5">Đến đời thứ 5</option>
+                <option value="6">Đến đời thứ 6</option>
+                <option value="7">Đến đời thứ 7</option>
+                <option value="8">Đến đời thứ 8</option>
+                <option value="9">Đến đời thứ 9</option>
+                <option value="10">Đến đời thứ 10</option>
+                <option value="11">Đến đời thứ 11</option>
+                <option value="12">Đến đời thứ 12</option>
+                <option value="13">Đến đời thứ 13</option>
             </select>
         </div>
 
@@ -89,11 +90,15 @@
             <div class="legend-row"><div class="legend-dot" style="background:#f0fdf4;border:2px solid #047857;"></div>Đời 7</div>
             <div class="legend-row"><div class="legend-dot" style="background:#fff7ed;border:2px solid #b45309;"></div>Đời 8</div>
             <div class="legend-row"><div class="legend-dot" style="background:#fef2f2;border:2px solid #b91c1c;"></div>Đời 9</div>
-            <div class="legend-row"><div class="legend-dot" style="background:#faf5ff;border:2px solid #7e22ce;"></div>Đời 10–12</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#faf5ff;border:2px solid #7e22ce;"></div>Đời 10–13</div>
         </div>
     </aside>
 
     <div class="diagram-stage">
+        <div id="branchViewBanner" class="branch-view-banner" hidden>
+            <span id="branchViewText"></span>
+            <button type="button" onclick="showFullTree()">Xem toàn bộ phả đồ</button>
+        </div>
         <main id="myDiagramDiv" aria-label="Phả đồ Trần tộc Chanh Thôn - Họ Trần Chi 4">
             <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7280;font-size:16px;">
                 ⏳ Đang tải phả đồ...
@@ -147,7 +152,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
 <script>window.GIAPHA_DATA_URL = './public/data/gojs_data.json'; window.GIAPHA_ASSET_BASE = './public/';</script>
 <script src="./public/js/autocomplete-search.js"></script>
-<script src="./public/js/genealogy-viewer.js?v=17"></script>
+<script src="./public/js/genealogy-viewer.js?v=19"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         loadStaticGenealogy();

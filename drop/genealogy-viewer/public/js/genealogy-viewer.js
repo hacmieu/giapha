@@ -268,7 +268,8 @@ function applyGenealogyData(data) {
         nodeDataArray: data.nodeDataArray
     });
 
-    updateStats(data.metadata);
+    updateStats(data.metadata, data.nodeDataArray);
+    populateGenerationFilter(data.nodeDataArray);
     initSearchAutocomplete();
     initPersonModal();
 }
@@ -323,6 +324,12 @@ function showPersonInfo(data) {
     const children = genealogyData
         ? genealogyData.nodeDataArray.filter(function(person) { return person.fatherId === data.key; })
         : [];
+    const branchPeople = collectDescendants(data.key);
+    const descendants = branchPeople.filter(function(person) { return person.key !== data.key; });
+    const rootGeneration = Number(data.generation) || 0;
+    const maxDescendantGeneration = branchPeople.reduce(function(max, person) {
+        return Math.max(max, Number(person.generation) || max);
+    }, rootGeneration);
     const fieldRaw = function(label, html, wide) {
         if (html === undefined || html === null || html === '') return '';
         return '<div class="profile-field' + (wide ? ' wide' : '') + '">' +
@@ -367,6 +374,27 @@ function showPersonInfo(data) {
                 '<span class="person-link-list">' + children.map(personLink).join('') + '</span>', true)
             : field('Con trong phả đồ', 'Chưa ghi')) +
         '</div></section>';
+
+    if (descendants.length) {
+        let generationOptions = '<option value="">Tất cả con cháu (' + descendants.length +
+            ' người · đến Đời ' + maxDescendantGeneration + ')</option>';
+        for (let gen = rootGeneration + 1; gen <= maxDescendantGeneration; gen += 1) {
+            generationOptions += '<option value="' + gen + '">Đến Đời ' + gen + '</option>';
+        }
+        body += '<section class="profile-section branch-builder" aria-labelledby="section-branch">' +
+            '<h3 id="section-branch">Vẽ nhánh hậu duệ</h3>' +
+            '<p>Chọn đời cuối cần xem. Mặc định lấy toàn bộ con cháu trong nhánh này.</p>' +
+            '<div class="branch-builder-controls">' +
+            '<select id="branchEndGeneration" class="branch-generation-select" data-root-key="' +
+                escapeHtml(String(data.key)) + '" aria-label="Đời cuối của nhánh hậu duệ">' +
+                generationOptions + '</select>' +
+            '<button type="button" class="branch-draw-btn" onclick="drawDescendantBranchFromModal()">Vẽ phả đồ nhánh này</button>' +
+            '</div></section>';
+    } else {
+        body += '<section class="profile-section branch-builder" aria-labelledby="section-branch">' +
+            '<h3 id="section-branch">Vẽ nhánh hậu duệ</h3>' +
+            '<p>Người này chưa có con cháu trong dữ liệu phả đồ.</p></section>';
+    }
 
     if (data.notes) {
         body += '<section class="profile-section" aria-labelledby="section-notes">' +
@@ -428,13 +456,48 @@ function closePersonModal() {
 // ──────────────────────────────────────────────
 // Cập nhật thống kê
 // ──────────────────────────────────────────────
-function updateStats(meta) {
-    if (!meta) return;
+function updateStats(meta, people) {
+    meta = meta || {};
+    people = people || [];
     const el = function(id) { return document.getElementById(id); };
-    if (el('totalPeople'))        el('totalPeople').textContent        = meta.totalPeople || 0;
-    if (el('totalRelationships')) el('totalRelationships').textContent = meta.totalRelationships || 0;
-    if (el('generationRange') && meta.generationRange)
-        el('generationRange').textContent = meta.generationRange[0] + '-' + meta.generationRange[1];
+    const generations = people.map(function(person) { return Number(person.generation); })
+        .filter(function(generation) { return Number.isFinite(generation); });
+    const actualRange = generations.length
+        ? [Math.min.apply(null, generations), Math.max.apply(null, generations)]
+        : meta.generationRange;
+
+    if (el('totalPeople')) {
+        el('totalPeople').textContent = people.length || meta.totalPeople || 0;
+    }
+    if (el('totalRelationships')) {
+        const relationshipCount = people.filter(function(person) { return !!person.fatherId; }).length;
+        el('totalRelationships').textContent = relationshipCount || meta.totalRelationships || 0;
+    }
+    if (el('generationRange') && actualRange) {
+        el('generationRange').textContent = actualRange[0] + '-' + actualRange[1];
+    }
+}
+
+function populateGenerationFilter(people) {
+    const select = document.getElementById('filterGeneration');
+    if (!select) return;
+    const generations = Array.from(new Set(people.map(function(person) {
+        return Number(person.generation);
+    }).filter(function(generation) {
+        return Number.isFinite(generation);
+    }))).sort(function(a, b) { return a - b; });
+
+    select.innerHTML = '';
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = 'Tất Cả';
+    select.appendChild(allOption);
+    generations.forEach(function(generation) {
+        const option = document.createElement('option');
+        option.value = String(generation);
+        option.textContent = 'Đến đời thứ ' + generation;
+        select.appendChild(option);
+    });
 }
 
 // ──────────────────────────────────────────────
@@ -492,6 +555,104 @@ function searchPerson(query) {
 }
 
 // ──────────────────────────────────────────────
+// Vẽ riêng một nhánh hậu duệ
+// ──────────────────────────────────────────────
+var branchViewRootKey = null;
+
+/** Lấy người gốc + toàn bộ con cháu, có thể dừng tại đời tuyệt đối endGeneration. */
+function collectDescendants(rootKey, endGeneration) {
+    if (!genealogyData || !genealogyData.nodeDataArray) return [];
+
+    const allPeople = genealogyData.nodeDataArray;
+    const root = allPeople.find(function(person) { return String(person.key) === String(rootKey); });
+    if (!root) return [];
+
+    const childrenByFather = new Map();
+    allPeople.forEach(function(person) {
+        if (!person.fatherId) return;
+        const fatherKey = String(person.fatherId);
+        if (!childrenByFather.has(fatherKey)) childrenByFather.set(fatherKey, []);
+        childrenByFather.get(fatherKey).push(person);
+    });
+
+    const limit = endGeneration ? Number(endGeneration) : Infinity;
+    const result = [];
+    const queue = [root];
+    const seen = new Set();
+
+    while (queue.length) {
+        const person = queue.shift();
+        const key = String(person.key);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push(person);
+
+        const children = childrenByFather.get(key) || [];
+        children.forEach(function(child) {
+            const generation = Number(child.generation) || 0;
+            if (generation <= limit) queue.push(child);
+        });
+    }
+    return result;
+}
+
+function createTreeModel(nodes) {
+    const keys = new Set(nodes.map(function(person) { return String(person.key); }));
+    const copies = nodes.map(function(person) {
+        const copy = Object.assign({}, person);
+        if (!copy.fatherId || !keys.has(String(copy.fatherId))) delete copy.fatherId;
+        return copy;
+    });
+    return new window.go.TreeModel({
+        nodeParentKeyProperty: "fatherId",
+        nodeKeyProperty: "key",
+        nodeDataArray: copies
+    });
+}
+
+function drawDescendantBranchFromModal() {
+    const select = document.getElementById('branchEndGeneration');
+    if (!select || !myDiagram) return;
+
+    const rootKey = select.dataset.rootKey;
+    const endGeneration = select.value ? Number(select.value) : null;
+    const people = collectDescendants(rootKey, endGeneration);
+    if (!people.length) return;
+
+    const root = people[0];
+    branchViewRootKey = rootKey;
+    closePersonModal();
+    setMobilePane('diagram');
+
+    requestAnimationFrame(function() {
+        myDiagram.model = createTreeModel(people);
+        const banner = document.getElementById('branchViewBanner');
+        const text = document.getElementById('branchViewText');
+        if (text) {
+            text.textContent = 'Nhánh ' + (root.name || 'Chưa rõ') + ' · ' +
+                (endGeneration ? 'đến Đời ' + endGeneration : 'tất cả con cháu') +
+                ' · ' + people.length + ' người';
+        }
+        if (banner) banner.removeAttribute('hidden');
+
+        const generationFilter = document.getElementById('filterGeneration');
+        if (generationFilter) generationFilter.value = '';
+    });
+}
+
+function showFullTree() {
+    if (!genealogyData || !myDiagram) return;
+    branchViewRootKey = null;
+    myDiagram.model = createTreeModel(genealogyData.nodeDataArray);
+
+    const banner = document.getElementById('branchViewBanner');
+    if (banner) banner.setAttribute('hidden', '');
+    const generationFilter = document.getElementById('filterGeneration');
+    if (generationFilter) generationFilter.value = '';
+    setMobilePane('diagram');
+}
+
+// ──────────────────────────────────────────────
 // Lọc theo thế hệ
 // ──────────────────────────────────────────────
 function filterByGeneration() {
@@ -503,7 +664,8 @@ function filterByGeneration() {
         if (!gen) {
             node.visible = true;
         } else {
-            node.visible = (String(node.data.generation) === gen);
+            // Giữ toàn bộ các đời trước để quan hệ cha-con không bị đứt.
+            node.visible = Number(node.data.generation) <= Number(gen);
         }
     });
     // Ẩn link nếu cả 2 đầu đều ẩn
@@ -512,6 +674,8 @@ function filterByGeneration() {
                        link.fromNode.visible && link.toNode.visible;
     });
     myDiagram.commitTransaction("filter");
+    myDiagram.layout.invalidateLayout();
+    myDiagram.layoutDiagram(true);
 }
 
 // ──────────────────────────────────────────────
