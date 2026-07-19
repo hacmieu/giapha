@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1225-uniform-node-portrait-fix.md](./20260719_1225-uniform-node-portrait-fix.md) | Sửa portrait không hiển thị; node cao đồng đều |
 | [20260719_1212-chanh-thon-portrait.md](./20260719_1212-chanh-thon-portrait.md) | Đổi địa danh Chanh Thôn / Ninh Bình; thêm portrait SVG |
 | [20260719_1159-tran-toc-viewer-modal.md](./20260719_1159-tran-toc-viewer-modal.md) | Đổi Vũ Tộc → Trần Tộc; chuyển hồ sơ sidebar sang modal; áp dụng UX gia phả hiện đại |
 | [20260718_0119-deploy-genealogy-viewer-hacmieu.md](./20260718_0119-deploy-genealogy-viewer-hacmieu.md) | Deploy vào account Hacmieu (không temporary) — done |

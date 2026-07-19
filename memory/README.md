@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1225-uniform-node-portrait-fix.md](./20260719_1225-uniform-node-portrait-fix.md) | Node vẽ portrait bằng shape GoJS; chiều cao node cố định 108×138; SVG phải XML sạch |
 | [20260719_1212-chanh-thon-portrait.md](./20260719_1212-chanh-thon-portrait.md) | Brand Trần tộc Chanh Thôn + portrait SVG node/modal |
 | [20260719_1159-tran-toc-viewer-modal.md](./20260719_1159-tran-toc-viewer-modal.md) | Đổi nhận diện Trần Tộc; hồ sơ modal; monogram, escaping và cache-bust |
 | [20260718_0119-deploy-genealogy-viewer-hacmieu.md](./20260718_0119-deploy-genealogy-viewer-hacmieu.md) | Deploy production Workers vào Hacmieu@gmail.com — `*.hacmieu.workers.dev` |

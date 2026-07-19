@@ -135,50 +135,57 @@ function initDiagram() {
             })
         ),
 
+        // Kích thước cố định để mọi node cao bằng nhau
         $(go.Panel, "Vertical",
-            { margin: new go.Margin(8, 8, 8, 8), minSize: new go.Size(90, NaN) },
+            {
+                margin: new go.Margin(8, 8, 8, 8),
+                desiredSize: new go.Size(108, 138),
+                defaultAlignment: go.Spot.Center
+            },
 
-            // Portrait khung cổ điển (SVG local, không phụ thuộc CDN/media Django)
+            // Portrait vẽ bằng shape GoJS (không phụ thuộc tải ảnh ngoài)
             $(go.Panel, "Spot",
                 { margin: new go.Margin(0, 0, 6, 0) },
-                $(go.Picture,
-                    {
-                        width: 52,
-                        height: 65,
-                        source: GIAPHA_PORTRAIT_DINH,
-                        imageStretch: go.GraphObject.UniformToFill,
-                        errorFunction: function(pic) { pic.source = ""; }
-                    }
+                // Nền + vùng cắt
+                $(go.Panel, "Spot",
+                    { isClipping: true },
+                    $(go.Shape, "RoundedRectangle",
+                        { width: 52, height: 62, parameter1: 6, strokeWidth: 0, fill: "#f2ead9" }),
+                    // Vai áo theo màu thế hệ
+                    $(go.Shape, "Ellipse",
+                        {
+                            width: 46, height: 34, strokeWidth: 0,
+                            alignment: new go.Spot(0.5, 1, 0, 8)
+                        },
+                        new go.Binding("fill", "generation", getGenColor)
+                    ),
+                    // Đầu
+                    $(go.Shape, "Circle",
+                        {
+                            width: 21, height: 21, strokeWidth: 0, fill: "#d9b28c",
+                            alignment: new go.Spot(0.5, 0.32)
+                        }
+                    )
                 ),
+                // Viền khung portrait
                 $(go.Shape, "RoundedRectangle",
-                    {
-                        width: 52,
-                        height: 65,
-                        fill: "transparent",
-                        parameter1: 6,
-                        strokeWidth: 1.5
-                    },
+                    { width: 52, height: 62, parameter1: 6, fill: null, strokeWidth: 1.5 },
                     new go.Binding("stroke", "generation", function(gen) {
                         return gen === 4 ? "#78350f" : "#c8943e";
                     })
-                ),
-                $(go.TextBlock,
-                    {
-                        font: "bold 9pt Georgia, serif",
-                        stroke: "#fff9e9",
-                        alignment: new go.Spot(0.5, 0.92, 0, 0),
-                        background: "rgba(13,35,56,.55)"
-                    },
-                    new go.Binding("text", "name", getGivenInitial)
                 )
             ),
 
-            // Name
+            // Name — cao cố định 2 dòng
             $(go.TextBlock,
                 {
-                    maxSize: new go.Size(110, NaN),
+                    width: 104,
+                    height: 32,
+                    maxLines: 2,
+                    overflow: go.TextBlock.OverflowEllipsis,
                     wrap: go.TextBlock.WrapFit,
                     textAlign: "center",
+                    verticalAlignment: go.Spot.Center,
                     font: "bold 10pt 'Arial', sans-serif",
                     stroke: "#111827"
                 },
@@ -204,16 +211,16 @@ function initDiagram() {
                 })
             ),
 
-            // Birth year (show only if present)
+            // Birth year — luôn giữ dòng để chiều cao đồng đều
             $(go.TextBlock,
                 {
+                    height: 12,
                     font: "8pt Arial",
                     stroke: "#6b7280",
                     textAlign: "center",
                     margin: new go.Margin(1, 0, 0, 0)
                 },
-                new go.Binding("text", "birthYear", function(y) { return y ? "(" + y + ")" : ""; }),
-                new go.Binding("visible", "birthYear", function(y) { return !!y; })
+                new go.Binding("text", "birthYear", function(y) { return y ? "(" + y + ")" : " "; })
             )
         )
     );
