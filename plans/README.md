@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1457-zoom-slider-collapsible-controls.md](./20260719_1457-zoom-slider-collapsible-controls.md) | Thanh trượt zoom + bảng điều khiển thu gọn dạng tab |
 | [20260719_1449-diagram-nav-controls.md](./20260719_1449-diagram-nav-controls.md) | Nút phóng to / thu nhỏ / điều hướng trên phả đồ |
 | [20260719_1444-modal-family-links.md](./20260719_1444-modal-family-links.md) | Link điều hướng Thân phụ / con trong modal hồ sơ |
 | [20260719_1330-initial-scale-70.md](./20260719_1330-initial-scale-70.md) | Đổi scale mặc định khi load xuống 70% |

@@ -84,6 +84,11 @@ function initDiagram() {
         applyInitialView();
     });
 
+    // Zoom bằng chuột/chạm cũng cập nhật thanh trượt
+    myDiagram.addDiagramListener("ViewportBoundsChanged", function() {
+        syncZoomSlider();
+    });
+
     // ── Node template: photo-card style ───────
     myDiagram.nodeTemplate = $(go.Node, "Auto",
         {
@@ -547,9 +552,39 @@ function applyInitialView() {
     }
 }
 
-function goToRoot()       { applyInitialView(); }
-function zoomInDiagram()  { if (myDiagram) myDiagram.commandHandler.increaseZoom(); }
-function zoomOutDiagram() { if (myDiagram) myDiagram.commandHandler.decreaseZoom(); }
+function goToRoot() { applyInitialView(); }
+
+/** Zoom bằng thanh trượt — neo vào tâm khung nhìn hiện tại */
+function setDiagramZoom(value) {
+    if (!myDiagram) return;
+    var scale = parseFloat(value);
+    if (!scale) return;
+    var center = myDiagram.viewportBounds.center;
+    myDiagram.scale = scale;
+    myDiagram.centerRect(new window.go.Rect(center.x, center.y, 1, 1));
+}
+
+/** Đồng bộ thanh trượt khi zoom bằng chuột/chạm */
+function syncZoomSlider() {
+    var slider = document.getElementById('zoomSlider');
+    if (!slider || !myDiagram) return;
+    var s = Math.min(2, Math.max(0.2, myDiagram.scale));
+    if (Math.abs(parseFloat(slider.value) - s) > 0.01) slider.value = s.toFixed(2);
+}
+
+function toggleDiagramControls() {
+    var panel = document.getElementById('dcPanel');
+    var toggle = document.querySelector('.dc-toggle');
+    if (!panel) return;
+    var willOpen = panel.hasAttribute('hidden');
+    if (willOpen) {
+        panel.removeAttribute('hidden');
+        syncZoomSlider();
+    } else {
+        panel.setAttribute('hidden', '');
+    }
+    if (toggle) toggle.setAttribute('aria-expanded', String(willOpen));
+}
 
 /** Pan theo hướng (dx, dy ∈ {-1,0,1}), bước ~60% khung nhìn */
 function panDiagram(dx, dy) {
