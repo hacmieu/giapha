@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260719_1330-initial-scale-70.md](./20260719_1330-initial-scale-70.md) | Đổi scale mặc định khi load xuống 70% |
 | [20260719_1230-initial-zoom-center-root.md](./20260719_1230-initial-zoom-center-root.md) | Load mặc định zoom 1:1, căn giữa node Tổ |
 | [20260719_1225-uniform-node-portrait-fix.md](./20260719_1225-uniform-node-portrait-fix.md) | Sửa portrait không hiển thị; node cao đồng đều |
 | [20260719_1212-chanh-thon-portrait.md](./20260719_1212-chanh-thon-portrait.md) | Đổi địa danh Chanh Thôn / Ninh Bình; thêm portrait SVG |

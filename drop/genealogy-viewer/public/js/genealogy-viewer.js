@@ -79,10 +79,10 @@ function initDiagram() {
         "toolManager.mouseWheelBehavior": go.ToolManager.WheelZoom,
     });
 
-    // Khi load: zoom 1:1 và đưa node Tổ (gốc cây) vào giữa trên cùng khung nhìn
+    // Khi load: zoom 70% và đưa node Tổ (gốc cây) vào giữa trên cùng khung nhìn
     myDiagram.addDiagramListener("InitialLayoutCompleted", function(e) {
         var d = e.diagram;
-        d.scale = 1;
+        d.scale = 0.7;
         var root = d.findTreeRoots().first();
         if (root) {
             var b = root.actualBounds;
