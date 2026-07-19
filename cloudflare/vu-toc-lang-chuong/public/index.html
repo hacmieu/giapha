@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Phả Đồ — Vũ Tộc Làng Chuông</title>
+  <link rel="stylesheet" href="/css/viewer.css?v=5" />
+</head>
+<body class="mobile-pane-diagram">
+<header class="site-header">
+  <div class="clan-seal" aria-hidden="true">武</div>
+  <div class="site-heading">
+    <span class="eyebrow">Gia phả điện tử</span>
+    <h1>Vũ Tộc Làng Chuông</h1>
+    <p>Làng Chuông · Cây chính và quan hệ ngoài được quản lý riêng</p>
+  </div>
+</header>
+
+<nav class="mobile-pane-tabs" role="tablist" aria-label="Chế độ xem mobile">
+  <button type="button" class="mobile-pane-tab" id="tabControls" role="tab" aria-selected="false">Điều khiển</button>
+  <button type="button" class="mobile-pane-tab is-active" id="tabDiagram" role="tab" aria-selected="true">Phả đồ</button>
+</nav>
+
+<div class="genealogy-page">
+  <aside class="sidebar" id="sidebarPanel">
+    <h3>📜 Phả Đồ Vũ Tộc</h3>
+
+    <div class="stats-box">
+      <div>👥 Cây chính: <strong id="totalPeople">--</strong></div>
+      <div>🔗 Quan hệ cha–con: <strong id="totalRelationships">--</strong></div>
+      <div>🏛 Chi / Đời: <strong id="generationRange">--</strong></div>
+    </div>
+
+    <div>
+      <label class="ctrl-label" for="searchInput">🔍 Tìm Kiếm:</label>
+      <input type="text" id="searchInput" class="ctrl-input" autocomplete="off" placeholder="Nhập tên (gồm quan hệ ngoài)…" />
+    </div>
+
+    <div>
+      <label class="ctrl-label">🏛 Lọc theo Chi:</label>
+      <div id="branchFilter" class="branch-filter"></div>
+    </div>
+
+    <div>
+      <label class="ctrl-label" for="filterGeneration">🏛 Xem Đến Đời:</label>
+      <select id="filterGeneration" class="ctrl-select">
+        <option value="">Tất Cả</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="ctrl-label" for="viewMode">🎨 Chế Độ:</label>
+      <select id="viewMode" class="ctrl-select">
+        <option value="tree" selected>Phả Đồ Thẳng (Tree)</option>
+        <option value="force">Mối Quan Hệ (Force)</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="btn btn-green" id="btnFit">🔍 Fit</button>
+      <button type="button" class="btn btn-blue" id="btnExport">📷 Ảnh</button>
+      <button type="button" class="btn btn-gray" id="btnJson">📥 JSON</button>
+    </div>
+
+    <div class="viewer-hint">
+      <span aria-hidden="true">↗</span>
+      <div>
+        <strong>Xem hồ sơ</strong>
+        <p>Chọn một thành viên trên phả đồ để mở thông tin chi tiết. Trong hồ sơ có thể vẽ nhánh hậu duệ.</p>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #e5e7eb;padding-top:8px;">
+      <div class="ctrl-label">Màu theo thế hệ:</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#fef3c7;border:2px solid #78350f;"></div>Đời 0–1 (Tổ)</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#eff6ff;border:2px solid #1d4ed8;"></div>Đời 2–3</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#f0f9ff;border:2px solid #0369a1;"></div>Đời 4–5</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#f0fdf4;border:2px solid #047857;"></div>Đời 6–7</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#fff7ed;border:2px solid #b45309;"></div>Đời 8–9</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#fef2f2;border:2px solid #b91c1c;"></div>Đời 10+</div>
+    </div>
+  </aside>
+
+  <div class="diagram-stage" id="diagramStage">
+    <div id="branchViewBanner" class="branch-view-banner" hidden>
+      <span id="branchViewText"></span>
+      <button type="button" id="btnShowFullTree">Xem toàn bộ phả đồ</button>
+    </div>
+    <main id="myDiagramDiv" aria-label="Phả đồ Vũ Tộc Làng Chuông">
+      <div class="loading-msg">⏳ Đang tải phả đồ…</div>
+    </main>
+
+    <div class="diagram-controls" role="group" aria-label="Điều khiển phả đồ">
+      <div class="dc-panel" id="dcPanel" hidden>
+        <div class="zoom-row">
+          <span aria-hidden="true">－</span>
+          <input type="range" id="zoomSlider" class="zoom-slider" min="0.2" max="2" step="0.05" value="0.7" aria-label="Thu phóng phả đồ" />
+          <span aria-hidden="true">＋</span>
+        </div>
+        <div class="nav-pad">
+          <button type="button" class="dc-btn nav-up" data-pan="0,-1" title="Di chuyển lên" aria-label="Di chuyển lên">▲</button>
+          <button type="button" class="dc-btn nav-left" data-pan="-1,0" title="Di chuyển trái" aria-label="Di chuyển trái">◀</button>
+          <button type="button" class="dc-btn nav-home" id="btnRoot" title="Về Tổ" aria-label="Về Tổ">⌂</button>
+          <button type="button" class="dc-btn nav-right" data-pan="1,0" title="Di chuyển phải" aria-label="Di chuyển phải">▶</button>
+          <button type="button" class="dc-btn nav-down" data-pan="0,1" title="Di chuyển xuống" aria-label="Di chuyển xuống">▼</button>
+        </div>
+        <button type="button" class="dc-btn dc-fit" id="btnFitPanel" title="Xem toàn cảnh" aria-label="Xem toàn cảnh">⛶ Toàn cảnh</button>
+      </div>
+      <button type="button" class="dc-btn dc-toggle" id="dcToggle" title="Bảng điều khiển" aria-label="Bảng điều khiển phả đồ" aria-expanded="false" aria-controls="dcPanel">🧭</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="personModal" class="person-modal" aria-labelledby="personModalName">
+  <div class="modal-shell">
+    <button type="button" class="modal-close" id="modalClose" aria-label="Đóng hồ sơ">×</button>
+    <div class="modal-identity">
+      <div class="person-portrait-frame">
+        <img id="personPortrait" class="person-portrait" alt="" />
+        <span id="personMonogram" class="person-monogram" aria-hidden="true">V</span>
+      </div>
+      <div>
+        <span id="personGeneration" class="generation-badge">Đời --</span>
+        <h2 id="personModalName">Hồ sơ thành viên</h2>
+        <p id="personModalId" class="person-id"></p>
+      </div>
+    </div>
+    <div id="personModalBody" class="modal-body"></div>
+  </div>
+</dialog>
+
+<footer class="site-footer">
+  © Vũ Tộc Làng Chuông · Nền độc lập Cloudflare (D1 + R2) · Dùng nội bộ gia tộc
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.3.9/go.js"></script>
+<script src="/js/autocomplete-search.js?v=5"></script>
+<script src="/js/viewer.js?v=5"></script>
+</body>
+</html>

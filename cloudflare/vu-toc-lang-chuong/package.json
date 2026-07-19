@@ -1,0 +1,32 @@
+{
+  "name": "vu-toc-lang-chuong",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ứng dụng gia phả Vũ Tộc Làng Chuông độc lập trên Cloudflare",
+  "main": "src/index.ts",
+  "scripts": {
+    "export:legacy": "python3 scripts/export_vu_toc.py",
+    "cf:types": "node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js types",
+    "typecheck": "npm run cf:types && node_modules/node/bin/node node_modules/typescript/bin/tsc --noEmit",
+    "test": "npm run typecheck && npm run export:legacy",
+    "dev": "node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js dev",
+    "db:migrate:local": "node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js d1 migrations apply vu-toc-lang-chuong --local",
+    "db:seed:local": "node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js d1 execute vu-toc-lang-chuong --local --file exports/vu-toc-seed.sql",
+    "deploy:public": "node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js deploy --env public",
+    "deploy:admin": "node_modules/node/bin/node node_modules/wrangler/bin/wrangler.js deploy --env admin"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "jose": "^6.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "node": "^22.23.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.112.0"
+  }
+}

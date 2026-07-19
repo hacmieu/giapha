@@ -6,6 +6,12 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260720_0054-vu-toc-viewer-feature-parity.md](./pdca/20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc → Vũ Tộc: autocomplete, 🧭/slider/d-pad, modal dialog+vẽ nhánh, export; deploy live |
+| [pdca/20260720_0040-vu-toc-root-unify.md](./pdca/20260720_0040-vu-toc-root-unify.md) | Nối 8 chi về Thủy Tổ TỎ PHỤ/TỔ MẪU: sửa luật main=có chi+tổ tiên; vá D1 live; main 306→318 |
+| [pdca/20260720_0012-vu-toc-public-viewer.md](./pdca/20260720_0012-vu-toc-public-viewer.md) | Viewer công khai GoJS đọc /api/public: cây 306, màu theo vai trò, tìm kiếm, lọc chi, modal hồ sơ; deploy live |
+| [pdca/20260720_0007-vu-toc-r2-deploy.md](./pdca/20260720_0007-vu-toc-r2-deploy.md) | Staging live: public tree 306 + R2 media; admin API 401 không JWT; Access/UI viewer còn mở |
+| [pdca/20260719_2259-vu-toc-cloudflare-foundation.md](./pdca/20260719_2259-vu-toc-cloudflare-foundation.md) | D1 remote Hacmieu 397/306/91; foundation Worker/CRUD trước bước R2 deploy |
+| [pdca/20260719_2247-vu-toc-cloudflare-separation.md](./pdca/20260719_2247-vu-toc-cloudflare-separation.md) | PDCA thiết kế Vũ Tộc Cloudflare: khả thi; bổ sung isolation/draft/GoJS risks từ architecture map |
 | [pdca/20260719_1909-daily-work-consolidation.md](./pdca/20260719_1909-daily-work-consolidation.md) | Báo cáo ngày 19/07: timeline 13 vòng, checks, risks, handover và việc tiếp theo |
 | [pdca/20260719_1812-branch-search-focus-fix.md](./pdca/20260719_1812-branch-search-focus-fix.md) | PDCA done: fix search khi xem nhánh (focusPersonOnDiagram); deploy ed9f076e |
 | [pdca/20260719_1756-descendant-branch-filter.md](./pdca/20260719_1756-descendant-branch-filter.md) | PDCA done: lọc đến đời + subtree hậu duệ tùy chọn; deploy 075f9bea |

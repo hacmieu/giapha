@@ -1,0 +1,86 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "vu-toc-lang-chuong-local",
+  "account_id": "716f165ab210a3626462c1c9b903ab44",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-19",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "DEPLOYMENT_MODE": "local",
+    "FAMILY_ID": "f0d4d41c-6b33-598d-a2b5-e0cd99afdc12",
+    "CF_ACCESS_TEAM_DOMAIN": "",
+    "CF_ACCESS_AUD": ""
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vu-toc-lang-chuong",
+      "database_id": "f6f21aeb-b32b-43c1-92b2-543681ec0ad6",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "vu-toc-lang-chuong-media"
+    }
+  ],
+  "env": {
+    "public": {
+      "name": "vu-toc-lang-chuong-public",
+      "vars": {
+        "DEPLOYMENT_MODE": "public",
+        "FAMILY_ID": "f0d4d41c-6b33-598d-a2b5-e0cd99afdc12",
+        "CF_ACCESS_TEAM_DOMAIN": "",
+        "CF_ACCESS_AUD": ""
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "vu-toc-lang-chuong",
+          "database_id": "f6f21aeb-b32b-43c1-92b2-543681ec0ad6",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "vu-toc-lang-chuong-media"
+        }
+      ]
+    },
+    "admin": {
+      "name": "vu-toc-lang-chuong-admin",
+      "vars": {
+        "DEPLOYMENT_MODE": "admin",
+        "FAMILY_ID": "f0d4d41c-6b33-598d-a2b5-e0cd99afdc12",
+        "CF_ACCESS_TEAM_DOMAIN": "",
+        "CF_ACCESS_AUD": ""
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "vu-toc-lang-chuong",
+          "database_id": "f6f21aeb-b32b-43c1-92b2-543681ec0ad6",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "vu-toc-lang-chuong-media"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars*
+worker-configuration.d.ts
+
+# Contains names, dates, notes, phone numbers and generated seed data.
+exports/*
+!exports/.gitkeep

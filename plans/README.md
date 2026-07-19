@@ -6,6 +6,10 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_0054-vu-toc-viewer-feature-parity.md](./20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc → Vũ Tộc: sidebar, controls 🧭, modal dialog, vẽ nhánh, autocomplete, export |
+| [20260720_0007-vu-toc-r2-deploy.md](./20260720_0007-vu-toc-r2-deploy.md) | Done: R2 + deploy staging public/admin Hacmieu; live tree 306, media OK, admin JWT fail-closed |
+| [20260719_2259-vu-toc-cloudflare-foundation.md](./20260719_2259-vu-toc-cloudflare-foundation.md) | Nền D1 schema/export/Worker CRUD; D1 remote seed 397; R2 sau đó mở ở 0007 |
+| [20260719_2247-vu-toc-cloudflare-separation.md](./20260719_2247-vu-toc-cloudflare-separation.md) | Phương án tách Vũ Tộc Cloudflare CRUD: UX Trần Tộc, schema riêng, phân loại 91 người không chi, import staging |
 | [20260719_1909-daily-work-consolidation.md](./20260719_1909-daily-work-consolidation.md) | Kế hoạch tổng hợp/handover toàn bộ 13 vòng công việc ngày 19/07 |
 | [20260719_1812-branch-search-focus-fix.md](./20260719_1812-branch-search-focus-fix.md) | Fix: tìm người mới khi đang xem nhánh thì phả đồ không đổi |
 | [20260719_1756-descendant-branch-filter.md](./20260719_1756-descendant-branch-filter.md) | Sửa lọc đời và vẽ nhánh hậu duệ đến đời tùy chọn |

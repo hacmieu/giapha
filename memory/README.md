@@ -6,6 +6,13 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_0054-vu-toc-viewer-feature-parity.md](./20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc: autocomplete+API search, visible-filter đời, modal dialog+vẽ nhánh, panel 🧭; giữ lọc Chi Vũ |
+| [20260720_0045-detach-nguyen-external.md](./20260720_0045-detach-nguyen-external.md) | Họ Nguyễn/Nguyên (không spouse_in) tách tạm external; dâu Nguyễn giữ trên thẻ; Vợ… → spouse |
+| [20260720_0040-vu-toc-root-unify.md](./20260720_0040-vu-toc-root-unify.md) | Thủy Tổ TỎ PHỤ/TỔ MẪU không gán chi → luật chi_id=external cắt gốc; sửa main=có chi+tổ tiên; public tree cần cha&con cùng main |
+| [20260720_0012-vu-toc-public-viewer.md](./20260720_0012-vu-toc-public-viewer.md) | Viewer tĩnh GoJS gọi /api/public; xóa fatherId mồ côi; route /people/:id; lọc chi bằng dim; GoJS eval có watermark |
+| [20260720_0007-vu-toc-r2-deploy.md](./20260720_0007-vu-toc-r2-deploy.md) | Live Hacmieu public/admin; R2 put phải `--remote`; Access edge vẫn cần để khóa trang admin |
+| [20260719_2259-vu-toc-cloudflare-foundation.md](./20260719_2259-vu-toc-cloudflare-foundation.md) | Main/external + nhiều vợ/con theo mẹ; D1 remote done; seed không BEGIN |
+| [20260719_2247-vu-toc-cloudflare-separation.md](./20260719_2247-vu-toc-cloudflare-separation.md) | Chốt tách Vũ Tộc: UX Trần Tộc + schema riêng; Worker/D1/R2/Access; bổ sung rủi ro 91 người không chi và staging import |
 | [20260719_1909-daily-work-consolidation.md](./20260719_1909-daily-work-consolidation.md) | Tổng kết 13 vòng công việc ngày 19/07: 12 runtime done, 1 thiết kế; quy ước GoJS/mobile/subtree/deploy |
 | [20260719_1812-branch-search-focus-fix.md](./20260719_1812-branch-search-focus-fix.md) | Fix tìm người khi đang xem nhánh: `focusPersonOnDiagram` tự khôi phục full tree |
 | [20260719_1756-descendant-branch-filter.md](./20260719_1756-descendant-branch-filter.md) | Lọc “đến đời” giữ tổ tiên; subtree hậu duệ theo người/đời; dữ liệu có Đời 13 |
