@@ -284,6 +284,15 @@
           alignment: go.GridLayout.Position,
           cellSize: new go.Size(1, 1),
           spacing: new go.Size(4, 4),
+          sorting: go.GridLayout.SortingAscending,
+          comparer: function (a, b) {
+            var sa = a.data && a.data.familySlot != null ? Number(a.data.familySlot) : 99;
+            var sb = b.data && b.data.familySlot != null ? Number(b.data.familySlot) : 99;
+            if (sa !== sb) return sa - sb;
+            var na = (a.data && a.data.name) || "";
+            var nb = (b.data && b.data.name) || "";
+            return na < nb ? -1 : na > nb ? 1 : 0;
+          },
         }),
         isSubGraphExpanded: true,
         selectable: false,
@@ -384,6 +393,7 @@
           isDeceased: node.isDeceased,
           spouseText: node.spouseText || "",
           wifeLabel: node.wifeLabel || "",
+          familySlot: node.familySlot != null ? node.familySlot : null,
         };
         if (node.isGroup) {
           copy.isGroup = true;
@@ -491,8 +501,10 @@
         spouseText: "",
       });
       nodeMap[husbandId].group = groupKey;
+      nodeMap[husbandId].familySlot = 0; // chồng luôn trái
       wives.forEach(function (wife, index) {
         nodeMap[wife.id].group = groupKey;
+        nodeMap[wife.id].familySlot = index + 1; // vợ bên phải, theo wifeOrder
         wifeInGroup[wife.id] = true;
         if (wives.length > 1) {
           nodeMap[wife.id].wifeLabel =
@@ -564,9 +576,18 @@
       });
     }
 
-    var personNodes = Object.keys(nodeMap).map(function (id) {
-      return nodeMap[id];
-    });
+    var personNodes = Object.keys(nodeMap)
+      .map(function (id) {
+        return nodeMap[id];
+      })
+      .sort(function (a, b) {
+        var ga = a.group || "";
+        var gb = b.group || "";
+        if (ga !== gb) return ga < gb ? -1 : 1;
+        var sa = a.familySlot != null ? a.familySlot : 99;
+        var sb = b.familySlot != null ? b.familySlot : 99;
+        return sa - sb;
+      });
     return {
       nodes: groupNodes.concat(personNodes),
       links: links,

@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260720_0143-vu-toc-wife-right-of-husband.md](./pdca/20260720_0143-vu-toc-wife-right-of-husband.md) | Khóa vợ bên phải chồng trong ô gia đình (familySlot + GridLayout comparer) |
 | [pdca/20260720_0131-vu-toc-django-family-group.md](./pdca/20260720_0131-vu-toc-django-family-group.md) | Port Django family group (chồng+vợ trong khối, con nối từ fam_) sang viewer Cloudflare |
 | [pdca/20260720_0109-vu-toc-view-modes-stage-reset.md](./pdca/20260720_0109-vu-toc-view-modes-stage-reset.md) | Bỏ lọc Chi; reset stage; 3 data views; graph API 397 người/629 links; deploy live |
 | [pdca/20260720_0054-vu-toc-viewer-feature-parity.md](./pdca/20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc → Vũ Tộc: autocomplete, 🧭/slider/d-pad, modal dialog+vẽ nhánh, export; deploy live |

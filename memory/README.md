@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_0143-vu-toc-wife-right-of-husband.md](./20260720_0143-vu-toc-wife-right-of-husband.md) | Ô gia đình: chồng familySlot=0 trái, vợ 1..N phải; GridLayout comparer |
 | [20260720_0131-vu-toc-django-family-group.md](./20260720_0131-vu-toc-django-family-group.md) | Django gom vợ–chồng bằng Group `fam_<chồng>`; Cloudflare family/relations đã port; dòng chính giữ spouse text |
 | [20260720_0109-vu-toc-view-modes-stage-reset.md](./20260720_0109-vu-toc-view-modes-stage-reset.md) | View là data projection, layout là bố cục; reset stage về Thủy Tổ; graph public lazy-load 397 người/629 links |
 | [20260720_0054-vu-toc-viewer-feature-parity.md](./20260720_0054-vu-toc-viewer-feature-parity.md) | Clone UX Trần Tộc: autocomplete+API search, visible-filter đời, modal dialog+vẽ nhánh, panel 🧭; giữ lọc Chi Vũ |
