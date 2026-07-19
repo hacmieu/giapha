@@ -344,6 +344,30 @@ html, body {
     font-size: 13px;
     line-height: 1.5;
 }
+.person-link {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--vermilion);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: rgba(166, 44, 43, .4);
+    cursor: pointer;
+}
+.person-link:hover,
+.person-link:focus-visible {
+    color: var(--vermilion-dark);
+    text-decoration-color: currentColor;
+}
+.person-link-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
 .profile-note {
     margin: 0;
     padding: 11px 13px;

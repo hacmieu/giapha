@@ -327,12 +327,21 @@ function showPersonInfo(data) {
     const children = genealogyData
         ? genealogyData.nodeDataArray.filter(function(person) { return person.fatherId === data.key; })
         : [];
-    const field = function(label, value, wide) {
-        if (value === undefined || value === null || value === '') return '';
+    const fieldRaw = function(label, html, wide) {
+        if (html === undefined || html === null || html === '') return '';
         return '<div class="profile-field' + (wide ? ' wide' : '') + '">' +
             '<span class="profile-label">' + escapeHtml(label) + '</span>' +
-            '<span class="profile-value">' + escapeHtml(value) + '</span>' +
+            '<span class="profile-value">' + html + '</span>' +
             '</div>';
+    };
+    const field = function(label, value, wide) {
+        if (value === undefined || value === null || value === '') return '';
+        return fieldRaw(label, escapeHtml(value), wide);
+    };
+    // Link mở hồ sơ người khác (điều hướng qua data-key, bắt sự kiện ở initPersonModal)
+    const personLink = function(person) {
+        return '<button type="button" class="person-link" data-key="' + escapeHtml(String(person.key)) + '">' +
+            escapeHtml(person.name || 'Chưa rõ') + '</button>';
     };
 
     const portrait = document.getElementById('personPortrait');
@@ -353,9 +362,14 @@ function showPersonInfo(data) {
 
     body += '<section class="profile-section" aria-labelledby="section-family">' +
         '<h3 id="section-family">Gia đình</h3><div class="profile-grid">' +
-        field('Thân phụ', father ? father.name : 'Chưa xác định') +
+        (father
+            ? fieldRaw('Thân phụ', personLink(father))
+            : field('Thân phụ', 'Chưa xác định')) +
         field('Phối ngẫu', data.spouses || 'Chưa ghi') +
-        field('Con trong phả đồ', children.length ? children.length + ' người' : 'Chưa ghi') +
+        (children.length
+            ? fieldRaw('Con trong phả đồ (' + children.length + ')',
+                '<span class="person-link-list">' + children.map(personLink).join('') + '</span>', true)
+            : field('Con trong phả đồ', 'Chưa ghi')) +
         '</div></section>';
 
     if (data.notes) {
@@ -381,6 +395,15 @@ function initPersonModal() {
 
     modal.addEventListener('click', function(event) {
         if (event.target === modal) closePersonModal();
+
+        // Điều hướng hồ sơ: click link Thân phụ / con → mở hồ sơ người đó
+        const link = event.target.closest ? event.target.closest('.person-link') : null;
+        if (link && genealogyData) {
+            const person = genealogyData.nodeDataArray.find(function(p) {
+                return String(p.key) === link.dataset.key;
+            });
+            if (person) showPersonInfo(person);
+        }
     });
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' && modal.open) {
