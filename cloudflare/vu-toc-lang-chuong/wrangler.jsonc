@@ -64,8 +64,8 @@
       "vars": {
         "DEPLOYMENT_MODE": "admin",
         "FAMILY_ID": "f0d4d41c-6b33-598d-a2b5-e0cd99afdc12",
-        "CF_ACCESS_TEAM_DOMAIN": "",
-        "CF_ACCESS_AUD": ""
+        "CF_ACCESS_TEAM_DOMAIN": "hopamde.cloudflareaccess.com",
+        "CF_ACCESS_AUD": "78a42cfd728a3fe6937e5663ba48b46a7c049c408471e59bec5f0e5a9fb7b94e"
       },
       "d1_databases": [
         {

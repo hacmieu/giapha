@@ -47,6 +47,7 @@ interface PersonRecord {
   notes: string;
   visibility: string;
   version: number;
+  updated_at?: string;
 }
 
 function oneOf(
@@ -117,6 +118,128 @@ async function assertPerson(env: Env, personId: string): Promise<void> {
   }
 }
 
+function resolveTreeScope(
+  body: Record<string, unknown>,
+  branchId: string | null,
+  fallback: "main" | "external" = "external",
+): "main" | "external" {
+  // Có chi ⇒ main. Không chi vẫn được phép main (tổ tiên / spouse trên cây).
+  if (branchId) return "main";
+  if (body.treeScope === "main" || body.treeScope === "external") {
+    return body.treeScope;
+  }
+  return fallback;
+}
+
+function resolveLineageRole(
+  body: Record<string, unknown>,
+  branchId: string | null,
+  gender: string,
+  fallback?: string,
+): string {
+  const defaultRole = branchId
+    ? gender === "male"
+      ? "dinh"
+      : "daughter"
+    : "external";
+  const requested = oneOf(body, "lineageRole", LINEAGE_ROLES, fallback ?? defaultRole);
+  // Không còn ép không-chi ⇒ external; tôn trọng role admin chọn.
+  return requested;
+}
+
+export async function listAdminMeta(env: Env): Promise<Response> {
+  const batch = await env.DB.batch([
+    env.DB.prepare(
+      `SELECT id, number, name
+       FROM branches
+       WHERE family_id = ?
+       ORDER BY number`,
+    ).bind(env.FAMILY_ID),
+    env.DB.prepare(
+      `SELECT COUNT(*) AS total
+       FROM people
+       WHERE family_id = ? AND deleted_at IS NULL`,
+    ).bind(env.FAMILY_ID),
+  ]);
+  const branches = (batch[0]?.results ?? []) as Array<{
+    id: string;
+    number: number;
+    name: string;
+  }>;
+  const total = Number(
+    (batch[1]?.results?.[0] as { total?: number } | undefined)?.total ?? 0,
+  );
+  return json({
+    family: {
+      id: env.FAMILY_ID,
+      name: "Vũ Tộc Làng Chuông",
+    },
+    branches,
+    metadata: { totalPeople: total },
+  });
+}
+
+export async function listAdminPeople(env: Env, url: URL): Promise<Response> {
+  const query = (url.searchParams.get("q") ?? "").trim();
+  const scope = url.searchParams.get("treeScope");
+  const limitRaw = Number(url.searchParams.get("limit") ?? "80");
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(200, Math.max(1, Math.floor(limitRaw)))
+    : 80;
+
+  const clauses = ["family_id = ?", "deleted_at IS NULL"];
+  const binds: Array<string | number> = [env.FAMILY_ID];
+  if (scope === "main" || scope === "external") {
+    clauses.push("tree_scope = ?");
+    binds.push(scope);
+  }
+  if (query.length >= 1) {
+    clauses.push("name LIKE ? ESCAPE '\\'");
+    binds.push(
+      `%${query.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`,
+    );
+  }
+  binds.push(limit);
+
+  const result = await env.DB.prepare(
+    `SELECT id, legacy_id, person_code, name, gender, branch_id, generation,
+            lineage_role, tree_scope, member_type, is_dinh, birth_order,
+            birth_date, death_date, death_date_lunar, is_deceased, notes,
+            visibility, version, updated_at
+     FROM people
+     WHERE ${clauses.join(" AND ")}
+     ORDER BY tree_scope, generation, name
+     LIMIT ?`,
+  )
+    .bind(...binds)
+    .all<PersonRecord>();
+
+  return json({
+    results: (result.results ?? []).map((person) => ({
+      id: person.id,
+      legacyId: person.legacy_id,
+      personCode: person.person_code,
+      name: person.name,
+      gender: person.gender,
+      branchId: person.branch_id,
+      generation: person.generation,
+      lineageRole: person.lineage_role,
+      treeScope: person.tree_scope,
+      memberType: person.member_type,
+      isDinh: Boolean(person.is_dinh),
+      birthOrder: person.birth_order,
+      birthDate: person.birth_date,
+      deathDate: person.death_date,
+      deathDateLunar: person.death_date_lunar,
+      isDeceased: Boolean(person.is_deceased),
+      notes: person.notes,
+      visibility: person.visibility,
+      version: person.version,
+      updatedAt: (person as PersonRecord & { updated_at?: string }).updated_at,
+    })),
+  });
+}
+
 export async function createPerson(
   request: Request,
   env: Env,
@@ -131,14 +254,8 @@ export async function createPerson(
   const now = new Date().toISOString();
   const gender = oneOf(body, "gender", new Set(["male", "female"]));
   const memberType = oneOf(body, "memberType", MEMBER_TYPES, "blood");
-  const requestedRole = oneOf(
-    body,
-    "lineageRole",
-    LINEAGE_ROLES,
-    branchId ? (gender === "male" ? "dinh" : "daughter") : "external",
-  );
-  const lineageRole = branchId ? requestedRole : "external";
-  const treeScope = branchId ? "main" : "external";
+  const lineageRole = resolveLineageRole(body, branchId, gender);
+  const treeScope = resolveTreeScope(body, branchId, "external");
   const record = {
     id,
     familyId: env.FAMILY_ID,
@@ -241,10 +358,16 @@ export async function updatePerson(
     body.gender === undefined
       ? current.gender
       : oneOf(body, "gender", new Set(["male", "female"]));
-  const requestedRole =
+  const roleBody =
     body.lineageRole === undefined
-      ? current.lineage_role
-      : oneOf(body, "lineageRole", LINEAGE_ROLES);
+      ? { lineageRole: current.lineage_role }
+      : body;
+  const lineageRole = resolveLineageRole(roleBody, branchId, gender, current.lineage_role);
+  const treeScope = resolveTreeScope(
+    body.treeScope === undefined ? { treeScope: current.tree_scope } : body,
+    branchId,
+    current.tree_scope,
+  );
   const next = {
     branchId,
     personCode:
@@ -258,8 +381,8 @@ export async function updatePerson(
       body.generation === undefined
         ? current.generation
         : optionalInteger(body, "generation", 0),
-    lineageRole: branchId ? requestedRole : "external",
-    treeScope: branchId ? "main" : "external",
+    lineageRole,
+    treeScope,
     memberType:
       body.memberType === undefined
         ? current.member_type

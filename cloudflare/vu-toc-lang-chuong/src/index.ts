@@ -4,6 +4,8 @@ import {
   createSpouseRelation,
   deletePerson,
   deleteRelation,
+  listAdminMeta,
+  listAdminPeople,
   updatePerson,
 } from "./admin-api";
 import { requireAdmin } from "./auth";
@@ -67,6 +69,12 @@ async function routeApi(
   assertSameOrigin(request);
   const actor = await requireAdmin(request, env);
 
+  if (method === "GET" && url.pathname === "/api/admin/meta") {
+    return listAdminMeta(env);
+  }
+  if (method === "GET" && url.pathname === "/api/admin/people") {
+    return listAdminPeople(env, url);
+  }
   if (method === "POST" && url.pathname === "/api/admin/people") {
     return createPerson(request, env, actor, requestId);
   }
@@ -106,6 +114,14 @@ export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) {
+      // Admin deployment: trang chủ là UI quản trị, không phải phả đồ công khai.
+      if (
+        env.DEPLOYMENT_MODE === "admin" &&
+        (url.pathname === "/" || url.pathname === "/index.html")
+      ) {
+        const adminUrl = new URL("/admin.html", url.origin);
+        return env.ASSETS.fetch(new Request(adminUrl.toString(), request));
+      }
       return env.ASSETS.fetch(request);
     }
 

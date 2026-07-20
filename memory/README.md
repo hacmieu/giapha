@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_1521-vu-toc-admin-phase-ab.md](./20260720_1521-vu-toc-admin-phase-ab.md) | Access + admin UI CRUD MVP; tree_scope không còn ép theo chi; allow hacmieu@gmail.com |
 | [20260720_1518-vu-toc-remaining-and-admin.md](./20260720_1518-vu-toc-remaining-and-admin.md) | Public đã dùng được; Admin còn Access+UI CRUD; không mang Django Admin |
 | [20260720_0143-vu-toc-wife-right-of-husband.md](./20260720_0143-vu-toc-wife-right-of-husband.md) | Ô gia đình: chồng familySlot=0 trái, vợ 1..N phải; GridLayout comparer |
 | [20260720_0131-vu-toc-django-family-group.md](./20260720_0131-vu-toc-django-family-group.md) | Django gom vợ–chồng bằng Group `fam_<chồng>`; Cloudflare family/relations đã port; dòng chính giữ spouse text |

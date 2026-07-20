@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Vũ Tộc Làng Chuông</title>
+  <link rel="stylesheet" href="/css/admin.css?v=1" />
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Admin · Vũ Tộc Làng Chuông</h1>
+      <p>CRUD trên D1 · Bảo vệ bằng Cloudflare Access</p>
+    </div>
+    <a href="https://vu-toc-lang-chuong-public.hacmieu.workers.dev/" target="_blank" rel="noopener">
+      Mở phả đồ công khai
+    </a>
+  </header>
+
+  <div class="wrap">
+    <div id="statusBanner" class="banner warn">Đang kiểm tra phiên Access / API…</div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Tìm & chọn người</h2>
+        <p class="hint">Gõ tên (≥1 ký tự). Click một dòng để sửa.</p>
+        <div class="row">
+          <label style="flex:2">Từ khóa
+            <input id="searchQ" type="search" placeholder="Ví dụ: Vũ Văn…" autocomplete="off" />
+          </label>
+          <label>Phạm vi
+            <select id="searchScope">
+              <option value="">Tất cả</option>
+              <option value="main">Cây chính</option>
+              <option value="external">Quan hệ ngoài</option>
+            </select>
+          </label>
+          <div class="actions" style="align-items:end;margin:0">
+            <button type="button" id="btnSearch">Tìm</button>
+            <button type="button" class="secondary" id="btnNew">Người mới</button>
+          </div>
+        </div>
+        <div id="peopleList" class="list"></div>
+      </section>
+
+      <section class="card">
+        <h2 id="personFormTitle">Hồ sơ</h2>
+        <form id="personForm" class="form-grid">
+          <input type="hidden" id="personId" />
+          <input type="hidden" id="personVersion" />
+          <label>Họ tên *
+            <input id="name" required maxlength="200" />
+          </label>
+          <label>Giới tính *
+            <select id="gender">
+              <option value="male">Nam</option>
+              <option value="female">Nữ</option>
+            </select>
+          </label>
+          <label>Vai trò (lineage_role)
+            <select id="lineageRole">
+              <option value="dinh">Đinh</option>
+              <option value="dinh_adopted">Đinh nhập tộc</option>
+              <option value="daughter">Con gái</option>
+              <option value="daughter_contributor">Con gái đóng suất Đinh</option>
+              <option value="spouse">Dâu/Rể</option>
+              <option value="daughter_descendant">Con của con gái</option>
+              <option value="external">Quan hệ ngoài</option>
+            </select>
+          </label>
+          <label>Phạm vi cây (tree_scope)
+            <select id="treeScope">
+              <option value="main">main — cây chính</option>
+              <option value="external">external — quan hệ ngoài</option>
+            </select>
+          </label>
+          <label>Loại thành viên
+            <select id="memberType">
+              <option value="blood">blood</option>
+              <option value="spouse_in">spouse_in</option>
+              <option value="child_out">child_out</option>
+              <option value="adopted_in">adopted_in</option>
+              <option value="adopted_child">adopted_child</option>
+            </select>
+          </label>
+          <label>Chi
+            <select id="branchId"><option value="">— Không gán chi —</option></select>
+          </label>
+          <label>Đời
+            <input id="generation" type="number" min="0" step="1" />
+          </label>
+          <label>Thứ tự sinh
+            <input id="birthOrder" type="number" min="1" step="1" />
+          </label>
+          <label>Năm/ngày sinh
+            <input id="birthDate" maxlength="50" />
+          </label>
+          <label>Ngày mất
+            <input id="deathDate" maxlength="50" />
+          </label>
+          <label>Ngày mất ÂL
+            <input id="deathDateLunar" maxlength="50" />
+          </label>
+          <label>Mã người
+            <input id="personCode" maxlength="32" />
+          </label>
+          <label class="row" style="align-items:center;margin:0">
+            <span><input id="isDinh" type="checkbox" /> Là Đinh</span>
+          </label>
+          <label class="row" style="align-items:center;margin:0">
+            <span><input id="isDeceased" type="checkbox" /> Đã mất</span>
+          </label>
+          <label style="grid-column:1/-1">Ghi chú
+            <textarea id="notes" maxlength="20000"></textarea>
+          </label>
+        </form>
+        <div class="actions">
+          <button type="button" id="btnSave">Lưu hồ sơ</button>
+          <button type="button" class="danger" id="btnDelete" disabled>Xóa mềm</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Quan hệ cha / mẹ</h2>
+        <p class="hint">Dùng ID người (copy từ danh sách). Con phải khác cha/mẹ.</p>
+        <div class="form-grid">
+          <label>Con (childId) *
+            <input id="parentChildId" />
+          </label>
+          <label>Cha/mẹ (parentId) *
+            <input id="parentParentId" />
+          </label>
+          <label>Loại
+            <select id="parentRelationType">
+              <option value="father">father</option>
+              <option value="mother">mother</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" id="btnAddParent">Thêm quan hệ</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Phối ngẫu</h2>
+        <p class="hint"><code>wifePersonId</code> = ID người vợ trong cặp (để biết Bà Cả/Bà Hai).</p>
+        <div class="form-grid">
+          <label>Người A *
+            <input id="spouseA" />
+          </label>
+          <label>Người B *
+            <input id="spouseB" />
+          </label>
+          <label>wifePersonId
+            <input id="wifePersonId" />
+          </label>
+          <label>wifeOrder
+            <input id="wifeOrder" type="number" min="1" step="1" />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" id="btnAddSpouse">Thêm phối ngẫu</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="/js/admin.js?v=1"></script>
+</body>
+</html>

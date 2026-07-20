@@ -14,10 +14,12 @@
 - D1 APAC: `f6f21aeb-b32b-43c1-92b2-543681ec0ad6` (397 người đã seed).
 - R2: `vu-toc-lang-chuong-media` (ảnh đã upload `--remote`).
 - Public: https://vu-toc-lang-chuong-public.hacmieu.workers.dev — **viewer dùng được**.
-- Admin: https://vu-toc-lang-chuong-admin.hacmieu.workers.dev — **API ghi 401 khi thiếu JWT; Access edge + UI CRUD chưa làm**.
-- Access JWT (`CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD`) còn trống.
+- Admin: https://vu-toc-lang-chuong-admin.hacmieu.workers.dev — **Access ON** (302 login) + **UI CRUD** tại `/`.
+- Access team: `hopamde.cloudflareaccess.com`
+- Access AUD (admin): `78a42cfd728a3fe6937e5663ba48b46a7c049c408471e59bec5f0e5a9fb7b94e`
+- Access allow (hiện tại): `hacmieu@gmail.com`
 
-Backlog & hướng Admin: xem `../../plans/20260720_1518-vu-toc-remaining-and-admin.md`.
+Backlog & hướng Admin: xem `../../plans/20260720_1518-vu-toc-remaining-and-admin.md` và `../../plans/20260720_1521-vu-toc-admin-phase-ab.md`.
 
 ## Yêu cầu
 
@@ -81,11 +83,15 @@ Public:
 
 Admin (cần Access JWT khi `DEPLOYMENT_MODE=admin`):
 
+- `GET /api/admin/meta` — chi + tổng người
+- `GET /api/admin/people?q=&treeScope=&limit=`
 - `POST /api/admin/people`
 - `PATCH|DELETE /api/admin/people/:id`
 - `POST|DELETE /api/admin/parent-relations[/:id]`
 - `POST|DELETE /api/admin/spouse-relations[/:id]`
 
-Chưa có: UI forms, CRUD `social_relations`, upload media từ admin.
+UI: Worker admin phục vụ `admin.html` tại `/`.
+
+Chưa có: CRUD `social_relations`, upload media từ admin.
 
 Mọi sửa đổi ghi `audit_events`; update/delete người dùng optimistic versioning.

@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_1521-vu-toc-admin-phase-ab.md](./20260720_1521-vu-toc-admin-phase-ab.md) | Admin Phase A/B: sửa scope, API list, UI CRUD MVP, Access checklist/deploy |
 | [20260720_1518-vu-toc-remaining-and-admin.md](./20260720_1518-vu-toc-remaining-and-admin.md) | Backlog P0–P2; Admin = Access + UI forms trên Worker (không Django); Phase A→D |
 | [20260720_0143-vu-toc-wife-right-of-husband.md](./20260720_0143-vu-toc-wife-right-of-husband.md) | Ép GridLayout ô gia đình: chồng trái, vợ phải theo familySlot/wifeOrder |
 | [20260720_0131-vu-toc-django-family-group.md](./20260720_0131-vu-toc-django-family-group.md) | Port gom vợ–chồng kiểu Django (`fam_<chồng>` + groupTemplate) sang view Gia đình mở rộng |
