@@ -530,6 +530,36 @@
       .catch(showApiError);
   }
 
+  function openFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var ma = (params.get("ma") || params.get("ref") || "").trim();
+    if (!ma) return Promise.resolve();
+    el("searchQ").value = ma;
+    el("searchScope").value = "";
+    setBanner("warn", "Đang mở hồ sơ Mã " + ma + "…");
+    return resolveRef(ma)
+      .then(function (person) {
+        loadPersonIntoForm(
+          Object.assign({}, person, {
+            legacyId: person.legacyId || person.legacy_id,
+            personCode: person.personCode || person.person_code,
+            treeScope: person.treeScope || person.tree_scope,
+            lineageRole: person.lineageRole || person.lineage_role,
+            memberType: person.memberType || person.member_type,
+            branchId: person.branchId != null ? person.branchId : person.branch_id,
+            isDinh: person.isDinh != null ? person.isDinh : Boolean(person.is_dinh),
+            isDeceased:
+              person.isDeceased != null
+                ? person.isDeceased
+                : Boolean(person.is_deceased),
+          }),
+        );
+        setBanner("ok", "Đang sửa · Mã " + ma + " · " + (person.name || ""));
+        return searchPeople();
+      })
+      .catch(showApiError);
+  }
+
   function boot() {
     el("searchQ").placeholder = "Tên hoặc Mã (vd django:389)…";
     el("btnSearch").onclick = searchPeople;
@@ -566,7 +596,7 @@
             ((meta.metadata && meta.metadata.totalPeople) || "?") +
             " người trong D1 · gắn nhánh bằng Mã.",
         );
-        return searchPeople();
+        return searchPeople().then(openFromQuery);
       })
       .catch(showApiError);
   }

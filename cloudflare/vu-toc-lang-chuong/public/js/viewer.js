@@ -11,11 +11,13 @@
     search: "/api/public/search",
   };
 
+  var ADMIN_URL = "https://vu-toc-lang-chuong-admin.hacmieu.workers.dev";
+
   var ROLE_LABEL = {
     dinh: "Đinh",
     dinh_adopted: "Đinh nhập tộc",
     daughter: "Con gái",
-    daughter_contributor: "Con gái đóng suất Đinh",
+    daughter_contributor: "Con gái nhập tộc",
     daughter_descendant: "Con của con gái",
     spouse: "Dâu/Rể",
     external: "Quan hệ ngoài",
@@ -1224,6 +1226,17 @@
         escapeHtml(p.notes) +
         "</p></section>";
     }
+
+    var adminMa = p.personCode || p.legacyId || p.id;
+    body +=
+      '<section class="profile-section profile-admin-actions" aria-labelledby="section-admin">' +
+      '<h3 id="section-admin">Quản trị</h3>' +
+      "<p>Phả đồ công khai chỉ xem. Muốn sửa hồ sơ / gắn cha mẹ / vợ chồng → mở Admin (cần đăng nhập Cloudflare Access).</p>" +
+      '<div class="profile-admin-row">' +
+      '<a class="btn-admin-edit" href="' +
+      escapeHtml(ADMIN_URL + "/?ma=" + encodeURIComponent(adminMa)) +
+      '" target="_blank" rel="noopener">Sửa hồ sơ trong Admin</a>' +
+      "</div></section>";
 
     el("personModalBody").innerHTML = body;
     var drawBtn = el("btnDrawBranch");

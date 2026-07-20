@@ -19,7 +19,9 @@
 - Access AUD (admin): `78a42cfd728a3fe6937e5663ba48b46a7c049c408471e59bec5f0e5a9fb7b94e`
 - Access allow (hiện tại): `hacmieu@gmail.com`
 
-Backlog & hướng Admin: xem `../../plans/20260720_1518-vu-toc-remaining-and-admin.md`, `../../plans/20260720_1521-vu-toc-admin-phase-ab.md`, `../../plans/20260720_1530-vu-toc-attach-by-ma.md`.
+Backlog & hướng Admin: xem `../../plans/20260720_1518-vu-toc-remaining-and-admin.md`, `../../plans/20260720_1521-vu-toc-admin-phase-ab.md`, `../../plans/20260720_1530-vu-toc-attach-by-ma.md`, `../../plans/20260720_1546-vu-toc-admin-edit-and-nhap-toc.md`.
+
+**Sửa hồ sơ:** phả đồ công khai chỉ xem. Trong modal chọn **Sửa hồ sơ trong Admin** (hoặc footer **Quản trị**) → đăng nhập Access → form mở theo `?ma=`.
 
 ## Yêu cầu
 

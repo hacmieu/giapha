@@ -24,7 +24,7 @@ API cây mặc định chỉ trả `tree_scope=main`. Hồ sơ chi tiết / tìm
 - `dinh`: nam trực hệ (kể cả Thủy Tổ đã tính Đinh).
 - `dinh_adopted`: Đinh nhập tộc/con nuôi thuộc họ.
 - `daughter`: con gái trong họ.
-- `daughter_contributor`: con gái có đóng suất Đinh (`gender=female`, `is_dinh=true`).
+- `daughter_contributor`: con gái **nhập tộc / đóng suất Đinh** (`gender=female`, `is_dinh=true`) — ví dụ dâu ngoại tộc xin vào họ.
 - `spouse`: dâu/rể (kể cả bản ghi tên kiểu `Vợ …` bị gán nhầm trong nguồn).
 - `daughter_descendant`: con/cháu của con gái.
 - `external`: quan hệ ngoài / họ Nguyễn ghi chú tạm.
@@ -37,6 +37,17 @@ Quy tắc projection:
 4. `is_dinh` không được suy diễn từ giới tính; giữ nguyên dữ liệu nguồn. Nam `is_dinh` luôn `lineage_role=dinh`.
 5. Con của một bà được xác định bằng `parent_relations` có `relation_type=mother`; không suy diễn từ thứ tự vợ.
 6. Một người có thể có nhiều phối ngẫu. `spouse_relations.wife_person_id` xác định bà nào; `wife_order` lưu Bà Cả/Bà Hai khi dữ liệu có.
+
+## Ngoại tộc nhập họ (ví dụ: Vũ Thị Được)
+
+Khi một phụ nữ ngoại tộc lấy chồng trong họ rồi được công nhận Đinh:
+
+1. **Trước nhập tộc** (tuỳ chọn lưu lịch sử): `lineage_role=spouse` hoặc `external`, `tree_scope=external`.
+2. **Sau nhập tộc**: `lineage_role=daughter_contributor`, `is_dinh=true`, `tree_scope=main`, gán `branch_id` + `generation`.
+3. Giữ quan hệ vợ–chồng (`spouse_relations`) với chồng (thường là Đinh nam trong chi).
+4. **Con chung**: phải có **cả cha lẫn mẹ** trong `parent_relations` — chỉ ghi mẹ (con theo dòng mẹ) sẽ khiến modal thiếu Thân phụ và cây dòng chính không nối đúng.
+
+Admin: mở từ public qua nút **Sửa hồ sơ trong Admin** → `?ma=person_code`.
 
 ## Quyền riêng tư
 
