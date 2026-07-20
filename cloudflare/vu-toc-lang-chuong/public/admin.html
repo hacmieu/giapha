@@ -23,7 +23,7 @@
     <div class="grid">
       <section class="card">
         <h2>Tìm & chọn người</h2>
-        <p class="hint">Gõ tên (≥1 ký tự). Click một dòng để sửa.</p>
+        <p class="hint">Gõ tên hoặc Mã (vd <code>django:389</code>). Click một dòng để sửa.</p>
         <div class="row">
           <label style="flex:2">Từ khóa
             <input id="searchQ" type="search" placeholder="Ví dụ: Vũ Văn…" autocomplete="off" />
@@ -45,17 +45,24 @@
 
       <section class="card">
         <h2 id="personFormTitle">Hồ sơ</h2>
+        <p class="hint" id="personMaHint">Mã nghiệp vụ (legacy / person_code) dùng để gắn nhánh — không cần copy UUID.</p>
         <form id="personForm" class="form-grid">
           <input type="hidden" id="personId" />
           <input type="hidden" id="personVersion" />
           <label>Họ tên *
             <input id="name" required maxlength="200" />
           </label>
+          <label>Mã (legacy_id)
+            <input id="legacyIdDisplay" readonly />
+          </label>
           <label>Giới tính *
             <select id="gender">
               <option value="male">Nam</option>
               <option value="female">Nữ</option>
             </select>
+          </label>
+          <label>person_code (tuỳ chọn)
+            <input id="personCode" maxlength="32" />
           </label>
           <label>Vai trò (lineage_role)
             <select id="lineageRole">
@@ -101,9 +108,6 @@
           <label>Ngày mất ÂL
             <input id="deathDateLunar" maxlength="50" />
           </label>
-          <label>Mã người
-            <input id="personCode" maxlength="32" />
-          </label>
           <label class="row" style="align-items:center;margin:0">
             <span><input id="isDinh" type="checkbox" /> Là Đinh</span>
           </label>
@@ -116,6 +120,9 @@
         </form>
         <div class="actions">
           <button type="button" id="btnSave">Lưu hồ sơ</button>
+          <button type="button" class="secondary" id="btnPromoteMain" disabled>
+            Đưa lên cây chính
+          </button>
           <button type="button" class="danger" id="btnDelete" disabled>Xóa mềm</button>
         </div>
       </section>
@@ -123,38 +130,51 @@
 
     <div class="grid">
       <section class="card">
-        <h2>Quan hệ cha / mẹ</h2>
-        <p class="hint">Dùng ID người (copy từ danh sách). Con phải khác cha/mẹ.</p>
+        <h2>Gắn vào cây chính theo Mã</h2>
+        <p class="hint">
+          Chọn người đang sửa (con) → nhập <strong>Mã</strong> người đã có trên cây chính
+          (vd <code>django:12</code>) làm cha/mẹ → hệ thống tự gắn. Không cần UUID.
+        </p>
         <div class="form-grid">
-          <label>Con (childId) *
-            <input id="parentChildId" />
+          <label>Mã con (tự điền khi chọn hồ sơ)
+            <input id="attachChildMa" placeholder="django:389" />
           </label>
-          <label>Cha/mẹ (parentId) *
-            <input id="parentParentId" />
+          <label>Mã cha/mẹ trên cây chính *
+            <input id="attachParentMa" placeholder="django:…" />
           </label>
-          <label>Loại
-            <select id="parentRelationType">
-              <option value="father">father</option>
-              <option value="mother">mother</option>
+          <label>Quan hệ
+            <select id="attachRelationType">
+              <option value="father">Cha (father)</option>
+              <option value="mother">Mẹ (mother)</option>
             </select>
+          </label>
+          <label>Sau khi gắn
+            <select id="attachPromote">
+              <option value="main">Đưa con lên cây chính (main)</option>
+              <option value="keep">Giữ phạm vi hiện tại</option>
+            </select>
+          </label>
+          <label>Đời (khi đưa lên main)
+            <input id="attachGeneration" type="number" min="0" step="1" placeholder="vd 5" />
           </label>
         </div>
         <div class="actions">
-          <button type="button" id="btnAddParent">Thêm quan hệ</button>
+          <button type="button" id="btnAttach">Gắn nhánh theo Mã</button>
+          <button type="button" class="secondary" id="btnResolveParent">Kiểm tra Mã cha/mẹ</button>
         </div>
       </section>
 
       <section class="card">
-        <h2>Phối ngẫu</h2>
-        <p class="hint"><code>wifePersonId</code> = ID người vợ trong cặp (để biết Bà Cả/Bà Hai).</p>
+        <h2>Phối ngẫu (theo Mã)</h2>
+        <p class="hint">Nhập Mã hai người. <code>wifePersonId</code> cũng nhận Mã vợ.</p>
         <div class="form-grid">
-          <label>Người A *
+          <label>Mã người A *
             <input id="spouseA" />
           </label>
-          <label>Người B *
+          <label>Mã người B *
             <input id="spouseB" />
           </label>
-          <label>wifePersonId
+          <label>Mã vợ (wifePersonId)
             <input id="wifePersonId" />
           </label>
           <label>wifeOrder
@@ -166,8 +186,29 @@
         </div>
       </section>
     </div>
+
+    <section class="card" hidden>
+      <h2>Quan hệ cha / mẹ (nâng cao)</h2>
+      <div class="form-grid">
+        <label>Con
+          <input id="parentChildId" />
+        </label>
+        <label>Cha/mẹ
+          <input id="parentParentId" />
+        </label>
+        <label>Loại
+          <select id="parentRelationType">
+            <option value="father">father</option>
+            <option value="mother">mother</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions">
+        <button type="button" id="btnAddParent">Thêm quan hệ</button>
+      </div>
+    </section>
   </div>
 
-  <script src="/js/admin.js?v=1"></script>
+  <script src="/js/admin.js?v=2"></script>
 </body>
 </html>

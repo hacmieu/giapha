@@ -6,6 +6,7 @@ import {
   deleteRelation,
   listAdminMeta,
   listAdminPeople,
+  resolveAdminPerson,
   updatePerson,
 } from "./admin-api";
 import { requireAdmin } from "./auth";
@@ -71,6 +72,9 @@ async function routeApi(
 
   if (method === "GET" && url.pathname === "/api/admin/meta") {
     return listAdminMeta(env);
+  }
+  if (method === "GET" && url.pathname === "/api/admin/people/resolve") {
+    return resolveAdminPerson(env, url);
   }
   if (method === "GET" && url.pathname === "/api/admin/people") {
     return listAdminPeople(env, url);

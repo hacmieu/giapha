@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260720_1530-vu-toc-attach-by-ma.md](./pdca/20260720_1530-vu-toc-attach-by-ma.md) | Done: gắn nhánh theo Mã (resolve + UI); deploy admin |
 | [pdca/20260720_1521-vu-toc-admin-phase-ab.md](./pdca/20260720_1521-vu-toc-admin-phase-ab.md) | Admin Phase A/B: UI CRUD + sửa tree_scope + Access |
 | [pdca/20260720_1518-vu-toc-remaining-and-admin.md](./pdca/20260720_1518-vu-toc-remaining-and-admin.md) | Đánh giá backlog; chốt Admin Phase A Access → B UI CRUD → C mở rộng → D cắt Django |
 | [pdca/20260720_0143-vu-toc-wife-right-of-husband.md](./pdca/20260720_0143-vu-toc-wife-right-of-husband.md) | Khóa vợ bên phải chồng trong ô gia đình (familySlot + GridLayout comparer) |

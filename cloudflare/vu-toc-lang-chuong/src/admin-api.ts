@@ -106,16 +106,84 @@ async function assertBranch(env: Env, branchId: string | null): Promise<void> {
   }
 }
 
-async function assertPerson(env: Env, personId: string): Promise<void> {
-  const person = await env.DB.prepare(
-    `SELECT 1 FROM people
-     WHERE family_id = ? AND id = ? AND deleted_at IS NULL`,
-  )
-    .bind(env.FAMILY_ID, personId)
-    .first();
-  if (!person) {
-    throw new HttpError(400, "invalid_person", "Người không thuộc Vũ Tộc Làng Chuông.");
+/** Resolve UUID, legacy_id (vd django:389), hoặc person_code → id nội bộ. */
+async function resolvePersonRef(
+  env: Env,
+  ref: string,
+  fieldLabel = "mã người",
+): Promise<{
+  id: string;
+  name: string;
+  gender: string;
+  legacyId: string;
+  personCode: string | null;
+  treeScope: "main" | "external";
+  lineageRole: string;
+  generation: number | null;
+  version: number;
+}> {
+  const value = ref.trim();
+  if (!value) {
+    throw new HttpError(400, "invalid_person_ref", `${fieldLabel} trống.`);
   }
+  const person = await env.DB.prepare(
+    `SELECT id, name, gender, legacy_id, person_code, tree_scope, lineage_role,
+            generation, version
+     FROM people
+     WHERE family_id = ?
+       AND deleted_at IS NULL
+       AND (
+         id = ?
+         OR legacy_id = ?
+         OR (person_code IS NOT NULL AND person_code = ?)
+       )
+     ORDER BY
+       CASE
+         WHEN id = ? THEN 0
+         WHEN legacy_id = ? THEN 1
+         ELSE 2
+       END
+     LIMIT 1`,
+  )
+    .bind(env.FAMILY_ID, value, value, value, value, value)
+    .first<{
+      id: string;
+      name: string;
+      gender: string;
+      legacy_id: string;
+      person_code: string | null;
+      tree_scope: "main" | "external";
+      lineage_role: string;
+      generation: number | null;
+      version: number;
+    }>();
+  if (!person) {
+    throw new HttpError(
+      404,
+      "person_ref_not_found",
+      `Không tìm thấy ${fieldLabel}: ${value}`,
+    );
+  }
+  return {
+    id: person.id,
+    name: person.name,
+    gender: person.gender,
+    legacyId: person.legacy_id,
+    personCode: person.person_code,
+    treeScope: person.tree_scope,
+    lineageRole: person.lineage_role,
+    generation: person.generation,
+    version: person.version,
+  };
+}
+
+export async function resolveAdminPerson(env: Env, url: URL): Promise<Response> {
+  const ref = (url.searchParams.get("ref") ?? url.searchParams.get("ma") ?? "").trim();
+  if (!ref) {
+    throw new HttpError(400, "invalid_query", "Thiếu ref/ma.");
+  }
+  const person = await resolvePersonRef(env, ref);
+  return json({ person });
 }
 
 function resolveTreeScope(
@@ -194,10 +262,14 @@ export async function listAdminPeople(env: Env, url: URL): Promise<Response> {
     binds.push(scope);
   }
   if (query.length >= 1) {
-    clauses.push("name LIKE ? ESCAPE '\\'");
-    binds.push(
-      `%${query.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`,
+    clauses.push(
+      `(name LIKE ? ESCAPE '\\' OR legacy_id LIKE ? ESCAPE '\\' OR IFNULL(person_code,'') LIKE ? ESCAPE '\\')`,
     );
+    const like = `%${query
+      .replaceAll("\\", "\\\\")
+      .replaceAll("%", "\\%")
+      .replaceAll("_", "\\_")}%`;
+    binds.push(like, like, like);
   }
   binds.push(limit);
 
@@ -504,13 +576,18 @@ export async function createParentRelation(
   requestId: string,
 ): Promise<Response> {
   const body = await parseJsonObject(request);
-  const childId = requiredString(body, "childId", 64);
-  const parentId = requiredString(body, "parentId", 64);
+  const childRef = requiredString(body, "childId", 80);
+  const parentRef = requiredString(body, "parentId", 80);
   const relationType = oneOf(body, "relationType", new Set(["father", "mother"]));
+  const [child, parent] = await Promise.all([
+    resolvePersonRef(env, childRef, "Mã con"),
+    resolvePersonRef(env, parentRef, "Mã cha/mẹ"),
+  ]);
+  const childId = child.id;
+  const parentId = parent.id;
   if (childId === parentId) {
     throw new HttpError(400, "self_parent", "Một người không thể là cha/mẹ của chính mình.");
   }
-  await Promise.all([assertPerson(env, childId), assertPerson(env, parentId)]);
   const createsCycle = await env.DB.prepare(
     `WITH RECURSIVE descendants(id) AS (
        SELECT child_id
@@ -532,7 +609,15 @@ export async function createParentRelation(
 
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const record = { id, childId, parentId, relationType };
+  const record = {
+    id,
+    childId,
+    parentId,
+    relationType,
+    childMa: child.legacyId,
+    parentMa: parent.legacyId,
+    parentTreeScope: parent.treeScope,
+  };
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO parent_relations (
@@ -550,7 +635,16 @@ export async function createParentRelation(
       record,
     ),
   ]);
-  return json({ relation: record }, { status: 201 });
+  return json(
+    {
+      relation: record,
+      hint:
+        parent.treeScope === "main"
+          ? "Đã gắn vào người trên cây chính. Có thể đặt tree_scope=main cho con nếu muốn hiện trên phả đồ."
+          : "Cha/mẹ đang là quan hệ ngoài — cây chính public sẽ chưa nối nhánh này.",
+    },
+    { status: 201 },
+  );
 }
 
 export async function createSpouseRelation(
@@ -560,13 +654,16 @@ export async function createSpouseRelation(
   requestId: string,
 ): Promise<Response> {
   const body = await parseJsonObject(request);
-  const firstId = requiredString(body, "personAId", 64);
-  const secondId = requiredString(body, "personBId", 64);
-  if (firstId === secondId) {
+  const firstRef = requiredString(body, "personAId", 80);
+  const secondRef = requiredString(body, "personBId", 80);
+  const [first, second] = await Promise.all([
+    resolvePersonRef(env, firstRef, "Mã người A"),
+    resolvePersonRef(env, secondRef, "Mã người B"),
+  ]);
+  if (first.id === second.id) {
     throw new HttpError(400, "self_spouse", "Một người không thể là phối ngẫu của chính mình.");
   }
-  await Promise.all([assertPerson(env, firstId), assertPerson(env, secondId)]);
-  const [personAId, personBId] = [firstId, secondId].sort();
+  const [personAId, personBId] = [first.id, second.id].sort();
   if (!personAId || !personBId) {
     throw new HttpError(400, "invalid_person", "Người phối ngẫu không hợp lệ.");
   }
@@ -576,7 +673,11 @@ export async function createSpouseRelation(
   )
     .bind(env.FAMILY_ID, personAId, personBId)
     .all<{ id: string; gender: "male" | "female" }>();
-  const requestedWifeId = optionalString(body, "wifePersonId", 64);
+  const requestedWifeRef = optionalString(body, "wifePersonId", 80);
+  let requestedWifeId: string | null = null;
+  if (requestedWifeRef) {
+    requestedWifeId = (await resolvePersonRef(env, requestedWifeRef, "Mã vợ")).id;
+  }
   if (
     requestedWifeId &&
     requestedWifeId !== personAId &&
@@ -607,6 +708,8 @@ export async function createSpouseRelation(
     ),
     marriageDate: optionalString(body, "marriageDate", 50) ?? "",
     notes: optionalString(body, "notes", 10_000) ?? "",
+    personAMa: first.legacyId,
+    personBMa: second.legacyId,
   };
   await env.DB.batch([
     env.DB.prepare(

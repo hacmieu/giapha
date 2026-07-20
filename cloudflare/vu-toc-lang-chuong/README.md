@@ -14,12 +14,12 @@
 - D1 APAC: `f6f21aeb-b32b-43c1-92b2-543681ec0ad6` (397 người đã seed).
 - R2: `vu-toc-lang-chuong-media` (ảnh đã upload `--remote`).
 - Public: https://vu-toc-lang-chuong-public.hacmieu.workers.dev — **viewer dùng được**.
-- Admin: https://vu-toc-lang-chuong-admin.hacmieu.workers.dev — **Access ON** (302 login) + **UI CRUD** tại `/`.
+- Admin: https://vu-toc-lang-chuong-admin.hacmieu.workers.dev — **Access ON** + CRUD + **gắn nhánh theo Mã**.
 - Access team: `hopamde.cloudflareaccess.com`
 - Access AUD (admin): `78a42cfd728a3fe6937e5663ba48b46a7c049c408471e59bec5f0e5a9fb7b94e`
 - Access allow (hiện tại): `hacmieu@gmail.com`
 
-Backlog & hướng Admin: xem `../../plans/20260720_1518-vu-toc-remaining-and-admin.md` và `../../plans/20260720_1521-vu-toc-admin-phase-ab.md`.
+Backlog & hướng Admin: xem `../../plans/20260720_1518-vu-toc-remaining-and-admin.md`, `../../plans/20260720_1521-vu-toc-admin-phase-ab.md`, `../../plans/20260720_1530-vu-toc-attach-by-ma.md`.
 
 ## Yêu cầu
 
@@ -84,13 +84,14 @@ Public:
 Admin (cần Access JWT khi `DEPLOYMENT_MODE=admin`):
 
 - `GET /api/admin/meta` — chi + tổng người
-- `GET /api/admin/people?q=&treeScope=&limit=`
+- `GET /api/admin/people?q=&treeScope=&limit=` — `q` cũng khớp `legacy_id` / `person_code`
+- `GET /api/admin/people/resolve?ma=` / `?ref=` — resolve Mã → người
 - `POST /api/admin/people`
 - `PATCH|DELETE /api/admin/people/:id`
-- `POST|DELETE /api/admin/parent-relations[/:id]`
-- `POST|DELETE /api/admin/spouse-relations[/:id]`
+- `POST|DELETE /api/admin/parent-relations[/:id]` — `childId`/`parentId` nhận UUID **hoặc Mã**
+- `POST|DELETE /api/admin/spouse-relations[/:id]` — tương tự theo Mã
 
-UI: Worker admin phục vụ `admin.html` tại `/`.
+UI: Worker admin phục vụ `admin.html` tại `/` (khối “Gắn vào cây chính theo Mã”).
 
 Chưa có: CRUD `social_relations`, upload media từ admin.
 
