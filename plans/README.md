@@ -6,6 +6,7 @@ Kế hoạch PDCA (Plan) trước khi triển khai.
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_1607-vu-toc-nhap-toc-on-tree.md](./20260720_1607-vu-toc-nhap-toc-on-tree.md) | **Done:** nhập tộc trên cây Dòng chính + badge NT / viền tím |
 | [20260720_1546-vu-toc-admin-edit-and-nhap-toc.md](./20260720_1546-vu-toc-admin-edit-and-nhap-toc.md) | **Done:** public→Admin link; quy ước nhập tộc; vá Vũ Thị Được + cha cho 5 con |
 | [20260720_1530-vu-toc-attach-by-ma.md](./20260720_1530-vu-toc-attach-by-ma.md) | **Done:** gắn nhánh theo Mã; resolve API + UI Admin; deploy admin `70fee6bd` |
 | [20260720_1521-vu-toc-admin-phase-ab.md](./20260720_1521-vu-toc-admin-phase-ab.md) | Admin Phase A/B: sửa scope, API list, UI CRUD MVP, Access checklist/deploy |

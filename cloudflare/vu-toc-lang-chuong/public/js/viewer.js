@@ -73,13 +73,19 @@
     return genStroke(gen);
   }
 
+  function isNhapTocRole(role) {
+    return role === "daughter_contributor" || role === "dinh_adopted";
+  }
+
   function nodeFill(data) {
+    if (isNhapTocRole(data.lineageRole)) return "#fdf4ff";
     if (data.lineageRole === "external") return "#faf5ff";
     if (data.lineageRole === "spouse") return "#fdf2f8";
     return genFill(data.generation);
   }
 
   function nodeStroke(data) {
+    if (isNhapTocRole(data.lineageRole)) return "#9333ea";
     if (data.lineageRole === "external") return "#7c3aed";
     if (data.lineageRole === "spouse") return "#db2777";
     return genStroke(data.generation);
@@ -168,6 +174,7 @@
             },
             new go.Binding("text", "", function (d) {
               var lines = [d.name];
+              if (isNhapTocRole(d.lineageRole)) lines.push("Nhập tộc");
               var spouseLine = spouseTooltipLine(d);
               if (spouseLine) lines.push(spouseLine);
               if (d.generation != null) lines.push("Đời " + d.generation);
@@ -187,6 +194,9 @@
         { parameter1: 8, strokeWidth: 2 },
         new go.Binding("fill", "", nodeFill),
         new go.Binding("stroke", "", nodeStroke),
+        new go.Binding("strokeDashArray", "", function (d) {
+          return isNhapTocRole(d.lineageRole) ? [5, 3] : null;
+        }),
         new go.Binding("strokeWidth", "generation", function (g) {
           return Number(g) <= 1 ? 3 : 2;
         }),
@@ -247,6 +257,27 @@
               return Number(g) <= 1 ? "#78350f" : "#c8943e";
             }),
           ),
+          $(
+            go.Panel,
+            "Auto",
+            {
+              alignment: new go.Spot(1, 1, -1, -1),
+              visible: false,
+            },
+            new go.Binding("visible", "lineageRole", isNhapTocRole),
+            $(go.Shape, "Circle", {
+              width: 16,
+              height: 16,
+              fill: "#9333ea",
+              stroke: "#fff",
+              strokeWidth: 1,
+            }),
+            $(go.TextBlock, {
+              text: "NT",
+              font: "bold 6pt Arial",
+              stroke: "#fff",
+            }),
+          ),
         ),
         $(
           go.TextBlock,
@@ -289,10 +320,11 @@
           },
           new go.Binding("text", "", function (d) {
             if (d.wifeLabel) return d.wifeLabel;
+            if (isNhapTocRole(d.lineageRole)) return "Nhập tộc";
             return d.spouseText || " ";
           }),
           new go.Binding("visible", "", function (d) {
-            return Boolean(d.wifeLabel || d.spouseText);
+            return Boolean(d.wifeLabel || d.spouseText || isNhapTocRole(d.lineageRole));
           }),
         ),
       ),
@@ -414,6 +446,7 @@
           lineageRole: node.lineageRole,
           treeScope: node.treeScope,
           isDeceased: node.isDeceased,
+          isNhapToc: isNhapTocRole(node.lineageRole),
           spouseText: node.spouseText || "",
           wifeLabel: node.wifeLabel || "",
           familySlot: node.familySlot != null ? node.familySlot : null,
@@ -629,9 +662,155 @@
       });
   }
 
-  function applyTreeModel(nodes) {
-    currentViewNodes = nodes;
-    diagram.model = createTreeModel(nodes);
+  /** Dòng chính: gom cặp nhập tộc (daughter_contributor / dinh_adopted) cạnh chồng/vợ trên cây. */
+  function buildLineageGraph() {
+    var baseNodes = (treePayload.nodes || []).filter(function (n) {
+      return n.lineageRole !== "spouse";
+    });
+    var nodeMap = {};
+    baseNodes.forEach(function (node) {
+      nodeMap[node.id] = Object.assign({}, node, {
+        spouseText: "",
+        wifeLabel: "",
+      });
+    });
+
+    var familyGroupKeys = {};
+    var inCoupleGroup = {};
+    var groupNodes = [];
+
+    function attachCouple(husbandId, wifeId) {
+      if (!nodeMap[husbandId] || !nodeMap[wifeId]) return;
+      if (inCoupleGroup[wifeId]) return;
+      var groupKey = familyGroupKeys[husbandId];
+      if (!groupKey) {
+        groupKey = "fam:" + husbandId;
+        familyGroupKeys[husbandId] = groupKey;
+        groupNodes.push({
+          id: groupKey,
+          isGroup: true,
+          isFamily: true,
+          name: "",
+          generation: nodeMap[husbandId].generation,
+          lineageRole: "family_group",
+          treeScope: nodeMap[husbandId].treeScope,
+          isDeceased: false,
+          spouseText: "",
+        });
+        nodeMap[husbandId].group = groupKey;
+        nodeMap[husbandId].familySlot = 0;
+        inCoupleGroup[husbandId] = true;
+      }
+      nodeMap[wifeId].group = groupKey;
+      nodeMap[wifeId].familySlot =
+        nodeMap[wifeId].familySlot != null ? nodeMap[wifeId].familySlot : 1;
+      inCoupleGroup[wifeId] = true;
+      nodeMap[husbandId].spouseText = "";
+    }
+
+    baseNodes.forEach(function (person) {
+      (person.spouses || []).forEach(function (sp) {
+        var partner = nodeMap[sp.personId];
+        if (!partner) return;
+        if (!isNhapTocRole(person.lineageRole) && !isNhapTocRole(partner.lineageRole)) {
+          return;
+        }
+        var husbandId = null;
+        var wifeId = null;
+        if (person.gender === "male" && partner.gender === "female") {
+          husbandId = person.id;
+          wifeId = partner.id;
+        } else if (person.gender === "female" && partner.gender === "male") {
+          husbandId = partner.id;
+          wifeId = person.id;
+        } else if (sp.wifePersonId === person.id) {
+          wifeId = person.id;
+          husbandId = partner.id;
+        } else if (sp.wifePersonId === partner.id) {
+          wifeId = partner.id;
+          husbandId = person.id;
+        }
+        if (husbandId && wifeId) attachCouple(husbandId, wifeId);
+      });
+    });
+
+    baseNodes.forEach(function (person) {
+      if (!inCoupleGroup[person.id]) {
+        nodeMap[person.id].spouseText = spouseLabel(person);
+      }
+    });
+
+    var links = [];
+    baseNodes.forEach(function (child) {
+      var childData = nodeMap[child.id];
+      if (!childData || !child.fatherId || !nodeMap[child.fatherId]) return;
+      links.push({
+        id: "father:" + child.id,
+        from: familyGroupKeys[child.fatherId] || child.fatherId,
+        to: childData.group || child.id,
+        linkKind: "father",
+        label: "",
+      });
+    });
+
+    var personNodes = Object.keys(nodeMap).map(function (id) {
+      return nodeMap[id];
+    });
+    personNodes.sort(function (a, b) {
+      var ga = a.group || "";
+      var gb = b.group || "";
+      if (ga !== gb) return ga < gb ? -1 : 1;
+      var sa = a.familySlot != null ? a.familySlot : 99;
+      var sb = b.familySlot != null ? b.familySlot : 99;
+      return sa - sb;
+    });
+
+    return { nodes: groupNodes.concat(personNodes), links: links };
+  }
+
+  function applyLineageView(peopleSubset) {
+    var lineageData = buildLineageGraph();
+    if (peopleSubset && peopleSubset.length) {
+      var allowed = {};
+      peopleSubset.forEach(function (person) {
+        allowed[person.id] = true;
+      });
+      lineageData.nodes.forEach(function (node) {
+        if (node.isGroup || !allowed[node.id]) return;
+        var source = nodeById[node.id];
+        if (!source) return;
+        (source.spouses || []).forEach(function (sp) {
+          var partner = nodeById[sp.personId];
+          if (partner && isNhapTocRole(partner.lineageRole)) {
+            allowed[partner.id] = true;
+          }
+        });
+      });
+      var keepGroups = {};
+      lineageData.nodes.forEach(function (node) {
+        if (node.isGroup) return;
+        if (allowed[node.id] && node.group) keepGroups[node.group] = true;
+      });
+      var valid = {};
+      lineageData.nodes = lineageData.nodes.filter(function (node) {
+        if (node.isGroup) return Boolean(keepGroups[node.id]);
+        if (allowed[node.id]) {
+          valid[node.id] = true;
+          return true;
+        }
+        return false;
+      });
+      lineageData.nodes.forEach(function (node) {
+        if (node.isGroup) valid[node.id] = true;
+      });
+      lineageData.links = lineageData.links.filter(function (link) {
+        return valid[link.from] && valid[link.to];
+      });
+    }
+    currentViewNodes = lineageData.nodes.filter(function (node) {
+      return !node.isGroup;
+    });
+    diagram.model = createGraphModel(lineageData.nodes, lineageData.links);
     applyFiltersVisibility();
   }
 
@@ -679,8 +858,7 @@
     configureLayout(view);
 
     if (view === "lineage") {
-      currentViewNodes = bloodlineNodes;
-      diagram.model = createTreeModel(bloodlineNodes);
+      applyLineageView();
     } else {
       var data = selectGraphData(view);
       currentViewNodes = data.nodes.filter(function (node) {
@@ -915,7 +1093,7 @@
     setMobilePane("diagram");
     requestAnimationFrame(function () {
       configureLayout("lineage");
-      applyTreeModel(people);
+      applyLineageView(people);
       var banner = el("branchViewBanner");
       var text = el("branchViewText");
       if (text) {
@@ -1431,7 +1609,7 @@
         buildBloodline();
         populateGenerationFilter();
         configureLayout("lineage");
-        applyTreeModel(bloodlineNodes);
+        applyLineageView();
         updateStats();
         resetStage();
         initSearch();

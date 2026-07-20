@@ -6,6 +6,7 @@ Thư mục ghi nhớ vận hành / bài học tái sử dụng cho `giapha_djang
 
 | File | Tóm tắt |
 |------|---------|
+| [20260720_1607-vu-toc-nhap-toc-on-tree.md](./20260720_1607-vu-toc-nhap-toc-on-tree.md) | Dòng chính: nhập tộc trong ô fam_ + badge NT tím |
 | [20260720_1546-vu-toc-admin-edit-and-nhap-toc.md](./20260720_1546-vu-toc-admin-edit-and-nhap-toc.md) | Public chỉ xem; sửa qua Admin + ?ma=; nhập tộc = daughter_contributor |
 | [20260720_1530-vu-toc-attach-by-ma.md](./20260720_1530-vu-toc-attach-by-ma.md) | Mã = khóa gắn nhánh; resolve ma/legacy; sau gắn cần tree_scope=main để hiện public |
 | [20260720_1521-vu-toc-admin-phase-ab.md](./20260720_1521-vu-toc-admin-phase-ab.md) | Access + admin UI CRUD MVP; tree_scope không còn ép theo chi; allow hacmieu@gmail.com |

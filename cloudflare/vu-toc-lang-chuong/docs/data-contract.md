@@ -49,6 +49,12 @@ Khi một phụ nữ ngoại tộc lấy chồng trong họ rồi được công
 
 Admin: mở từ public qua nút **Sửa hồ sơ trong Admin** → `?ma=person_code`.
 
+## Hiển thị nhập tộc trên cây (Dòng chính)
+
+- `daughter_contributor` / `dinh_adopted` được **gắn cạnh chồng/vợ** (ô gia đình `fam:<chồng>`), không chỉ chữ trên thẻ.
+- Nhận biết: nền tím nhạt, **viền tím đứt nét**, badge **NT** trên ảnh, chữ “Nhập tộc” dưới tên.
+- Dâu/rể thuần (`spouse`) vẫn chỉ hiện ♀/♂ trên thẻ chồng — không lên cây riêng.
+
 ## Quyền riêng tư
 
 - Giá trị migration ban đầu: `visibility=public`.

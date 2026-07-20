@@ -6,6 +6,7 @@ Báo cáo PDCA / bằng chứng Check / handover.
 
 | File | Tóm tắt |
 |------|---------|
+| [pdca/20260720_1607-vu-toc-nhap-toc-on-tree.md](./pdca/20260720_1607-vu-toc-nhap-toc-on-tree.md) | Nhập tộc trên cây + styling NT |
 | [pdca/20260720_1546-vu-toc-admin-edit-and-nhap-toc.md](./pdca/20260720_1546-vu-toc-admin-edit-and-nhap-toc.md) | Public→Admin edit link; daughter_contributor; D1 father links |
 | [pdca/20260720_1530-vu-toc-attach-by-ma.md](./pdca/20260720_1530-vu-toc-attach-by-ma.md) | Done: gắn nhánh theo Mã (resolve + UI); deploy admin |
 | [pdca/20260720_1521-vu-toc-admin-phase-ab.md](./pdca/20260720_1521-vu-toc-admin-phase-ab.md) | Admin Phase A/B: UI CRUD + sửa tree_scope + Access |
