@@ -120,6 +120,7 @@
     el("btnPromoteMain").disabled = true;
     el("attachChildMa").value = "";
     el("spouseA").value = "";
+    el("spouseB").value = "";
     el("parentChildId").value = "";
     document.querySelectorAll(".item.active").forEach(function (node) {
       node.classList.remove("active");
@@ -155,8 +156,14 @@
     el("btnDelete").disabled = false;
     el("btnPromoteMain").disabled = person.treeScope === "main";
     el("attachChildMa").value = ma;
-    el("spouseA").value = ma;
     el("parentChildId").value = ma;
+    if ((person.gender || "male") === "female") {
+      el("spouseB").value = ma;
+      el("spouseA").value = "";
+    } else {
+      el("spouseA").value = ma;
+      el("spouseB").value = "";
+    }
     if (person.generation != null && !el("attachGeneration").value) {
       el("attachGeneration").value = String(person.generation);
     }
@@ -499,17 +506,26 @@
   }
 
   function addSpouse() {
+    var husbandMa = el("spouseA").value.trim();
+    var wifeMa = el("spouseB").value.trim();
+    if (!husbandMa || !wifeMa) {
+      setBanner("error", "Cần Mã chồng và Mã vợ.");
+      return;
+    }
     var body = {
-      personAId: el("spouseA").value.trim(),
-      personBId: el("spouseB").value.trim(),
-      wifePersonId: el("wifePersonId").value.trim() || null,
+      personAId: husbandMa,
+      personBId: wifeMa,
+      wifePersonId: wifeMa,
       wifeOrder: optionalNumber("wifeOrder"),
       status: "married",
     };
-    setBanner("warn", "Đang thêm phối ngẫu…");
+    setBanner("warn", "Đang thêm vợ/chồng…");
     api(API.spouses, { method: "POST", body: body })
       .then(function () {
-        setBanner("ok", "Đã thêm phối ngẫu.");
+        setBanner(
+          "ok",
+          "Đã thêm vợ/chồng · chồng " + husbandMa + " · vợ " + wifeMa + ".",
+        );
       })
       .catch(showApiError);
   }

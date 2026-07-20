@@ -661,11 +661,11 @@ export async function createSpouseRelation(
     resolvePersonRef(env, secondRef, "Mã người B"),
   ]);
   if (first.id === second.id) {
-    throw new HttpError(400, "self_spouse", "Một người không thể là phối ngẫu của chính mình.");
+    throw new HttpError(400, "self_spouse", "Một người không thể là vợ/chồng của chính mình.");
   }
   const [personAId, personBId] = [first.id, second.id].sort();
   if (!personAId || !personBId) {
-    throw new HttpError(400, "invalid_person", "Người phối ngẫu không hợp lệ.");
+    throw new HttpError(400, "invalid_person", "Người vợ/chồng không hợp lệ.");
   }
   const people = await env.DB.prepare(
     `SELECT id, gender FROM people
@@ -686,7 +686,7 @@ export async function createSpouseRelation(
     throw new HttpError(
       400,
       "invalid_wife",
-      "wifePersonId phải là một trong hai người phối ngẫu.",
+      "wifePersonId phải là một trong hai người vợ/chồng.",
     );
   }
   const femalePeople = people.results.filter((person) => person.gender === "female");

@@ -269,7 +269,7 @@
           },
           new go.Binding("text", "", function (d) {
             if (d.wifeLabel) return d.wifeLabel;
-            return d.spouseText ? "Phối ngẫu: " + d.spouseText : " ";
+            return d.spouseText ? "Vợ/Chồng: " + d.spouseText : " ";
           }),
         ),
       ),
@@ -1075,6 +1075,8 @@
     var spouses = payload.spouses || [];
     var children = payload.children || [];
     var socialRelations = payload.socialRelations || [];
+    var spouseLabel =
+      p.gender === "female" ? "Chồng" : p.gender === "male" ? "Vợ" : "Vợ/Chồng";
 
     var body =
       '<section class="profile-section" aria-labelledby="section-vitals">' +
@@ -1094,7 +1096,7 @@
       (mother ? fieldRaw("Thân mẫu", personLink(mother)) : field("Thân mẫu", "Chưa xác định")) +
       (spouses.length
         ? fieldRaw(
-            "Phối ngẫu",
+            spouseLabel,
             '<span class="person-link-list">' +
               spouses
                 .map(function (s) {
@@ -1105,7 +1107,7 @@
               "</span>",
             true,
           )
-        : field("Phối ngẫu", "Chưa ghi")) +
+        : field(spouseLabel, "Chưa ghi")) +
       (children.length
         ? fieldRaw(
             "Con (" + children.length + ")",

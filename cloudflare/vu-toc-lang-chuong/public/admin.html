@@ -165,24 +165,24 @@
       </section>
 
       <section class="card">
-        <h2>Phối ngẫu (theo Mã)</h2>
-        <p class="hint">Nhập Mã hai người. <code>wifePersonId</code> cũng nhận Mã vợ.</p>
+        <h2>Vợ / Chồng (theo Mã)</h2>
+        <p class="hint">
+          Nhập Mã chồng và Mã vợ. Nếu một Đinh có nhiều vợ: điền thứ tự
+          (1 = Bà Cả, 2 = Bà Hai…).
+        </p>
         <div class="form-grid">
-          <label>Mã người A *
-            <input id="spouseA" />
+          <label>Mã chồng *
+            <input id="spouseA" placeholder="django:…" />
           </label>
-          <label>Mã người B *
-            <input id="spouseB" />
+          <label>Mã vợ *
+            <input id="spouseB" placeholder="django:…" />
           </label>
-          <label>Mã vợ (wifePersonId)
-            <input id="wifePersonId" />
-          </label>
-          <label>wifeOrder
-            <input id="wifeOrder" type="number" min="1" step="1" />
+          <label>Thứ tự vợ
+            <input id="wifeOrder" type="number" min="1" step="1" placeholder="1" />
           </label>
         </div>
         <div class="actions">
-          <button type="button" id="btnAddSpouse">Thêm phối ngẫu</button>
+          <button type="button" id="btnAddSpouse">Thêm vợ/chồng</button>
         </div>
       </section>
     </div>
@@ -209,6 +209,6 @@
     </section>
   </div>
 
-  <script src="/js/admin.js?v=2"></script>
+  <script src="/js/admin.js?v=3"></script>
 </body>
 </html>
