@@ -93,8 +93,25 @@
       })
       .filter(Boolean);
     if (!names.length) return "";
-    if (names.length === 1) return names[0];
-    return names.length + " người";
+    var nameText = names.length === 1 ? names[0] : names.length + " người";
+    // Trên thẻ: icon theo giới tính người đang xem (nam → vợ, nữ → chồng).
+    if (node.gender === "female") return "♂ " + nameText;
+    if (node.gender === "male") return "♀ " + nameText;
+    return "⚭ " + nameText;
+  }
+
+  function spouseTooltipLine(node) {
+    if (!node.spouseText) return "";
+    var names = (node.spouses || [])
+      .map(function (s) {
+        var p = nodeById[s.personId];
+        return p ? p.name : null;
+      })
+      .filter(Boolean);
+    if (!names.length) return node.spouseText;
+    var label =
+      node.gender === "female" ? "Chồng" : node.gender === "male" ? "Vợ" : "Vợ/Chồng";
+    return label + ": " + names.join(", ");
   }
 
   // ── Diagram ─────────────────────────────────────────────────────
@@ -149,7 +166,8 @@
             },
             new go.Binding("text", "", function (d) {
               var lines = [d.name];
-              if (d.spouseText) lines.push("Vợ/Chồng: " + d.spouseText);
+              var spouseLine = spouseTooltipLine(d);
+              if (spouseLine) lines.push(spouseLine);
               if (d.generation != null) lines.push("Đời " + d.generation);
               if (d.isDeceased) lines.push("Đã mất");
               return lines.join("\n");
@@ -258,18 +276,21 @@
         $(
           go.TextBlock,
           {
-            height: 12,
+            height: 14,
             width: 104,
             maxLines: 1,
             overflow: go.TextBlock.OverflowEllipsis,
-            font: "8pt Arial",
-            stroke: "#6b7280",
+            font: "8pt Arial, 'Segoe UI Symbol', 'Noto Sans Symbols', sans-serif",
+            stroke: "#9d174d",
             textAlign: "center",
             margin: new go.Margin(1, 0, 0, 0),
           },
           new go.Binding("text", "", function (d) {
             if (d.wifeLabel) return d.wifeLabel;
-            return d.spouseText ? "Vợ/Chồng: " + d.spouseText : " ";
+            return d.spouseText || " ";
+          }),
+          new go.Binding("visible", "", function (d) {
+            return Boolean(d.wifeLabel || d.spouseText);
           }),
         ),
       ),
